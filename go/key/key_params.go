@@ -6,14 +6,14 @@ package key
 import "strconv"
 
 const (
-	// https://www.iana.org/assignments/cose/cose.xhtml#key-common-parameters
+	// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-common-parameters
 	ParamKty    IntKey = 1
 	ParamKid    IntKey = 2
 	ParamAlg    IntKey = 3
 	ParamOps    IntKey = 4
 	ParamBaseIV IntKey = 5
 
-	// https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
+	// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
 	// KtyOKP, KtyEC2
 	ParamCrv IntKey = -1
 	ParamX   IntKey = -2
@@ -24,6 +24,7 @@ const (
 	ParamK IntKey = -1
 )
 
+// ParamString returns the name of the key parameter.
 func (k Key) ParamString(p IntKey) string {
 	switch p {
 	case ParamKty:

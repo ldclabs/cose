@@ -7,32 +7,40 @@ import (
 	"bytes"
 	goed25519 "crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha1"
+	"errors"
 	"fmt"
 
 	"github.com/ldclabs/cose/go/key"
 )
 
+// GenerateKey generates a new key for Ed25519.
 func GenerateKey() (key.Key, error) {
-	_, privKey, err := goed25519.GenerateKey(rand.Reader)
+	pubKey, privKey, err := goed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		return nil, fmt.Errorf("cose/key/ed25519: GenerateKey: %w", err)
+		return nil, fmt.Errorf("cose/go/key/ed25519: GenerateKey: %w", err)
 	}
 
+	idhash := sha1.New()
+	idhash.Write(pubKey)
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyOKP,
+		key.ParamKid: idhash.Sum(nil), // default kid, can be set to other value.
 		key.ParamAlg: key.AlgEdDSA,
 		key.ParamCrv: key.CrvEd25519, // REQUIRED
 		key.ParamD:   privKey.Seed(), // REQUIRED
 	}, nil
 }
 
-// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
-// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
+// CheckKey checks whether the given key is a valid Ed25519 key.
+//
+// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
+// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 func CheckKey(k key.Key) error {
 	if k.Kty() != key.KtyOKP {
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid key type, expected "OKP", got %q`, k.Kty().String())
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid key type, expected "OKP", got %q`, k.Kty().String())
 	}
 
 	for p := range k {
@@ -42,7 +50,7 @@ func CheckKey(k key.Key) error {
 
 		case key.ParamAlg: // optional
 			if k.Alg() != key.AlgEdDSA {
-				return fmt.Errorf(`cose/key/ed25519: CheckKey: algorithm mismatch %q`, k.Alg().String())
+				return fmt.Errorf(`cose/go/key/ed25519: CheckKey: algorithm mismatch %q`, k.Alg().String())
 			}
 
 		case key.ParamOps: // optional
@@ -51,63 +59,72 @@ func CheckKey(k key.Key) error {
 				case key.OpSign, key.OpVerify:
 				// continue
 				default:
-					return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter key_ops %q`, op)
 				}
 			}
 
 		default:
-			return fmt.Errorf(`cose/key/ed25519: CheckKey: redundant parameter %q`, k.ParamString(p))
+			return fmt.Errorf(`cose/go/key/ed25519: CheckKey: redundant parameter %q`, k.ParamString(p))
 		}
 	}
 
 	// RECOMMENDED
-	if x, ok := k.GetBstr(key.ParamKid); ok && len(x) == 0 {
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid parameter kid`)
+	if k.Has(key.ParamKid) {
+		if x, err := k.GetBytes(key.ParamKid); err != nil || len(x) == 0 {
+			return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter kid`)
+		}
 	}
 
 	// REQUIRED
-	if cc, ok := k.GetInt(key.ParamCrv); !ok || cc != int(key.CrvEd25519) {
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid parameter crv %q`, key.Crv(cc).String())
+	if cc, err := k.GetSmallInt(key.ParamCrv); err != nil || cc != int(key.CrvEd25519) {
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter crv %q`, key.Crv(cc).String())
 	}
 
 	// REQUIRED for private key
-	d, okd := k.GetBstr(key.ParamD)
-	if okd && len(d) != goed25519.SeedSize {
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid parameter d`)
+	hasD := k.Has(key.ParamD)
+	d, _ := k.GetBytes(key.ParamD)
+	if hasD && len(d) != goed25519.SeedSize {
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter d`)
 	}
 
 	// REQUIRED for public key
 	// RECOMMENDED for private key
-	x, okx := k.GetBstr(key.ParamX)
-	if okx && len(x) != goed25519.PublicKeySize {
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid parameter x`)
+	hasX := k.Has(key.ParamX)
+	x, _ := k.GetBytes(key.ParamX)
+	if hasX && len(x) != goed25519.PublicKeySize {
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter x`)
 	}
 
 	ops := k.Ops()
 	switch {
-	case !okx && !okd:
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: missing parameter x or d`)
+	case !hasD && !hasX:
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: missing parameter x or d`)
 
-	case okd && !ops.EmptyOrHas(key.OpSign):
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: don't include "sign"`)
+	case hasD && !ops.EmptyOrHas(key.OpSign):
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: don't include "sign"`)
 
-	case !okd && !ops.EmptyOrHas(key.OpVerify):
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: don't include "verify"`)
+	case !hasD && !ops.EmptyOrHas(key.OpVerify):
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: don't include "verify"`)
 	}
 
 	return nil
 }
 
+// ToPublicKey converts the given private key to a public key.
+// If the key is already a public key, it is returned as-is.
 func ToPublicKey(k key.Key) (key.Key, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}
 
-	d, ok := k.GetBstr(key.ParamD)
-	if !ok {
+	if !k.Has(key.ParamD) {
+		if !k.Has(key.ParamX) {
+			return nil, errors.New(`cose/go/key/ed25519: ToPublicKey: missing parameter x`)
+		}
 		return k, nil
 	}
 
+	d, _ := k.GetBytes(key.ParamD)
 	pk := map[key.IntKey]any{
 		key.ParamKty: k.Kty(),
 		key.ParamCrv: k[key.ParamCrv],
@@ -135,31 +152,39 @@ type ed25519Signer struct {
 	privKey goed25519.PrivateKey
 }
 
+// NewSigner creates a key.Signer for the given private key.
 func NewSigner(k key.Key) (key.Signer, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}
 
-	d, ok := k.GetBstr(key.ParamD)
-	if !ok {
-		return nil, fmt.Errorf("cose/key/ed25519: NewSigner: invalid key")
+	if !k.Has(key.ParamD) {
+		return nil, fmt.Errorf("cose/go/key/ed25519: NewSigner: invalid key")
 	}
 
+	d, _ := k.GetBytes(key.ParamD)
 	privKey := goed25519.NewKeyFromSeed(d)
 
-	x, okx := k.GetBstr(key.ParamX)
-	if okx {
+	x, _ := k.GetBytes(key.ParamX)
+	if k.Has(key.ParamX) {
 		if !bytes.Equal(privKey.Public().([]byte), x) {
-			return nil, fmt.Errorf("cose/key/ed25519: NewSigner: invalid parameters x, y")
+			return nil, fmt.Errorf("cose/go/key/ed25519: NewSigner: invalid parameters x")
 		}
 	}
 
 	return &ed25519Signer{key: k, privKey: privKey}, nil
 }
 
-// Sign computes a signature for the given data.
+// Sign implements the key.Signer interface.
+// Sign computes the digital signature for data.
 func (e *ed25519Signer) Sign(data []byte) ([]byte, error) {
 	return goed25519.Sign(e.privKey, data), nil
+}
+
+// Key implements the key.Signer interface.
+// Key returns the private key in Signer.
+func (e *ed25519Signer) Key() key.Key {
+	return e.key
 }
 
 type ed25519Verifier struct {
@@ -167,23 +192,29 @@ type ed25519Verifier struct {
 	pubKey goed25519.PublicKey
 }
 
+// NewVerifier creates a key.Verifier for the given public key.
 func NewVerifier(k key.Key) (key.Verifier, error) {
-	if err := CheckKey(k); err != nil {
+	pk, err := ToPublicKey(k)
+	if err != nil {
 		return nil, err
 	}
 
-	x, ok := k.GetBstr(key.ParamX)
-	if !ok {
-		return nil, fmt.Errorf("cose/key/ed25519: NewVerifier: invalid key")
-	}
-
-	return &ed25519Verifier{key: k, pubKey: goed25519.PublicKey(x)}, nil
+	x, _ := pk.GetBytes(key.ParamX)
+	return &ed25519Verifier{key: pk, pubKey: goed25519.PublicKey(x)}, nil
 }
 
+// Verify implements the key.Verifier interface.
+// Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ed25519Verifier) Verify(data, sig []byte) error {
 	if !goed25519.Verify(e.pubKey, data, sig) {
-		return fmt.Errorf("cose/key/ed25519: Verify: invalid signature")
+		return fmt.Errorf("cose/go/key/ed25519: Verify: invalid signature")
 	}
 
 	return nil
+}
+
+// Key implements the key.Verifier interface.
+// Key returns the public key in Verifier.
+func (e *ed25519Verifier) Key() key.Key {
+	return e.key
 }

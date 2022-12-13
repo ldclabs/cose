@@ -8,13 +8,8 @@ import (
 )
 
 func init() {
-	key.RegisterSigner(key.KtySymmetric, key.AlgHMAC25664, key.CrvReserved, NewSigner)
-	key.RegisterSigner(key.KtySymmetric, key.AlgHMAC256256, key.CrvReserved, NewSigner)
-	key.RegisterSigner(key.KtySymmetric, key.AlgHMAC384384, key.CrvReserved, NewSigner)
-	key.RegisterSigner(key.KtySymmetric, key.AlgHMAC512512, key.CrvReserved, NewSigner)
-
-	key.RegisterVerifier(key.KtySymmetric, key.AlgHMAC25664, key.CrvReserved, NewVerifier)
-	key.RegisterVerifier(key.KtySymmetric, key.AlgHMAC256256, key.CrvReserved, NewVerifier)
-	key.RegisterVerifier(key.KtySymmetric, key.AlgHMAC384384, key.CrvReserved, NewVerifier)
-	key.RegisterVerifier(key.KtySymmetric, key.AlgHMAC512512, key.CrvReserved, NewVerifier)
+	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC25664, NewHMAC)
+	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC256256, NewHMAC)
+	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC384384, NewHMAC)
+	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC512512, NewHMAC)
 }

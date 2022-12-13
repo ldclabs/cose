@@ -10,8 +10,8 @@ import (
 )
 
 // Algorithms supported by this library.
-// # See Also
-// https://datatracker.ietf.org/doc/html/rfc9053
+//
+// Reference https://datatracker.ietf.org/doc/html/rfc9053
 const (
 	AlgReserved Alg = 0
 
@@ -21,6 +21,9 @@ const (
 	AlgES384 Alg = -35
 	// ECDSA P-521 w/ SHA-512.
 	AlgES512 Alg = -36
+
+	// ECDSA using secp256k1 curve and SHA-256
+	AlgES256K Alg = -47
 
 	// PureEdDSA.
 	AlgEdDSA Alg = -8
@@ -36,11 +39,8 @@ const (
 )
 
 // Algorithm represents an IANA algorithm entry in the COSE Algorithms registry.
-// Algorithms with string values are not supported.
 //
-// # See Also
-//
-// COSE Algorithms: https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 type Alg int
 
 // String returns the name of the algorithm

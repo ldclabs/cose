@@ -3,7 +3,10 @@
 
 package key
 
+// Op represents the key operation.
 type Op string
+
+// Ops represents the key operations.
 type Ops []Op
 
 const (
@@ -14,6 +17,7 @@ const (
 	OpMacVerify Op = "MAC verify"
 )
 
+// Has returns true if the given operation is in the list of operations.
 func (os Ops) Has(op Op) bool {
 	for _, o := range os {
 		if o == op {
@@ -23,6 +27,8 @@ func (os Ops) Has(op Op) bool {
 	return false
 }
 
+// EmptyOrHas returns true if the list of operations is empty,
+// or the given operation is in the list of operations.
 func (os Ops) EmptyOrHas(op Op) bool {
 	return len(os) == 0 || os.Has(op)
 }

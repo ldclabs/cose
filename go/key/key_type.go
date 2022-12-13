@@ -5,9 +5,10 @@ package key
 
 import "strconv"
 
+// Kty represents the key type.
 type Kty int
 
-// https://www.iana.org/assignments/cose/cose.xhtml#key-type
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-type
 const (
 	KtyReserved  Kty = 0
 	KtyOKP       Kty = 1

@@ -8,6 +8,7 @@ import (
 	goecdsa "crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"math/big"
@@ -15,30 +16,38 @@ import (
 	"github.com/ldclabs/cose/go/key"
 )
 
+// GenerateKey generates a new key.Key with given algorithm for ECDSA.
 func GenerateKey(alg key.Alg) (key.Key, error) {
 	crv, c := getCurve(alg)
 	if crv == nil {
-		return nil, fmt.Errorf(`cose/key/ecdsa: GenerateKey: algorithm mismatch %q`, alg.String())
+		return nil, fmt.Errorf(`cose/go/key/ecdsa: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
 	privKey, err := goecdsa.GenerateKey(crv, rand.Reader)
 	if err != nil {
-		return nil, fmt.Errorf("cose/key/ecdsa: GenerateKey: %w", err)
+		return nil, fmt.Errorf("cose/go/key/ecdsa: GenerateKey: %w", err)
 	}
+
+	idhash := sha1.New()
+	idhash.Write(privKey.PublicKey.X.Bytes())
+	idhash.Write(privKey.PublicKey.Y.Bytes())
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyEC2,
+		key.ParamKid: idhash.Sum(nil), // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamCrv: c,                 // REQUIRED
 		key.ParamD:   privKey.D.Bytes(), // REQUIRED
 	}, nil
 }
 
-// https://datatracker.ietf.org/doc/html/rfc9053#section-2-1
+// CheckKey checks whether the given key is a valid ECDSA key.
+//
+// Reference https://datatracker.ietf.org/doc/html/rfc9053#section-2-1
 func CheckKey(k key.Key) error {
 	if k.Kty() != key.KtyEC2 {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid key type, expected "EC2", got %q`, k.Kty().String())
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid key type, expected "EC2", got %q`, k.Kty().String())
 	}
 
 	for p := range k {
@@ -51,7 +60,7 @@ func CheckKey(k key.Key) error {
 			case key.AlgES256, key.AlgES384, key.AlgES512:
 			// continue
 			default:
-				return fmt.Errorf(`cose/key/ecdsa: CheckKey: algorithm mismatch %q`, k.Alg().String())
+				return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: algorithm mismatch %q`, k.Alg().String())
 			}
 
 		case key.ParamOps: // optional
@@ -60,71 +69,90 @@ func CheckKey(k key.Key) error {
 				case key.OpSign, key.OpVerify:
 				// continue
 				default:
-					return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter key_ops %q`, op)
 				}
 			}
 
 		default:
-			return fmt.Errorf(`cose/key/ecdsa: CheckKey: redundant parameter %q`, k.ParamString(p))
+			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: redundant parameter %q`, k.ParamString(p))
 		}
 	}
 
 	// RECOMMENDED
-	if x, ok := k.GetBstr(key.ParamKid); ok && len(x) == 0 {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter kid`)
+	if k.Has(key.ParamKid) {
+		if kid, err := k.GetBytes(key.ParamKid); err != nil || len(kid) == 0 {
+			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter kid`)
+		}
 	}
 
 	_, c := getCurve(k.Alg())
 	// REQUIRED
-	if cc, ok := k.GetInt(key.ParamCrv); !ok || cc != int(c) {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv %q`, key.Crv(cc).String())
+	crv, err := k.GetSmallInt(key.ParamCrv)
+	if err != nil {
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter crv, %v`, err)
+	}
+	if crv != int(c) {
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter crv %q`, key.Crv(crv).String())
 	}
 
 	// REQUIRED for private key
-	d, okd := k.GetBstr(key.ParamD)
-	if okd && (len(d) == 0 || len(d) > 66) {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter d`)
+	hasD := k.Has(key.ParamD)
+	d, _ := k.GetBytes(key.ParamD)
+	if hasD && (len(d) == 0 || len(d) > 66) {
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter d`)
 	}
 
 	// REQUIRED for public key
 	// RECOMMENDED for private key
-	x, okx := k.GetBstr(key.ParamX)
-	y, oky := k.GetBstr(key.ParamY)
-	if okx || oky {
+	hasX := k.Has(key.ParamX)
+	x, _ := k.GetBytes(key.ParamX)
+
+	hasY := k.Has(key.ParamY)
+	y, _ := k.GetBytes(key.ParamY)
+	if err != nil {
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter y, %v`, err)
+	}
+
+	if hasX || hasY {
 		if len(x) == 0 || len(x) > 66 {
-			return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter x`)
+			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter x`)
 		}
 
 		if len(y) == 0 || len(y) > 66 {
-			return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter y`)
+			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter y`)
 		}
 	}
 
 	ops := k.Ops()
 	switch {
-	case !okx && !okd:
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: missing parameter x or d`)
+	case !hasD && !hasX:
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: missing parameter x or d`)
 
-	case okd && !ops.EmptyOrHas(key.OpSign):
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: don't include "sign"`)
+	case hasD && !ops.EmptyOrHas(key.OpSign):
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: don't include "sign"`)
 
-	case !okd && !ops.EmptyOrHas(key.OpVerify):
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: don't include "verify"`)
+	case !hasD && !ops.EmptyOrHas(key.OpVerify):
+		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: don't include "verify"`)
 	}
 
 	return nil
 }
 
+// ToPublicKey converts the given private key to a public key.
+// If the key is already a public key, it is returned as-is.
 func ToPublicKey(k key.Key) (key.Key, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}
 
-	d, ok := k.GetBstr(key.ParamD)
-	if !ok {
+	if !k.Has(key.ParamD) {
+		if !k.Has(key.ParamX) {
+			return nil, errors.New(`cose/go/key/ecdsa: ToPublicKey: missing parameter x`)
+		}
 		return k, nil
 	}
 
+	d, _ := k.GetBytes(key.ParamD)
 	pk := map[key.IntKey]any{
 		key.ParamKty: k.Kty(),
 		key.ParamCrv: k[key.ParamCrv],
@@ -154,35 +182,37 @@ type ecdsaSigner struct {
 	privKey *goecdsa.PrivateKey
 }
 
+// NewSigner creates a key.Signer for the given private key.
 func NewSigner(k key.Key) (key.Signer, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}
 
-	d, ok := k.GetBstr(key.ParamD)
-	if !ok {
-		return nil, fmt.Errorf("cose/key/ecdsa: NewSigner: invalid key")
+	if !k.Has(key.ParamD) {
+		return nil, fmt.Errorf("cose/go/key/ecdsa: NewSigner: invalid parameter d")
 	}
 
+	d, _ := k.GetBytes(key.ParamD)
 	crv, _ := getCurve(k.Alg())
 	privKey := new(goecdsa.PrivateKey)
 	privKey.PublicKey.Curve = crv
 	privKey.D = new(big.Int).SetBytes(d)
 	privKey.PublicKey.X, privKey.PublicKey.Y = crv.ScalarBaseMult(d)
 
-	x, okx := k.GetBstr(key.ParamX)
-	y, oky := k.GetBstr(key.ParamY)
-	if okx || oky {
+	x, _ := k.GetBytes(key.ParamX)
+	y, _ := k.GetBytes(key.ParamY)
+	if x != nil || y != nil {
 		if !bytes.Equal(privKey.PublicKey.X.Bytes(), x) ||
 			!bytes.Equal(privKey.PublicKey.Y.Bytes(), y) {
-			return nil, fmt.Errorf("cose/key/ecdsa: NewSigner: invalid parameters x, y")
+			return nil, fmt.Errorf("cose/go/key/ecdsa: NewSigner: invalid parameters x, y for %q", k.Kid())
 		}
 	}
 
 	return &ecdsaSigner{key: k, privKey: privKey}, nil
 }
 
-// Sign computes a signature for the given data.
+// Sign implements the key.Signer interface.
+// Sign computes the digital signature for data.
 func (e *ecdsaSigner) Sign(data []byte) ([]byte, error) {
 	hashed, err := key.ComputeHash(e.key.Alg().HashFunc(), data)
 	if err != nil {
@@ -190,10 +220,16 @@ func (e *ecdsaSigner) Sign(data []byte) ([]byte, error) {
 	}
 	r, s, err := goecdsa.Sign(rand.Reader, e.privKey, hashed)
 	if err != nil {
-		return nil, fmt.Errorf("cose/key/ecdsa: Sign: %w", err)
+		return nil, fmt.Errorf("cose/go/key/ecdsa: Sign: %w", err)
 	}
 
 	return EncodeSignature(e.privKey.Curve, r, s)
+}
+
+// Key implements the key.Signer interface.
+// Key returns the private key in Signer.
+func (e *ecdsaSigner) Key() key.Key {
+	return e.key
 }
 
 type ecdsaVerifier struct {
@@ -201,46 +237,52 @@ type ecdsaVerifier struct {
 	pubKey *goecdsa.PublicKey
 }
 
+// NewVerifier creates a key.Verifier for the given public key.
 func NewVerifier(k key.Key) (key.Verifier, error) {
-	if err := CheckKey(k); err != nil {
+	pk, err := ToPublicKey(k)
+	if err != nil {
 		return nil, err
 	}
 
-	x, ok := k.GetBstr(key.ParamX)
-	if !ok {
-		return nil, fmt.Errorf("cose/key/ecdsa: NewVerifier: invalid key")
-	}
-
-	y, _ := k.GetBstr(key.ParamY)
-	crv, _ := getCurve(k.Alg())
+	x, _ := pk.GetBytes(key.ParamX)
+	y, _ := pk.GetBytes(key.ParamY)
+	crv, _ := getCurve(pk.Alg())
 	pubKey := &goecdsa.PublicKey{
 		Curve: crv,
 		X:     new(big.Int).SetBytes(x),
 		Y:     new(big.Int).SetBytes(y),
 	}
 	if !pubKey.Curve.IsOnCurve(pubKey.X, pubKey.Y) {
-		return nil, fmt.Errorf("cose/key/ecdsa: NewVerifier: invalid public key")
+		return nil, fmt.Errorf("cose/go/key/ecdsa: NewVerifier: invalid public key")
 	}
 
-	return &ecdsaVerifier{key: k, pubKey: pubKey}, nil
+	return &ecdsaVerifier{key: pk, pubKey: pubKey}, nil
 }
 
+// Verify implements the key.Verifier interface.
+// Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ecdsaVerifier) Verify(data, sig []byte) error {
 	hashed, err := key.ComputeHash(e.key.Alg().HashFunc(), data)
 	if err != nil {
-		return fmt.Errorf("cose/key/ecdsa: Verify: %w", err)
+		return fmt.Errorf("cose/go/key/ecdsa: Verify: %w", err)
 	}
 
 	r, s, err := DecodeSignature(e.pubKey.Curve, sig)
 	if err != nil {
-		return fmt.Errorf("cose/key/ecdsa: Verify: %w", err)
+		return fmt.Errorf("cose/go/key/ecdsa: Verify: %w", err)
 	}
 
 	if !goecdsa.Verify(e.pubKey, hashed, r, s) {
-		return fmt.Errorf("cose/key/ecdsa: Verify: invalid signature")
+		return fmt.Errorf("cose/go/key/ecdsa: Verify: invalid signature")
 	}
 
 	return nil
+}
+
+// Key implements the key.Verifier interface.
+// Key returns the public key in Verifier.
+func (e *ecdsaVerifier) Key() key.Key {
+	return e.key
 }
 
 // EncodeSignature encodes (r, s) into a signature binary string using the
@@ -266,7 +308,7 @@ func EncodeSignature(curve elliptic.Curve, r, s *big.Int) ([]byte, error) {
 func DecodeSignature(curve elliptic.Curve, sig []byte) (r, s *big.Int, err error) {
 	n := (curve.Params().N.BitLen() + 7) / 8
 	if len(sig) != n*2 {
-		return nil, nil, fmt.Errorf("invalid signature length: %d", len(sig))
+		return nil, nil, fmt.Errorf("cose/go/key/ecdsa: DecodeSignature: invalid signature length: %d", len(sig))
 	}
 
 	return os2ip(sig[:n]), os2ip(sig[n:]), nil

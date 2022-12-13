@@ -4,47 +4,51 @@
 package key
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
-	"sort"
 )
 
-const (
-	minInt = -65536
-	maxInt = 65536
-)
-
-type IntKey int
-type IntMap map[IntKey]any
-
-// Key
+// Key represents a COSE_Key structure.
 type Key IntMap
 
+// Kty returns the key type.
+// If the key is nil, it returns KtyReserved.
+//
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-type
 func (k Key) Kty() Kty {
 	if k == nil {
 		return KtyReserved
 	}
 
-	v, _ := k.GetInt(ParamKty)
+	v, _ := k.GetSmallInt(ParamKty)
 	return Kty(v)
 }
 
+// Kid returns the key identifier.
+// If the key identifier is not present, or the underlying value's Kind is not []byte, it returns nil.
 func (k Key) Kid() ByteStr {
-	if v, ok := k[ParamKid].(ByteStr); ok {
-		return v
-	}
-
-	v, _ := k.GetBstr(ParamKid)
+	v, _ := k.GetBytes(ParamKid)
 	return v
 }
 
+// Alg returns the key algorithm.
+// If It is elliptic-curves key and algorithm is not present,
+// it will return the algorithm that matched the curve.
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 func (k Key) Alg() Alg {
-	v, _ := k.GetInt(ParamAlg)
+	v, err := k.GetSmallInt(ParamAlg)
+	if err == nil && v == 0 {
+		// alg is optional, try lookup it by crv
+		if c, err := k.GetSmallInt(ParamCrv); err == nil {
+			return Crv(c).Alg()
+		}
+	}
 	return Alg(v)
 }
 
+// Ops returns the key operations, or nil.
+//
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-common-parameters
 func (k Key) Ops() Ops {
 	if v, ok := k[ParamOps]; ok {
 		switch x := v.(type) {
@@ -68,68 +72,30 @@ func (k Key) Ops() Ops {
 	return nil
 }
 
+// BaseIV returns the base IV to be XORed with Partial IVs.
+//
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-common-parameters
 func (k Key) BaseIV() ByteStr {
-	if v, ok := k[ParamBaseIV].(ByteStr); ok {
-		return v
-	}
-
-	v, _ := k.GetBstr(ParamBaseIV)
+	v, _ := k.GetBytes(ParamBaseIV)
 	return v
 }
 
-func (k Key) GetInt(p IntKey) (int, bool) {
-	if v, ok := k[p]; ok {
-		switch x := v.(type) {
-
-		case Alg:
-			if x >= minInt && x <= maxInt {
-				return int(x), true
-			}
-
-		case Crv:
-			if x >= minInt && x <= maxInt {
-				return int(x), true
-			}
-
-		case Kty:
-			if x >= minInt && x <= maxInt {
-				return int(x), true
-			}
-
-		case int:
-			if x >= minInt && x <= maxInt {
-				return x, true
-			}
-
-		case int64:
-			if x >= minInt && x <= maxInt {
-				return int(x), true
-			}
-
-		case uint64:
-			if x <= uint64(maxInt) {
-				return int(x), true
-			}
-		}
-	}
-
-	return 0, false
+// Has returns true if the key has the given parameter.
+func (k Key) Has(p IntKey) bool {
+	return IntMap(k).Has(p)
 }
 
-func (k Key) GetBstr(p IntKey) (ByteStr, bool) {
-	if v, ok := k[p]; ok {
-		switch x := v.(type) {
-		case ByteStr:
-			return x, true
-
-		case []byte:
-			return x, true
-		}
-	}
-
-	return nil, false
+// GetSmallInt returns the value of the given parameter as a small integer, or a error.
+func (k Key) GetSmallInt(p IntKey) (int, error) {
+	return IntMap(k).GetSmallInt(p)
 }
 
+// GetBytes returns the value of the given parameter as a slice of bytes, or a error.
+func (k Key) GetBytes(p IntKey) ([]byte, error) {
+	return IntMap(k).GetBytes(p)
+}
+
+// MarshalJSON implements the json.Marshaler interface for Key.
 func (k Key) MarshalJSON() ([]byte, error) {
 	m := make(map[string]any, len(k))
 	for n, v := range k {
@@ -145,39 +111,15 @@ func (k Key) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// Bytesify returns a CBOR-encoded byte slice.
+// It returns nil if MarshalCBOR failed.
 func (k Key) Bytesify() []byte {
 	b, _ := IntMap(k).MarshalCBOR()
 	return b
 }
 
+// MarshalCBOR implements the CBOR Marshaler interface for Key.
+// It is the same as IntMap.MarshalCBOR.
 func (k Key) MarshalCBOR() ([]byte, error) {
 	return IntMap(k).MarshalCBOR()
-}
-
-func (m IntMap) MarshalCBOR() ([]byte, error) {
-	var err error
-	var b bytes.Buffer
-	n := len(m)
-	if n > 23 {
-		return nil, errors.New("too many map items")
-	}
-
-	keys := make([]int, 0, n)
-	for k := range m {
-		keys = append(keys, int(k))
-	}
-	sort.Ints(keys)
-
-	// CBOR head: map with 0-23 items
-	b.WriteByte(0xa0 | byte(n))
-	enc := NewEncoder(&b)
-	for _, k := range keys {
-		if err = enc.Encode(k); err != nil {
-			return nil, err
-		}
-		if err = enc.Encode(m[IntKey(k)]); err != nil {
-			return nil, err
-		}
-	}
-	return b.Bytes(), nil
 }

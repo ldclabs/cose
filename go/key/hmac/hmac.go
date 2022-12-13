@@ -4,8 +4,9 @@
 package hmac
 
 import (
-	"crypto/hmac"
+	gohmac "crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1"
 	"fmt"
 	"hash"
 	"io"
@@ -13,31 +14,37 @@ import (
 	"github.com/ldclabs/cose/go/key"
 )
 
+// GenerateKey generates a new key with given algorithm for HMAC.
 func GenerateKey(alg key.Alg) (key.Key, error) {
 	keyLen, _ := getKeyLen(alg)
 	if keyLen == 0 {
-		return nil, fmt.Errorf(`cose/key/hmac: GenerateKey: algorithm mismatch %q`, alg.String())
+		return nil, fmt.Errorf(`cose/go/key/hmac: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
 	kb := make([]byte, keyLen)
 	_, err := io.ReadFull(rand.Reader, kb)
-	// TODO derive key
+	// TODO: derive key
 	if err != nil {
-		return nil, fmt.Errorf("cose/key/hmac: GenerateKey: %w", err)
+		return nil, fmt.Errorf("cose/go/key/hmac: GenerateKey: %w", err)
 	}
 
+	idhash := sha1.New()
+	idhash.Write(kb)
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtySymmetric,
+		key.ParamKid: idhash.Sum(nil), // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamK:   kb, // REQUIRED
 	}, nil
 }
 
-// https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti
+// CheckKey checks whether the given key is a valid HMAC key.
+//
+// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti
 func CheckKey(k key.Key) error {
 	if k.Kty() != key.KtySymmetric {
-		return fmt.Errorf(`cose/key/hmac: CheckKey: invalid key type, expected "Symmetric", got %q`, k.Kty().String())
+		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid key type, expected "Symmetric", got %q`, k.Kty().String())
 	}
 
 	for p := range k {
@@ -50,7 +57,7 @@ func CheckKey(k key.Key) error {
 			case key.AlgHMAC25664, key.AlgHMAC256256, key.AlgHMAC384384, key.AlgHMAC512512:
 			// continue
 			default:
-				return fmt.Errorf(`cose/key/hmac: CheckKey: algorithm mismatch %q`, k.Alg().String())
+				return fmt.Errorf(`cose/go/key/hmac: CheckKey: algorithm mismatch %q`, k.Alg().String())
 			}
 
 		case key.ParamOps: // optional
@@ -59,62 +66,55 @@ func CheckKey(k key.Key) error {
 				case key.OpMacCreate, key.OpMacVerify:
 				// continue
 				default:
-					return fmt.Errorf(`cose/key/hmac: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter key_ops %q`, op)
 				}
 			}
 
 		default:
-			return fmt.Errorf(`cose/key/hmac: CheckKey: redundant parameter %q`, k.ParamString(p))
+			return fmt.Errorf(`cose/go/key/hmac: CheckKey: redundant parameter %q`, k.ParamString(p))
 		}
 	}
 
 	// REQUIRED
-	kb, ok := k.GetBstr(key.ParamK)
+	kb, err := k.GetBytes(key.ParamK)
+	if err != nil {
+		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter k, %v`, err)
+	}
 	keyLen, _ := getKeyLen(k.Alg())
-	if ok && len(kb) != keyLen {
-		return fmt.Errorf(`cose/key/hmac: CheckKey: invalid parameter k`)
+	if len(kb) != keyLen {
+		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter k`)
 	}
 
 	return nil
 }
 
-type HMAC struct {
+type hMAC struct {
 	key     key.Key
 	tagSize int
 	k       []byte
 	h       func() hash.Hash
 }
 
-func NewSigner(k key.Key) (key.Signer, error) {
-	return NewHMAC(k)
-}
-
-func NewVerifier(k key.Key) (key.Verifier, error) {
-	return NewHMAC(k)
-}
-
-func NewHMAC(k key.Key) (*HMAC, error) {
+// NewHMAC creates a key.MACer for the given HMAC key.
+func NewHMAC(k key.Key) (key.MACer, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}
 
-	kb, ok := k.GetBstr(key.ParamK)
-	if !ok {
-		return nil, fmt.Errorf("cose/key/HMAC: NewHMAC: invalid key")
-	}
-
+	kb, _ := k.GetBytes(key.ParamK)
 	h := k.Alg().HashFunc()
 	if !h.Available() {
-		return nil, fmt.Errorf("cose/key/HMAC: NewHMAC: hash function is not available")
+		return nil, fmt.Errorf("cose/go/key/hmac: NewHMAC: hash function is not available")
 	}
 	_, tagSize := getKeyLen(k.Alg())
 
-	return &HMAC{key: k, tagSize: tagSize, k: kb, h: h.New}, nil
+	return &hMAC{key: k, tagSize: tagSize, k: kb, h: h.New}, nil
 }
 
-// Sign computes message authentication code (MAC) for the given data.
-func (h *HMAC) Sign(data []byte) ([]byte, error) {
-	mac := hmac.New(h.h, h.k)
+// ComputeMAC implements the key.MACer interface.
+// ComputeMAC computes message authentication code (MAC) for the given data.
+func (h *hMAC) ComputeMAC(data []byte) ([]byte, error) {
+	mac := gohmac.New(h.h, h.k)
 	if _, err := mac.Write(data); err != nil {
 		return nil, err
 	}
@@ -122,17 +122,23 @@ func (h *HMAC) Sign(data []byte) ([]byte, error) {
 	return tag[:h.tagSize], nil
 }
 
-// Verify verifies whether the given MAC is a correct message authentication
-// code (MAC) the given data.
-func (h *HMAC) Verify(data, mac []byte) error {
-	expectedMAC, err := h.Sign(data)
+// VerifyMAC implements the key.MACer interface.
+// VerifyMAC verifies whether the given MAC is a correct message authentication code (MAC) the given data.
+func (h *hMAC) VerifyMAC(data, mac []byte) error {
+	expectedMAC, err := h.ComputeMAC(data)
 	if err != nil {
 		return err
 	}
-	if hmac.Equal(expectedMAC, mac) {
+	if gohmac.Equal(expectedMAC, mac) {
 		return nil
 	}
-	return fmt.Errorf("cose/key/HMAC: VerifyMAC: invalid MAC")
+	return fmt.Errorf("cose/go/key/hmac: VerifyMAC: invalid MAC")
+}
+
+// Key implements the key.MACer interface.
+// Key returns the key in MACer.
+func (h *hMAC) Key() key.Key {
+	return h.key
 }
 
 func getKeyLen(alg key.Alg) (keyLen, tagSize int) {

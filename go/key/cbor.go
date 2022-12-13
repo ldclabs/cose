@@ -24,10 +24,13 @@ var decOpts = cbor.DecOptions{
 }
 var decMode, _ = decOpts.DecMode()
 
+// MarshalCBOR marshals value with the special cbor.EncOptions.
 func MarshalCBOR(v any) ([]byte, error) {
 	return encMode.Marshal(v)
 }
 
+// MustMarshalCBOR marshals value with the special cbor.EncOptions.
+// It will panic if marshaling failed.
 func MustMarshalCBOR(v any) []byte {
 	data, err := encMode.Marshal(v)
 	if err != nil {
@@ -36,14 +39,17 @@ func MustMarshalCBOR(v any) []byte {
 	return data
 }
 
+// UnmarshalCBOR unmarshals data into value with the special cbor.DecOptions.
 func UnmarshalCBOR(data []byte, v any) error {
 	return decMode.Unmarshal(data, v)
 }
 
+// ValidCBOR returns true if data is valid CBOR.
 func ValidCBOR(data []byte) error {
 	return decMode.Valid(data)
 }
 
+// NewEncoder returns a new CBOR encoder with the special cbor.EncOptions.
 func NewEncoder(w io.Writer) *cbor.Encoder {
 	return encMode.NewEncoder(w)
 }

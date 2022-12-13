@@ -5,9 +5,10 @@ package key
 
 import "strconv"
 
+// Crv represents the key's curve.
 type Crv int
 
-// https://www.iana.org/assignments/cose/cose.xhtml#elliptic-curves
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#elliptic-curves
 const (
 	CrvReserved  Crv = 0
 	CrvP256      Crv = 1
@@ -20,6 +21,27 @@ const (
 	CrvSecp256k1 Crv = 8
 )
 
+// Alg returns the algorithm that matched the key's curve.
+func (c Crv) Alg() Alg {
+	switch c {
+	case CrvP256:
+		return AlgES256
+	case CrvP384:
+		return AlgES384
+	case CrvP521:
+		return AlgES512
+	case CrvEd25519:
+		return AlgEdDSA
+	case CrvEd448:
+		return AlgEdDSA
+	case CrvSecp256k1:
+		return AlgES256K
+	default:
+		return AlgReserved
+	}
+}
+
+// String returns the name of the key's curve.
 func (c Crv) String() string {
 	switch c {
 	case CrvP256:
