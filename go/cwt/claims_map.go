@@ -71,7 +71,7 @@ func (cm ClaimsMap) GetString(k key.IntKey) (string, error) {
 
 // Verify1AndDecodeMap verifies and decodes a CWT in COSE_Sign1 format with a verifier and returns a ClaimsMap.
 // externalData should be the same as the one used in Sign1AndEncode.
-// It can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// It can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
 func Verify1AndDecodeMap(verifier key.Verifier, coseData, externalData []byte) (ClaimsMap, error) {
 	// remove optional CWT CBOR tag
 	if bytes.HasPrefix(coseData, cwtPrefix) {
@@ -92,7 +92,7 @@ func Verify1AndDecodeMap(verifier key.Verifier, coseData, externalData []byte) (
 
 // VerifyAndDecodeMap verifies and decodes a CWT in COSE_Sign format with some verifiers and returns a ClaimsMap.
 // externalData should be the same as the one used in SignAndEncode.
-// It can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// It can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
 func VerifyAndDecodeMap(verifiers key.Verifiers, coseData, externalData []byte) (ClaimsMap, error) {
 	// remove optional CWT CBOR tag
 	if bytes.HasPrefix(coseData, cwtPrefix) {
@@ -112,7 +112,7 @@ func VerifyAndDecodeMap(verifiers key.Verifiers, coseData, externalData []byte) 
 }
 
 // Sign1AndEncode signs and encodes a CWT in COSE_Sign1 format with a signer.
-// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
 func (claims ClaimsMap) Sign1AndEncode(signer key.Signer, externalData []byte) ([]byte, error) {
 	data, err := key.MarshalCBOR(claims)
 	if err != nil {
@@ -124,7 +124,7 @@ func (claims ClaimsMap) Sign1AndEncode(signer key.Signer, externalData []byte) (
 }
 
 // SignAndEncode signs and encodes a CWT in COSE_Sign format with some signers.
-// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
 func (claims ClaimsMap) SignAndEncode(signers key.Signers, externalData []byte) ([]byte, error) {
 	data, err := key.MarshalCBOR(claims)
 	if err != nil {

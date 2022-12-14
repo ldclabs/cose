@@ -21,19 +21,18 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/go/key/hmac: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
-	kb := make([]byte, keyLen)
+	kb := key.GetRandomBytes(uint16(keyLen))
 	_, err := io.ReadFull(rand.Reader, kb)
-	// TODO: derive key
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/hmac: GenerateKey: %w", err)
 	}
 
 	idhash := sha1.New()
 	idhash.Write(kb)
-	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
+
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: idhash.Sum(nil), // default kid, can be set to other value.
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamK:   kb, // REQUIRED
 	}, nil
@@ -63,7 +62,7 @@ func CheckKey(k key.Key) error {
 		case key.ParamOps: // optional
 			for _, op := range k.Ops() {
 				switch op {
-				case key.OpMacCreate, key.OpMacVerify:
+				case key.OpMACCreate, key.OpMACVerify:
 				// continue
 				default:
 					return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter key_ops %q`, op)
@@ -111,21 +110,24 @@ func NewHMAC(k key.Key) (key.MACer, error) {
 	return &hMAC{key: k, tagSize: tagSize, k: kb, h: h.New}, nil
 }
 
-// ComputeMAC implements the key.MACer interface.
-// ComputeMAC computes message authentication code (MAC) for the given data.
-func (h *hMAC) ComputeMAC(data []byte) ([]byte, error) {
-	mac := gohmac.New(h.h, h.k)
-	if _, err := mac.Write(data); err != nil {
-		return nil, err
+// MACCreate implements the key.MACer interface.
+// MACCreate computes message authentication code (MAC) for the given data.
+func (h *hMAC) MACCreate(data []byte) ([]byte, error) {
+	if !h.key.Ops().EmptyOrHas(key.OpMACCreate) {
+		return nil, fmt.Errorf("cose/go/key/hmac: MACCreate: invalid key_ops")
 	}
-	tag := mac.Sum(nil)
-	return tag[:h.tagSize], nil
+
+	return h.create(data)
 }
 
-// VerifyMAC implements the key.MACer interface.
-// VerifyMAC verifies whether the given MAC is a correct message authentication code (MAC) the given data.
-func (h *hMAC) VerifyMAC(data, mac []byte) error {
-	expectedMAC, err := h.ComputeMAC(data)
+// MACVerify implements the key.MACer interface.
+// MACVerify verifies whether the given MAC is a correct message authentication code (MAC) the given data.
+func (h *hMAC) MACVerify(data, mac []byte) error {
+	if !h.key.Ops().EmptyOrHas(key.OpMACVerify) {
+		return fmt.Errorf("cose/go/key/hmac: MACCreate: invalid key_ops")
+	}
+
+	expectedMAC, err := h.create(data)
 	if err != nil {
 		return err
 	}
@@ -133,6 +135,15 @@ func (h *hMAC) VerifyMAC(data, mac []byte) error {
 		return nil
 	}
 	return fmt.Errorf("cose/go/key/hmac: VerifyMAC: invalid MAC")
+}
+
+func (h *hMAC) create(data []byte) ([]byte, error) {
+	mac := gohmac.New(h.h, h.k)
+	if _, err := mac.Write(data); err != nil {
+		return nil, err
+	}
+	tag := mac.Sum(nil)
+	return tag[:h.tagSize], nil
 }
 
 // Key implements the key.MACer interface.

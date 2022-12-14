@@ -6,6 +6,8 @@ package key
 import "strconv"
 
 const (
+	// COSE Key Common Parameters
+	// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-cose-key-common-parameters
 	// Reference https://www.iana.org/assignments/cose/cose.xhtml#key-common-parameters
 	ParamKty    IntKey = 1
 	ParamKid    IntKey = 2
@@ -36,7 +38,7 @@ func (k Key) ParamString(p IntKey) string {
 	case ParamOps:
 		return "key_ops"
 	case ParamBaseIV:
-		return "base_iv"
+		return "Base IV"
 	}
 
 	switch k.Kty() {

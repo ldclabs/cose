@@ -35,7 +35,7 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyEC2,
-		key.ParamKid: idhash.Sum(nil), // default kid, can be set to other value.
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamCrv: c,                 // REQUIRED
 		key.ParamD:   privKey.D.Bytes(), // REQUIRED
@@ -288,7 +288,7 @@ func (e *ecdsaVerifier) Key() key.Key {
 // EncodeSignature encodes (r, s) into a signature binary string using the
 // method specified by RFC 8152 section 8.1.
 //
-// Reference: https://datatracker.ietf.org/doc/html/rfc8152#section-8.1
+// Reference: https://datatracker.ietf.org/doc/html/rfc9052#section-8.1
 func EncodeSignature(curve elliptic.Curve, r, s *big.Int) ([]byte, error) {
 	n := (curve.Params().N.BitLen() + 7) / 8
 	sig := make([]byte, n*2)
@@ -304,7 +304,7 @@ func EncodeSignature(curve elliptic.Curve, r, s *big.Int) ([]byte, error) {
 // DecodeSignature decodes (r, s) from a signature binary string using the
 // method specified by RFC 8152 section 8.1.
 //
-// Reference: https://datatracker.ietf.org/doc/html/rfc8152#section-8.1
+// Reference: https://datatracker.ietf.org/doc/html/rfc9052#section-8.1
 func DecodeSignature(curve elliptic.Curve, sig []byte) (r, s *big.Int, err error) {
 	n := (curve.Params().N.BitLen() + 7) / 8
 	if len(sig) != n*2 {

@@ -27,7 +27,7 @@ func GenerateKey() (key.Key, error) {
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyOKP,
-		key.ParamKid: idhash.Sum(nil), // default kid, can be set to other value.
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
 		key.ParamAlg: key.AlgEdDSA,
 		key.ParamCrv: key.CrvEd25519, // REQUIRED
 		key.ParamD:   privKey.Seed(), // REQUIRED

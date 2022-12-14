@@ -12,9 +12,9 @@ import (
 	"github.com/ldclabs/cose/go/key"
 )
 
-// Sign1Message represents a COSE_Sign1 object to be signed or verified.
+// Sign1Message represents a COSE_Sign1 object.
 //
-// Reference https://datatracker.ietf.org/doc/html/rfc8152#section-4-2
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-signer
 type Sign1Message struct {
 	Protected   Headers
 	Unprotected Headers
@@ -23,9 +23,8 @@ type Sign1Message struct {
 	sm *sign1Message
 }
 
-// VerifySign1Message verifies and decodes a COSE_Sign1 message with a verifier and returns a *Sign1Message.
-// externalData should be the same as the one used in Sign1Message.SignAndEncode.
-// It can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// VerifySign1Message verifies and decodes a COSE_Sign1 message with a Verifier and returns a *Sign1Message.
+// `externalData` should be the same as the one used in `Sign1Message.SignAndEncode`.
 func VerifySign1Message(verifier key.Verifier, coseData, externalData []byte) (*Sign1Message, error) {
 	s := &Sign1Message{}
 	if err := s.UnmarshalCBOR(coseData); err != nil {
@@ -37,8 +36,8 @@ func VerifySign1Message(verifier key.Verifier, coseData, externalData []byte) (*
 	return s, nil
 }
 
-// SignAndEncode signs and encodes a COSE_Sign1 message with a signer.
-// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// SignAndEncode signs and encodes a COSE_Sign1 message with a Signer.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
 func (s *Sign1Message) SignAndEncode(signer key.Signer, externalData []byte) ([]byte, error) {
 	if err := s.WithSign(signer, externalData); err != nil {
 		return nil, err
@@ -46,31 +45,31 @@ func (s *Sign1Message) SignAndEncode(signer key.Signer, externalData []byte) ([]
 	return s.MarshalCBOR()
 }
 
-// sign1Message represents a COSE_Sign1 structure.
+// sign1Message represents a COSE_Sign1 structure to encode and decode.
 type sign1Message struct {
 	_           struct{} `cbor:",toarray"`
 	Protected   []byte
 	Unprotected Headers
-	Payload     []byte // bstr / nil
+	Payload     []byte // can be nil
 	Signature   []byte
 }
 
-// WithSign signs a COSE_Sign1 message with a signer.
-// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// WithSign signs a COSE_Sign1 message with a Signer.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
 func (s *Sign1Message) WithSign(signer key.Signer, externalData []byte) error {
 	if s.Protected == nil {
 		s.Protected = Headers{}
+
+		if alg := signer.Key().Alg(); alg != key.AlgReserved {
+			s.Protected[HeaderLabelAlgorithm] = alg
+		}
 	}
 	if s.Unprotected == nil {
 		s.Unprotected = Headers{}
-	}
 
-	if alg := signer.Key().Alg(); alg != key.AlgReserved {
-		s.Protected[HeaderLabelAlgorithm] = alg
-	}
-
-	if kid := signer.Key().Kid(); len(kid) > 0 {
-		s.Unprotected[HeaderLabelKeyID] = kid
+		if kid := signer.Key().Kid(); len(kid) > 0 {
+			s.Unprotected[HeaderLabelKeyID] = kid
+		}
 	}
 
 	sm := &sign1Message{
@@ -98,10 +97,9 @@ func (s *Sign1Message) WithSign(signer key.Signer, externalData []byte) error {
 	return err
 }
 
-// Verify verifies a COSE_Sign1 message with a verifier.
-// It should call Sign1Message.UnmarshalCBOR before calling this method.
-// externalData should be the same as the one used in Sign1Message.WithSign.
-// It can be nil. https://datatracker.ietf.org/doc/html/rfc8152#section-4-3
+// Verify verifies a COSE_Sign1 message with a Verifier.
+// It should call `Sign1Message.UnmarshalCBOR` before calling this method.
+// `externalData` should be the same as the one used in `Sign1Message.WithSign`.
 func (s *Sign1Message) Verify(verifier key.Verifier, externalData []byte) error {
 	if s.sm == nil || s.sm.Signature == nil {
 		return errors.New("cose/go/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
@@ -119,7 +117,7 @@ func (sm *sign1Message) toBeSigned(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
-	// Sig_structure https://datatracker.ietf.org/doc/html/rfc8152#section-4-4
+	// Sig_structure https://datatracker.ietf.org/doc/html/rfc9052#name-signing-and-verification-pr
 	return key.MarshalCBOR([]any{
 		"Signature1", // context
 		sm.Protected, // body_protected
@@ -132,7 +130,7 @@ func (sm *sign1Message) toBeSigned(external_aad []byte) ([]byte, error) {
 const cborTagCOSESign1 = 18
 
 // MarshalCBOR implements the CBOR Marshaler interface for Sign1Message.
-// It should call Sign1Message.WithSign before calling this method.
+// It should call `Sign1Message.WithSign` before calling this method.
 func (s *Sign1Message) MarshalCBOR() ([]byte, error) {
 	if s.sm == nil || s.sm.Signature == nil {
 		return nil, errors.New("cose/go/cose: Sign1Message.MarshalCBOR: should call Sign1Message.WithSign")

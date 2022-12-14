@@ -5,6 +5,12 @@ package key
 
 import "bytes"
 
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#section-11.3.2
+const (
+	MIMEApplicationCOSEKey    = "application/cose-key"
+	MIMEApplicationCOSEKeySet = "application/cose-key-set"
+)
+
 type KeySet []Key
 
 // Lookup returns the first key matching the given key id.

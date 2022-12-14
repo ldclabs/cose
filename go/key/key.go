@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 )
 
-// Key represents a COSE_Key structure.
+// Key represents a COSE_Key object.
+//
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#section-7
 type Key IntMap
 
 // Kty returns the key type.
@@ -58,12 +60,12 @@ func (k Key) Ops() Ops {
 		case []any:
 			ops := make(Ops, len(x))
 			for i, v := range x {
-				op, ok := v.(string)
-				if !ok {
-					break
+				op, err := SmallInt(v)
+				if err != nil {
+					return nil
 				}
 
-				ops[i] = Op(op)
+				ops[i] = IntKey(op)
 			}
 			return ops
 		}

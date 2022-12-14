@@ -12,7 +12,7 @@ import (
 	"sort"
 )
 
-// IntKey is a key type for the IntMap.
+// IntKey is a key type for the IntMap, value is from -65536 to 65536.
 type IntKey int
 
 // IntMap represents a map of IntKey to any value.
@@ -24,6 +24,29 @@ const (
 	minInt = -65536
 	maxInt = 65536
 )
+
+// SmallInt converts the given value to small int, which is from -65536 to 65536.
+func SmallInt(v any) (int, error) {
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
+		x := rv.Int()
+		if x >= minInt && x <= maxInt {
+			return int(x), nil
+		}
+		return 0, fmt.Errorf("invalid small int %v", v)
+
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
+		x := rv.Uint()
+		if x <= uint64(maxInt) {
+			return int(x), nil
+		}
+		return 0, fmt.Errorf("invalid small int %v", v)
+
+	default:
+		return 0, fmt.Errorf("invalid value type %T", v)
+	}
+}
 
 // Has returns true if the map contains the key.
 func (m IntMap) Has(k IntKey) bool {
@@ -44,25 +67,7 @@ func (m IntMap) GetSmallInt(k IntKey) (int, error) {
 	}
 
 	if v, ok := m[k]; ok {
-		rv := reflect.ValueOf(v)
-		switch rv.Kind() {
-		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
-			x := rv.Int()
-			if x >= minInt && x <= maxInt {
-				return int(x), nil
-			}
-			return 0, fmt.Errorf("invalid value %v", v)
-
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
-			x := rv.Uint()
-			if x <= uint64(maxInt) {
-				return int(x), nil
-			}
-			return 0, fmt.Errorf("invalid value %v", v)
-
-		default:
-			return 0, fmt.Errorf("invalid value type %T", v)
-		}
+		return SmallInt(v)
 	}
 
 	return 0, nil

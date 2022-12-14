@@ -36,6 +36,15 @@ const (
 	AlgHMAC384384 Alg = 6
 	// HMAC w/ SHA-512
 	AlgHMAC512512 Alg = 7
+
+	// AES-CBC-MAC 128-bit key, 64-bit tag
+	AlgAESMAC12864 Alg = 14
+	// AES-CBC-MAC 256-bit key, 64-bit tag
+	AlgAESMAC25664 Alg = 15
+	// AES-CBC-MAC 128-bit key, 128-bit tag
+	AlgAESMAC128128 Alg = 25
+	// AES-CBC-MAC 256-bit key, 128-bit tag
+	AlgAESMAC256128 Alg = 26
 )
 
 // Algorithm represents an IANA algorithm entry in the COSE Algorithms registry.
