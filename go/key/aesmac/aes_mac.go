@@ -15,14 +15,14 @@ import (
 	"github.com/ldclabs/cose/go/key"
 )
 
-// GenerateKey generates a new key with given algorithm for AES-CBC-MAC.
+// GenerateKey generates a new Key with given algorithm for AES-CBC-MAC.
 func GenerateKey(alg key.Alg) (key.Key, error) {
-	keyLen, _ := getKeyLen(alg)
-	if keyLen == 0 {
+	keySize, _ := getKeySize(alg)
+	if keySize == 0 {
 		return nil, fmt.Errorf(`cose/go/key/aesmac: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
-	kb := key.GetRandomBytes(uint16(keyLen))
+	kb := key.GetRandomBytes(uint16(keySize))
 	_, err := io.ReadFull(rand.Reader, kb)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/aesmac: GenerateKey: %w", err)
@@ -36,6 +36,27 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamK:   kb, // REQUIRED
+	}, nil
+}
+
+// KeyFrom returns a Key with given algorithm and bytes for AES-CBC-MAC.
+func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
+	keySize, _ := getKeySize(alg)
+	if keySize == 0 {
+		return nil, fmt.Errorf(`cose/go/key/aesmac: KeyFrom: algorithm mismatch %q`, alg.String())
+	}
+	if keySize != len(k) {
+		return nil, fmt.Errorf(`cose/go/key/aesmac: KeyFrom: invalid key size, expected %d, got %d`, keySize, len(k))
+	}
+
+	idhash := sha1.New()
+	idhash.Write(k)
+
+	return map[key.IntKey]any{
+		key.ParamKty: key.KtySymmetric,
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamAlg: alg,
+		key.ParamK:   append(make([]byte, 0, len(k)), k...), // REQUIRED
 	}, nil
 }
 
@@ -80,8 +101,8 @@ func CheckKey(k key.Key) error {
 	if err != nil {
 		return fmt.Errorf(`cose/go/key/aesmac: CheckKey: invalid parameter k, %v`, err)
 	}
-	keyLen, _ := getKeyLen(k.Alg())
-	if len(kb) != keyLen {
+	keySize, _ := getKeySize(k.Alg())
+	if len(kb) != keySize {
 		return fmt.Errorf(`cose/go/key/aesmac: CheckKey: invalid parameter k`)
 	}
 
@@ -101,7 +122,7 @@ func NewAESMAC(k key.Key) (key.MACer, error) {
 	}
 
 	cek, _ := k.GetBytes(key.ParamK)
-	_, tagSize := getKeyLen(k.Alg())
+	_, tagSize := getKeySize(k.Alg())
 	block, err := aes.NewCipher(cek)
 	if err != nil {
 		return nil, err
@@ -161,7 +182,7 @@ func (h *aesMAC) Key() key.Key {
 	return h.key
 }
 
-func getKeyLen(alg key.Alg) (keyLen, tagSize int) {
+func getKeySize(alg key.Alg) (keySize, tagSize int) {
 	switch alg {
 	case key.AlgAESMAC12864, key.AlgReserved:
 		return 16, 8

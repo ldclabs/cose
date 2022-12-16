@@ -28,6 +28,13 @@ const (
 	// PureEdDSA.
 	AlgEdDSA Alg = -8
 
+	// AES-GCM mode w/ 128-bit key, 128-bit tag
+	AlgA128GCM Alg = 1
+	// AES-GCM mode w/ 192-bit key, 128-bit tag
+	AlgA192GCM Alg = 2
+	// AES-GCM mode w/ 256-bit key, 128-bit tag
+	AlgA256GCM Alg = 3
+
 	// HMAC w/ SHA-256 truncated to 64 bits
 	AlgHMAC25664 Alg = 4
 	// HMAC w/ SHA-256
@@ -36,6 +43,23 @@ const (
 	AlgHMAC384384 Alg = 6
 	// HMAC w/ SHA-512
 	AlgHMAC512512 Alg = 7
+
+	// AES-CCM mode 128-bit key, 64-bit tag, 13-byte nonce
+	AlgAESCCM1664128 = 10
+	// AES-CCM mode 256-bit key, 64-bit tag, 13-byte nonce
+	AlgAESCCM1664256 = 11
+	// AES-CCM mode 128-bit key, 64-bit tag, 7-byte nonce
+	AlgAESCCM6464128 = 12
+	// AES-CCM mode 256-bit key, 64-bit tag, 7-byte nonce
+	AlgAESCCM6464256 = 13
+	// AES-CCM mode 128-bit key, 128-bit tag, 13-byte nonce
+	AlgAESCCM16128128 = 30
+	// AES-CCM mode 256-bit key, 128-bit tag, 13-byte nonce
+	AlgAESCCM16128256 = 31
+	// AES-CCM mode 128-bit key, 128-bit tag, 7-byte nonce
+	AlgAESCCM64128128 = 32
+	// AES-CCM mode 256-bit key, 128-bit tag, 7-byte nonce
+	AlgAESCCM64128256 = 33
 
 	// AES-CBC-MAC 128-bit key, 64-bit tag
 	AlgAESMAC12864 Alg = 14

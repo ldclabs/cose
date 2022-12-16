@@ -17,11 +17,11 @@ func TestSign(t *testing.T) {
 	assert := assert.New(t)
 
 	for _, tc := range []struct {
-		title     string
-		ks        key.KeySet
-		toBeSigns [][]byte
-		payload   []byte
-		output    []byte
+		title   string
+		ks      key.KeySet
+		toSigns [][]byte
+		payload []byte
+		output  []byte
 	}{
 		{
 			`Case: JOSE Cookbook Example 4.8 - multiple signatures`,
@@ -61,8 +61,8 @@ func TestSign(t *testing.T) {
 		err = obj.WithSign(signers, nil)
 		require.NoError(t, err, tc.title)
 		assert.Equal(2, len(obj.Signatures()))
-		assert.Equal(tc.toBeSigns[0], obj.sm.Signatures[0].toBeSigned, tc.title)
-		assert.Equal(tc.toBeSigns[1], obj.sm.Signatures[1].toBeSigned, tc.title)
+		assert.Equal(tc.toSigns[0], obj.sm.Signatures[0].toSign, tc.title)
+		assert.Equal(tc.toSigns[1], obj.sm.Signatures[1].toSign, tc.title)
 
 		output, err := key.MarshalCBOR(obj)
 		require.NoError(t, err, tc.title)
@@ -72,8 +72,8 @@ func TestSign(t *testing.T) {
 		require.NoError(t, key.UnmarshalCBOR(output, &obj2), tc.title)
 		require.NoError(t, obj2.Verify(verifiers, nil), tc.title)
 		assert.Equal(2, len(obj2.Signatures()))
-		assert.Equal(tc.toBeSigns[0], obj2.sm.Signatures[0].toBeSigned, tc.title)
-		assert.Equal(tc.toBeSigns[1], obj2.sm.Signatures[1].toBeSigned, tc.title)
+		assert.Equal(tc.toSigns[0], obj2.sm.Signatures[0].toSign, tc.title)
+		assert.Equal(tc.toSigns[1], obj2.sm.Signatures[1].toSign, tc.title)
 		assert.Equal(obj.Signatures()[0].Signature(), obj2.Signatures()[0].Signature(), tc.title)
 		assert.Equal(obj.Signatures()[1].Signature(), obj2.Signatures()[1].Signature(), tc.title)
 		assert.Equal(output, obj2.Bytesify(), tc.title)
@@ -83,8 +83,8 @@ func TestSign(t *testing.T) {
 		require.NoError(t, key.UnmarshalCBOR(tc.output, &obj3), tc.title)
 		require.NoError(t, obj3.Verify(verifiers, nil), tc.title)
 		assert.Equal(2, len(obj3.Signatures()))
-		assert.Equal(tc.toBeSigns[0], obj3.sm.Signatures[0].toBeSigned, tc.title)
-		assert.Equal(tc.toBeSigns[1], obj3.sm.Signatures[1].toBeSigned, tc.title)
+		assert.Equal(tc.toSigns[0], obj3.sm.Signatures[0].toSign, tc.title)
+		assert.Equal(tc.toSigns[1], obj3.sm.Signatures[1].toSign, tc.title)
 		assert.NotEqual(obj.Signatures()[0].Signature(), obj3.Signatures()[0].Signature(), tc.title)
 		assert.NotEqual(obj.Signatures()[1].Signature(), obj3.Signatures()[1].Signature(), tc.title)
 		assert.Equal(tc.output, obj3.Bytesify(), tc.title)

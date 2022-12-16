@@ -86,12 +86,12 @@ func (s *Sign1Message) WithSign(signer key.Signer, externalData []byte) error {
 		}
 	}
 
-	toBeSigned, err := sm.toBeSigned(externalData)
+	toSign, err := sm.toSign(externalData)
 	if err != nil {
 		return err
 	}
 
-	if sm.Signature, err = signer.Sign(toBeSigned); err == nil {
+	if sm.Signature, err = signer.Sign(toSign); err == nil {
 		s.sm = sm
 	}
 	return err
@@ -105,15 +105,15 @@ func (s *Sign1Message) Verify(verifier key.Verifier, externalData []byte) error 
 		return errors.New("cose/go/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
 	}
 
-	toBeSigned, err := s.sm.toBeSigned(externalData)
+	toSign, err := s.sm.toSign(externalData)
 	if err != nil {
 		return err
 	}
 
-	return verifier.Verify(toBeSigned, s.sm.Signature)
+	return verifier.Verify(toSign, s.sm.Signature)
 }
 
-func (sm *sign1Message) toBeSigned(external_aad []byte) ([]byte, error) {
+func (sm *sign1Message) toSign(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}

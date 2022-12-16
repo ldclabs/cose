@@ -42,6 +42,71 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 	}, nil
 }
 
+// KeyFromPrivate returns a private Key with given ecdsa.PrivateKey.
+func KeyFromPrivate(pk goecdsa.PrivateKey) (key.Key, error) {
+	var alg key.Alg
+	var c key.Crv
+	switch curve := pk.Curve.Params().Name; curve {
+	case "P-256":
+		alg = key.AlgES256
+		c = key.CrvP256
+	case "P-384":
+		alg = key.AlgES384
+		c = key.CrvP384
+	case "P-521":
+		alg = key.AlgES512
+		c = key.CrvP521
+	default:
+		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
+	}
+
+	idhash := sha1.New()
+	idhash.Write(pk.PublicKey.X.Bytes())
+	idhash.Write(pk.PublicKey.Y.Bytes())
+
+	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
+	return map[key.IntKey]any{
+		key.ParamKty: key.KtyEC2,
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamAlg: alg,
+		key.ParamCrv: c,            // REQUIRED
+		key.ParamD:   pk.D.Bytes(), // REQUIRED
+	}, nil
+}
+
+// KeyFromPublic returns a public Key with given ecdsa.PublicKey.
+func KeyFromPublic(pk goecdsa.PublicKey) (key.Key, error) {
+	var alg key.Alg
+	var c key.Crv
+	switch curve := pk.Curve.Params().Name; curve {
+	case "P-256":
+		alg = key.AlgES256
+		c = key.CrvP256
+	case "P-384":
+		alg = key.AlgES384
+		c = key.CrvP384
+	case "P-521":
+		alg = key.AlgES512
+		c = key.CrvP521
+	default:
+		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
+	}
+
+	idhash := sha1.New()
+	idhash.Write(pk.X.Bytes())
+	idhash.Write(pk.Y.Bytes())
+
+	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
+	return map[key.IntKey]any{
+		key.ParamKty: key.KtyEC2,
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamAlg: alg,
+		key.ParamCrv: c,            // REQUIRED
+		key.ParamX:   pk.X.Bytes(), // REQUIRED
+		key.ParamY:   pk.Y.Bytes(), // REQUIRED
+	}, nil
+}
+
 // CheckKey checks whether the given key is a valid ECDSA key.
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#section-2-1

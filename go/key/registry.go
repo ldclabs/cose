@@ -14,12 +14,15 @@ type VerifierFactory func(Key) (Verifier, error)
 // MACerFactory is a function that returns a MACer for the given key.
 type MACerFactory func(Key) (MACer, error)
 
+type EncryptorFactory func(Key) (Encryptor, error)
+
 type keyTriple [3]int
 
 var (
-	signers   = map[keyTriple]SignerFactory{}
-	verifiers = map[keyTriple]VerifierFactory{}
-	macers    = map[keyTriple]MACerFactory{}
+	signers    = map[keyTriple]SignerFactory{}
+	verifiers  = map[keyTriple]VerifierFactory{}
+	macers     = map[keyTriple]MACerFactory{}
+	encryptors = map[keyTriple]EncryptorFactory{}
 )
 
 // RegisterSigner registers a SignerFactory for the given key type, algorithm, and curve.
@@ -38,6 +41,11 @@ func RegisterVerifier(kty Kty, alg Alg, crv Crv, fn VerifierFactory) {
 // RegisterMACer registers a MACerFactory for the given key type, algorithm.
 func RegisterMACer(kty Kty, alg Alg, fn MACerFactory) {
 	macers[keyTriple{int(kty), int(alg), 0}] = fn
+}
+
+// RegisterEncryptor registers a EncryptorFactory for the given key type, algorithm.
+func RegisterEncryptor(kty Kty, alg Alg, fn EncryptorFactory) {
+	encryptors[keyTriple{int(kty), int(alg), 0}] = fn
 }
 
 // Signer returns a Signer for the given key.
@@ -83,6 +91,22 @@ func (k Key) MACer() (MACer, error) {
 	fn, ok := macers[k.tripleKey()]
 	if !ok {
 		return nil, fmt.Errorf("macer for %s is not registered", k.tripleName())
+	}
+
+	return fn(k)
+}
+
+// Encryptor returns a Encryptor for the given key.
+// If the key is nil, or EncryptorFactory for the given key type, algorithm not registered,
+// an error is returned.
+func (k Key) Encryptor() (Encryptor, error) {
+	if k == nil {
+		return nil, fmt.Errorf("nil key")
+	}
+
+	fn, ok := encryptors[k.tripleKey()]
+	if !ok {
+		return nil, fmt.Errorf("encryptor for %s is not registered", k.tripleName())
 	}
 
 	return fn(k)

@@ -17,11 +17,11 @@ func TestMac0(t *testing.T) {
 	assert := assert.New(t)
 
 	for _, tc := range []struct {
-		title      string
-		key        key.Key
-		toBeSigned []byte
-		payload    []byte
-		output     []byte
+		title   string
+		key     key.Key
+		toMac   []byte
+		payload []byte
+		output  []byte
 	}{
 		{
 			`MAC0 example with direct shared key and AES-MAC/64`,
@@ -42,12 +42,12 @@ func TestMac0(t *testing.T) {
 		obj := &Mac0Message{Unprotected: Headers{}, Payload: tc.payload}
 		err = obj.Compute(macer, nil)
 		require.NoError(t, err, tc.title)
-		assert.Equal(tc.toBeSigned, obj.toBeSigned, tc.title)
+		assert.Equal(tc.toMac, obj.toMac, tc.title)
 
 		// compute repeatedly should ok
 		err = obj.Compute(macer, nil)
 		require.NoError(t, err, tc.title)
-		assert.Equal(tc.toBeSigned, obj.toBeSigned, tc.title)
+		assert.Equal(tc.toMac, obj.toMac, tc.title)
 
 		output, err := key.MarshalCBOR(obj)
 		require.NoError(t, err, tc.title)
@@ -58,7 +58,7 @@ func TestMac0(t *testing.T) {
 		require.NoError(t, obj2.Verify(macer, nil), tc.title)
 		// verify repeatedly should ok
 		require.NoError(t, obj2.Verify(macer, nil), tc.title)
-		assert.Equal(tc.toBeSigned, obj2.toBeSigned, tc.title)
+		assert.Equal(tc.toMac, obj2.toMac, tc.title)
 		assert.Equal(output, obj2.Bytesify(), tc.title)
 		assert.Equal(tc.payload, obj2.Payload, tc.title)
 	}

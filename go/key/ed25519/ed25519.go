@@ -34,6 +34,48 @@ func GenerateKey() (key.Key, error) {
 	}, nil
 }
 
+// KeyFromPrivate returns a private Key with given ed25519.PrivateKey.
+func KeyFromPrivate(pk goed25519.PrivateKey) (key.Key, error) {
+	if goed25519.PrivateKeySize != len(pk) {
+		return nil, fmt.Errorf(`cose/go/key/ed25519: PrivKeyFromSeed: invalid ed25519..PublicKey size, expected %d, got %d`,
+			goed25519.PrivateKeySize, len(pk))
+	}
+
+	pubKey := pk.Public().(goed25519.PublicKey)
+
+	idhash := sha1.New()
+	idhash.Write(pubKey)
+	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
+	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
+	return map[key.IntKey]any{
+		key.ParamKty: key.KtyOKP,
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamAlg: key.AlgEdDSA,
+		key.ParamCrv: key.CrvEd25519, // REQUIRED
+		key.ParamD:   pk.Seed(),      // REQUIRED
+	}, nil
+}
+
+// KeyFromPublic returns a public Key with given ed25519.PublicKey.
+func KeyFromPublic(pk goed25519.PublicKey) (key.Key, error) {
+	if goed25519.PublicKeySize != len(pk) {
+		return nil, fmt.Errorf(`cose/go/key/ed25519: KeyFromPub: invalid ed25519.PublicKey size, expected %d, got %d`,
+			goed25519.PublicKeySize, len(pk))
+	}
+
+	idhash := sha1.New()
+	idhash.Write(pk)
+	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
+	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
+	return map[key.IntKey]any{
+		key.ParamKty: key.KtyOKP,
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamAlg: key.AlgEdDSA,
+		key.ParamCrv: key.CrvEd25519, // REQUIRED
+		key.ParamX:   pk,             // REQUIRED
+	}, nil
+}
+
 // CheckKey checks whether the given key is a valid Ed25519 key.
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa

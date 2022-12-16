@@ -33,6 +33,11 @@ func (k Key) Kid() ByteStr {
 	return v
 }
 
+// SetKid sets the key identifier.
+func (k Key) SetKid(kid ByteStr) {
+	k[ParamKid] = kid
+}
+
 // Alg returns the key algorithm.
 // If It is elliptic-curves key and algorithm is not present,
 // it will return the algorithm that matched the curve.
@@ -72,6 +77,11 @@ func (k Key) Ops() Ops {
 	}
 
 	return nil
+}
+
+// SetOps sets the key operations.
+func (k Key) SetOps(os Ops) {
+	k[ParamOps] = os
 }
 
 // BaseIV returns the base IV to be XORed with Partial IVs.

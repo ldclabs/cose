@@ -19,8 +19,8 @@ type Mac0Message struct {
 	Unprotected Headers
 	Payload     []byte
 
-	mm         *mac0Message
-	toBeSigned []byte
+	mm    *mac0Message
+	toMac []byte
 }
 
 // VerifyMac0Message verifies and decodes a COSE_Mac0 message with a MACer and returns a *Mac0Message.
@@ -87,12 +87,12 @@ func (m *Mac0Message) Compute(macer key.MACer, externalData []byte) error {
 		}
 	}
 
-	m.toBeSigned, err = mm.toBeSigned(externalData)
+	m.toMac, err = mm.toMac(externalData)
 	if err != nil {
 		return err
 	}
 
-	if mm.Tag, err = macer.MACCreate(m.toBeSigned); err == nil {
+	if mm.Tag, err = macer.MACCreate(m.toMac); err == nil {
 		m.mm = mm
 	}
 	return err
@@ -107,15 +107,15 @@ func (m *Mac0Message) Verify(macer key.MACer, externalData []byte) error {
 	}
 
 	var err error
-	m.toBeSigned, err = m.mm.toBeSigned(externalData)
+	m.toMac, err = m.mm.toMac(externalData)
 	if err != nil {
 		return err
 	}
 
-	return macer.MACVerify(m.toBeSigned, m.mm.Tag)
+	return macer.MACVerify(m.toMac, m.mm.Tag)
 }
 
-func (mm *mac0Message) toBeSigned(external_aad []byte) ([]byte, error) {
+func (mm *mac0Message) toMac(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}

@@ -60,8 +60,8 @@ type Signature struct {
 	Protected   Headers
 	Unprotected Headers
 
-	sm         *signatureMessage
-	toBeSigned []byte
+	sm     *signatureMessage
+	toSign []byte
 }
 
 // WithSign signs a COSE_Sign message with some Signers.
@@ -117,12 +117,12 @@ func (s *SignMessage) WithSign(signers key.Signers, externalData []byte) error {
 			}
 		}
 
-		sig.toBeSigned, err = sm.toBeSigned(sigm.Protected, externalData)
+		sig.toSign, err = sm.toSign(sigm.Protected, externalData)
 		if err != nil {
 			return err
 		}
 
-		sigm.Signature, err = signer.Sign(sig.toBeSigned)
+		sigm.Signature, err = signer.Sign(sig.toSign)
 		if err != nil {
 			return err
 		}
@@ -158,11 +158,11 @@ func (s *SignMessage) Verify(verifiers key.Verifiers, externalData []byte) error
 			return fmt.Errorf("cose/go/cose: SignMessage.Verify: no verifier for kid h'%s'", kid.String())
 		}
 
-		sig.toBeSigned, err = s.sm.toBeSigned(sig.sm.Protected, externalData)
+		sig.toSign, err = s.sm.toSign(sig.sm.Protected, externalData)
 		if err != nil {
 			return err
 		}
-		if err = verifier.Verify(sig.toBeSigned, sig.Signature()); err != nil {
+		if err = verifier.Verify(sig.toSign, sig.Signature()); err != nil {
 			return err
 		}
 	}
@@ -170,7 +170,7 @@ func (s *SignMessage) Verify(verifiers key.Verifiers, externalData []byte) error
 	return nil
 }
 
-func (sm *signMessage) toBeSigned(sign_protected, external_aad []byte) ([]byte, error) {
+func (sm *signMessage) toSign(sign_protected, external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}

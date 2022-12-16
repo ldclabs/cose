@@ -8,14 +8,16 @@ package key
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#section-8.3
 type Encryptor interface {
-	// Encrypt encrypts the given plaintext with the given additional data.
-	// It returns the concatenation of the primary's identifier and the ciphertext.
-	Encrypt(plaintext, additionalData []byte) ([]byte, error)
+	// Encrypt encrypts a plaintext with the given nonce and additional data.
+	// It returns the ciphertext or error.
+	Encrypt(nonce, plaintext, additionalData []byte) (ciphertext []byte, err error)
 
-	// Decrypt decrypts the given ciphertext and authenticates it with the given
-	// additional data. It returns the corresponding plaintext if the
-	// ciphertext is authenticated.
-	Decrypt(ciphertext, additionalData []byte) ([]byte, error)
+	// Decrypt decrypts a ciphertext with the given nonce and additional data.
+	// It returns the corresponding plaintext or error.
+	Decrypt(nonce, ciphertext, additionalData []byte) (plaintext []byte, err error)
+
+	// NonceSize returns the size of the nonce for encrypting and decrypting.
+	NonceSize() int
 
 	// Key returns the symmetric key in Encryptor.
 	// If the "key_ops" field is present, it MUST include "encrypt" 3 when encrypting an plaintext.

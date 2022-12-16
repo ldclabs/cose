@@ -16,12 +16,12 @@ import (
 
 // GenerateKey generates a new key with given algorithm for HMAC.
 func GenerateKey(alg key.Alg) (key.Key, error) {
-	keyLen, _ := getKeyLen(alg)
-	if keyLen == 0 {
+	keySize, _ := getKeySize(alg)
+	if keySize == 0 {
 		return nil, fmt.Errorf(`cose/go/key/hmac: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
-	kb := key.GetRandomBytes(uint16(keyLen))
+	kb := key.GetRandomBytes(uint16(keySize))
 	_, err := io.ReadFull(rand.Reader, kb)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/hmac: GenerateKey: %w", err)
@@ -35,6 +35,27 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamK:   kb, // REQUIRED
+	}, nil
+}
+
+// KeyFrom returns a Key with given algorithm and bytes for AES-CBC-MAC.
+func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
+	keySize, _ := getKeySize(alg)
+	if keySize == 0 {
+		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: algorithm mismatch %q`, alg.String())
+	}
+	if keySize != len(k) {
+		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: key length mismatch %q`, alg.String())
+	}
+
+	idhash := sha1.New()
+	idhash.Write(k)
+
+	return map[key.IntKey]any{
+		key.ParamKty: key.KtySymmetric,
+		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamAlg: alg,
+		key.ParamK:   append(make([]byte, 0, len(k)), k...), // REQUIRED
 	}, nil
 }
 
@@ -79,8 +100,8 @@ func CheckKey(k key.Key) error {
 	if err != nil {
 		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter k, %v`, err)
 	}
-	keyLen, _ := getKeyLen(k.Alg())
-	if len(kb) != keyLen {
+	keySize, _ := getKeySize(k.Alg())
+	if len(kb) != keySize {
 		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter k`)
 	}
 
@@ -105,7 +126,7 @@ func NewHMAC(k key.Key) (key.MACer, error) {
 	if !h.Available() {
 		return nil, fmt.Errorf("cose/go/key/hmac: NewHMAC: hash function is not available")
 	}
-	_, tagSize := getKeyLen(k.Alg())
+	_, tagSize := getKeySize(k.Alg())
 
 	return &hMAC{key: k, tagSize: tagSize, k: kb, h: h.New}, nil
 }
@@ -152,7 +173,7 @@ func (h *hMAC) Key() key.Key {
 	return h.key
 }
 
-func getKeyLen(alg key.Alg) (keyLen, tagSize int) {
+func getKeySize(alg key.Alg) (keySize, tagSize int) {
 	switch alg {
 	case key.AlgHMAC25664, key.AlgReserved:
 		return 32, 8

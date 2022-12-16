@@ -23,6 +23,45 @@ const (
 // Headers represents a COSE Generic_Headers structure.
 type Headers key.IntMap
 
+// GetSmallInt returns the value for the key as an int in [-65536, 65536].
+// If the key is not present, it returns (0, nil).
+// If the underlying value's Kind is not Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Int64,
+// or the value's range is out of [-65536, 65536], it returns (0, error).
+func (h Headers) GetSmallInt(k key.IntKey) (int, error) {
+	return key.IntMap(h).GetSmallInt(k)
+}
+
+// GetInt returns the value for the key as an int64.
+// If the key is not present, it returns (0, nil).
+// If the underlying value's Kind is not Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Int64,
+// or the value is overflows, it returns (0, error).
+func (h Headers) GetInt(k key.IntKey) (int64, error) {
+	return key.IntMap(h).GetInt(k)
+}
+
+// GetUint returns the value for the key as an uint64.
+// If the key is not present, it returns (0, nil).
+// If the underlying value's Kind is not Int, Int8, Int16, Int32, Int64, Uint, Uint8, Uint16, Uint32, Int64,
+// or the value is overflows, it returns (0, error).
+func (h Headers) GetUint(k key.IntKey) (uint64, error) {
+	return key.IntMap(h).GetUint(k)
+}
+
+// GetBytes returns the value for the key as an []byte.
+// If the key is not present, it returns (nil, nil).
+// If the underlying value is not a slice of bytes or an addressable array of bytes,
+// it returns (nil, error).
+func (h Headers) GetBytes(k key.IntKey) ([]byte, error) {
+	return key.IntMap(h).GetBytes(k)
+}
+
+// GetString returns the value for the key as an string.
+// If the key is not present, it returns ("", nil).
+// If the underlying value is not a string, it returns ("", error).
+func (h Headers) GetString(k key.IntKey) (string, error) {
+	return key.IntMap(h).GetString(k)
+}
+
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (h Headers) Bytesify() []byte {
