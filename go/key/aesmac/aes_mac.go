@@ -115,8 +115,8 @@ type aesMAC struct {
 	tagSize int
 }
 
-// NewAESMAC creates a key.MACer for the given AES-CBC-MAC key.
-func NewAESMAC(k key.Key) (key.MACer, error) {
+// New creates a key.MACer for the given AES-CBC-MAC key.
+func New(k key.Key) (key.MACer, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}

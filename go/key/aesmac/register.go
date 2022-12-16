@@ -8,8 +8,8 @@ import (
 )
 
 func init() {
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC12864, NewAESMAC)
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC25664, NewAESMAC)
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC128128, NewAESMAC)
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC256128, NewAESMAC)
+	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC12864, New)
+	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC25664, New)
+	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC128128, New)
+	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC256128, New)
 }

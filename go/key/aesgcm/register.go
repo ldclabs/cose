@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgA128GCM, NewAESGCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgA192GCM, NewAESGCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgA256GCM, NewAESGCM)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgA128GCM, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgA192GCM, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgA256GCM, New)
 }

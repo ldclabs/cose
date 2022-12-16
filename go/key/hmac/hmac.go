@@ -4,7 +4,7 @@
 package hmac
 
 import (
-	gohmac "crypto/hmac"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
 	"fmt"
@@ -110,13 +110,13 @@ func CheckKey(k key.Key) error {
 
 type hMAC struct {
 	key     key.Key
+	cek     []byte
 	tagSize int
-	k       []byte
-	h       func() hash.Hash
+	hash    func() hash.Hash
 }
 
-// NewHMAC creates a key.MACer for the given HMAC key.
-func NewHMAC(k key.Key) (key.MACer, error) {
+// New creates a key.MACer for the given HMAC key.
+func New(k key.Key) (key.MACer, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func NewHMAC(k key.Key) (key.MACer, error) {
 	}
 	_, tagSize := getKeySize(k.Alg())
 
-	return &hMAC{key: k, tagSize: tagSize, k: kb, h: h.New}, nil
+	return &hMAC{key: k, tagSize: tagSize, cek: kb, hash: h.New}, nil
 }
 
 // MACCreate implements the key.MACer interface.
@@ -152,14 +152,14 @@ func (h *hMAC) MACVerify(data, mac []byte) error {
 	if err != nil {
 		return err
 	}
-	if gohmac.Equal(expectedMAC, mac) {
+	if hmac.Equal(expectedMAC, mac) {
 		return nil
 	}
 	return fmt.Errorf("cose/go/key/hmac: VerifyMAC: invalid MAC")
 }
 
 func (h *hMAC) create(data []byte) ([]byte, error) {
-	mac := gohmac.New(h.h, h.k)
+	mac := hmac.New(h.hash, h.cek)
 	if _, err := mac.Write(data); err != nil {
 		return nil, err
 	}

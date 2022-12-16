@@ -117,8 +117,8 @@ type aesCCM struct {
 	ivSize int
 }
 
-// NewAESCCM creates a key.Encryptor for the given AES-CCM key.
-func NewAESCCM(k key.Key) (key.Encryptor, error) {
+// New creates a key.Encryptor for the given AES-CCM key.
+func New(k key.Key) (key.Encryptor, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
 	}

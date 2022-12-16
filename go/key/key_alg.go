@@ -61,6 +61,9 @@ const (
 	// AES-CCM mode 256-bit key, 128-bit tag, 7-byte nonce
 	AlgAESCCM64128256 = 33
 
+	// ChaCha20/Poly1305 w/ 256-bit key, 128-bit tag
+	AlgChaCha20Poly1305 = 24
+
 	// AES-CBC-MAC 128-bit key, 64-bit tag
 	AlgAESMAC12864 Alg = 14
 	// AES-CBC-MAC 256-bit key, 64-bit tag

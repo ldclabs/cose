@@ -5,7 +5,7 @@ package ed25519
 
 import (
 	"bytes"
-	goed25519 "crypto/ed25519"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha1"
 	"errors"
@@ -16,7 +16,7 @@ import (
 
 // GenerateKey generates a new key for Ed25519.
 func GenerateKey() (key.Key, error) {
-	pubKey, privKey, err := goed25519.GenerateKey(rand.Reader)
+	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/ed25519: GenerateKey: %w", err)
 	}
@@ -35,13 +35,13 @@ func GenerateKey() (key.Key, error) {
 }
 
 // KeyFromPrivate returns a private Key with given ed25519.PrivateKey.
-func KeyFromPrivate(pk goed25519.PrivateKey) (key.Key, error) {
-	if goed25519.PrivateKeySize != len(pk) {
+func KeyFromPrivate(pk ed25519.PrivateKey) (key.Key, error) {
+	if ed25519.PrivateKeySize != len(pk) {
 		return nil, fmt.Errorf(`cose/go/key/ed25519: PrivKeyFromSeed: invalid ed25519..PublicKey size, expected %d, got %d`,
-			goed25519.PrivateKeySize, len(pk))
+			ed25519.PrivateKeySize, len(pk))
 	}
 
-	pubKey := pk.Public().(goed25519.PublicKey)
+	pubKey := pk.Public().(ed25519.PublicKey)
 
 	idhash := sha1.New()
 	idhash.Write(pubKey)
@@ -57,10 +57,10 @@ func KeyFromPrivate(pk goed25519.PrivateKey) (key.Key, error) {
 }
 
 // KeyFromPublic returns a public Key with given ed25519.PublicKey.
-func KeyFromPublic(pk goed25519.PublicKey) (key.Key, error) {
-	if goed25519.PublicKeySize != len(pk) {
+func KeyFromPublic(pk ed25519.PublicKey) (key.Key, error) {
+	if ed25519.PublicKeySize != len(pk) {
 		return nil, fmt.Errorf(`cose/go/key/ed25519: KeyFromPub: invalid ed25519.PublicKey size, expected %d, got %d`,
-			goed25519.PublicKeySize, len(pk))
+			ed25519.PublicKeySize, len(pk))
 	}
 
 	idhash := sha1.New()
@@ -125,7 +125,7 @@ func CheckKey(k key.Key) error {
 	// REQUIRED for private key
 	hasD := k.Has(key.ParamD)
 	d, _ := k.GetBytes(key.ParamD)
-	if hasD && len(d) != goed25519.SeedSize {
+	if hasD && len(d) != ed25519.SeedSize {
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter d`)
 	}
 
@@ -133,7 +133,7 @@ func CheckKey(k key.Key) error {
 	// RECOMMENDED for private key
 	hasX := k.Has(key.ParamX)
 	x, _ := k.GetBytes(key.ParamX)
-	if hasX && len(x) != goed25519.PublicKeySize {
+	if hasX && len(x) != ed25519.PublicKeySize {
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter x`)
 	}
 
@@ -184,14 +184,14 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 		pk[key.ParamOps] = key.Ops{key.OpVerify}
 	}
 
-	privKey := goed25519.NewKeyFromSeed(d)
+	privKey := ed25519.NewKeyFromSeed(d)
 	pk[key.ParamX] = privKey.Public()
 	return pk, nil
 }
 
 type ed25519Signer struct {
 	key     key.Key
-	privKey goed25519.PrivateKey
+	privKey ed25519.PrivateKey
 }
 
 // NewSigner creates a key.Signer for the given private key.
@@ -205,7 +205,7 @@ func NewSigner(k key.Key) (key.Signer, error) {
 	}
 
 	d, _ := k.GetBytes(key.ParamD)
-	privKey := goed25519.NewKeyFromSeed(d)
+	privKey := ed25519.NewKeyFromSeed(d)
 
 	x, _ := k.GetBytes(key.ParamX)
 	if k.Has(key.ParamX) {
@@ -220,7 +220,7 @@ func NewSigner(k key.Key) (key.Signer, error) {
 // Sign implements the key.Signer interface.
 // Sign computes the digital signature for data.
 func (e *ed25519Signer) Sign(data []byte) ([]byte, error) {
-	return goed25519.Sign(e.privKey, data), nil
+	return ed25519.Sign(e.privKey, data), nil
 }
 
 // Key implements the key.Signer interface.
@@ -231,7 +231,7 @@ func (e *ed25519Signer) Key() key.Key {
 
 type ed25519Verifier struct {
 	key    key.Key
-	pubKey goed25519.PublicKey
+	pubKey ed25519.PublicKey
 }
 
 // NewVerifier creates a key.Verifier for the given public key.
@@ -242,13 +242,13 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 	}
 
 	x, _ := pk.GetBytes(key.ParamX)
-	return &ed25519Verifier{key: pk, pubKey: goed25519.PublicKey(x)}, nil
+	return &ed25519Verifier{key: pk, pubKey: ed25519.PublicKey(x)}, nil
 }
 
 // Verify implements the key.Verifier interface.
 // Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ed25519Verifier) Verify(data, sig []byte) error {
-	if !goed25519.Verify(e.pubKey, data, sig) {
+	if !ed25519.Verify(e.pubKey, data, sig) {
 		return fmt.Errorf("cose/go/key/ed25519: Verify: invalid signature")
 	}
 

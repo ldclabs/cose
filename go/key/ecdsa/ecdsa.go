@@ -5,7 +5,7 @@ package ecdsa
 
 import (
 	"bytes"
-	goecdsa "crypto/ecdsa"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha1"
@@ -23,7 +23,7 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/go/key/ecdsa: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
-	privKey, err := goecdsa.GenerateKey(crv, rand.Reader)
+	privKey, err := ecdsa.GenerateKey(crv, rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: GenerateKey: %w", err)
 	}
@@ -43,7 +43,7 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 }
 
 // KeyFromPrivate returns a private Key with given ecdsa.PrivateKey.
-func KeyFromPrivate(pk goecdsa.PrivateKey) (key.Key, error) {
+func KeyFromPrivate(pk ecdsa.PrivateKey) (key.Key, error) {
 	var alg key.Alg
 	var c key.Crv
 	switch curve := pk.Curve.Params().Name; curve {
@@ -75,7 +75,7 @@ func KeyFromPrivate(pk goecdsa.PrivateKey) (key.Key, error) {
 }
 
 // KeyFromPublic returns a public Key with given ecdsa.PublicKey.
-func KeyFromPublic(pk goecdsa.PublicKey) (key.Key, error) {
+func KeyFromPublic(pk ecdsa.PublicKey) (key.Key, error) {
 	var alg key.Alg
 	var c key.Crv
 	switch curve := pk.Curve.Params().Name; curve {
@@ -244,7 +244,7 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 
 type ecdsaSigner struct {
 	key     key.Key
-	privKey *goecdsa.PrivateKey
+	privKey *ecdsa.PrivateKey
 }
 
 // NewSigner creates a key.Signer for the given private key.
@@ -259,7 +259,7 @@ func NewSigner(k key.Key) (key.Signer, error) {
 
 	d, _ := k.GetBytes(key.ParamD)
 	crv, _ := getCurve(k.Alg())
-	privKey := new(goecdsa.PrivateKey)
+	privKey := new(ecdsa.PrivateKey)
 	privKey.PublicKey.Curve = crv
 	privKey.D = new(big.Int).SetBytes(d)
 	privKey.PublicKey.X, privKey.PublicKey.Y = crv.ScalarBaseMult(d)
@@ -283,7 +283,7 @@ func (e *ecdsaSigner) Sign(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, s, err := goecdsa.Sign(rand.Reader, e.privKey, hashed)
+	r, s, err := ecdsa.Sign(rand.Reader, e.privKey, hashed)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: Sign: %w", err)
 	}
@@ -299,7 +299,7 @@ func (e *ecdsaSigner) Key() key.Key {
 
 type ecdsaVerifier struct {
 	key    key.Key
-	pubKey *goecdsa.PublicKey
+	pubKey *ecdsa.PublicKey
 }
 
 // NewVerifier creates a key.Verifier for the given public key.
@@ -312,7 +312,7 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 	x, _ := pk.GetBytes(key.ParamX)
 	y, _ := pk.GetBytes(key.ParamY)
 	crv, _ := getCurve(pk.Alg())
-	pubKey := &goecdsa.PublicKey{
+	pubKey := &ecdsa.PublicKey{
 		Curve: crv,
 		X:     new(big.Int).SetBytes(x),
 		Y:     new(big.Int).SetBytes(y),
@@ -337,7 +337,7 @@ func (e *ecdsaVerifier) Verify(data, sig []byte) error {
 		return fmt.Errorf("cose/go/key/ecdsa: Verify: %w", err)
 	}
 
-	if !goecdsa.Verify(e.pubKey, hashed, r, s) {
+	if !ecdsa.Verify(e.pubKey, hashed, r, s) {
 		return fmt.Errorf("cose/go/key/ecdsa: Verify: invalid signature")
 	}
 

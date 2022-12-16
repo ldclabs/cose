@@ -8,12 +8,12 @@ import (
 )
 
 func init() {
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM1664128, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM1664256, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM6464128, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM6464256, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM16128128, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM16128256, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM64128128, NewAESCCM)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM64128256, NewAESCCM)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM1664128, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM1664256, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM6464128, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM6464256, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM16128128, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM16128256, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM64128128, New)
+	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM64128256, New)
 }
