@@ -15,35 +15,35 @@ import (
 // SignMessage represents a COSE_Sign object.
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-or-more-si
-type SignMessage struct {
+type SignMessage[T any] struct {
 	Protected   Headers
 	Unprotected Headers
-	Payload     []byte
+	Payload     T
 
-	sm *signMessage
+	mm *signMessage
 }
 
 // VerifySignMessage verifies and decodes a COSE_Sign format with some Verifiers and returns a *SignMessage.
 // `externalData` should be the same as the one used in `SignMessage.SignAndEncode`.
-func VerifySignMessage(verifiers key.Verifiers, coseData, externalData []byte) (*SignMessage, error) {
-	s := &SignMessage{}
-	if err := s.UnmarshalCBOR(coseData); err != nil {
+func VerifySignMessage[T any](verifiers key.Verifiers, coseData, externalData []byte) (*SignMessage[T], error) {
+	m := &SignMessage[T]{}
+	if err := m.UnmarshalCBOR(coseData); err != nil {
 		return nil, err
 	}
-	if err := s.Verify(verifiers, externalData); err != nil {
+	if err := m.Verify(verifiers, externalData); err != nil {
 		return nil, err
 	}
-	return s, nil
+	return m, nil
 }
 
 // SignAndEncode signs and encodes a COSE_Sign message with some Signers.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
-func (s *SignMessage) SignAndEncode(signers key.Signers, externalData []byte) ([]byte, error) {
-	if err := s.WithSign(signers, externalData); err != nil {
+func (m *SignMessage[T]) SignAndEncode(signers key.Signers, externalData []byte) ([]byte, error) {
+	if err := m.WithSign(signers, externalData); err != nil {
 		return nil, err
 	}
 
-	return s.MarshalCBOR()
+	return m.MarshalCBOR()
 }
 
 // signMessage represents a COSE_Sign structure to encode and decode.
@@ -66,29 +66,40 @@ type Signature struct {
 
 // WithSign signs a COSE_Sign message with some Signers.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
-func (s *SignMessage) WithSign(signers key.Signers, externalData []byte) error {
+func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) error {
 	if len(signers) == 0 {
 		return errors.New("cose/go/cose: SignMessage.WithSign: no signers")
 	}
 
-	if s.Protected == nil {
-		s.Protected = Headers{}
+	if m.Protected == nil {
+		m.Protected = Headers{}
 	}
 
-	if s.Unprotected == nil {
-		s.Unprotected = Headers{}
+	if m.Unprotected == nil {
+		m.Unprotected = Headers{}
 	}
 
-	sm := &signMessage{
+	mm := &signMessage{
 		Protected:   []byte{},
-		Unprotected: s.Unprotected,
-		Payload:     s.Payload,
+		Unprotected: m.Unprotected,
 		Signatures:  make([]*Signature, 0, len(signers)),
 	}
 
 	var err error
-	if len(s.Protected) > 0 {
-		sm.Protected, err = key.MarshalCBOR(s.Protected)
+	if len(m.Protected) > 0 {
+		mm.Protected, err = key.MarshalCBOR(m.Protected)
+		if err != nil {
+			return err
+		}
+	}
+
+	switch v := any(m.Payload).(type) {
+	case []byte:
+		mm.Payload = v
+	case cbor.RawMessage:
+		mm.Payload = v
+	default:
+		mm.Payload, err = key.MarshalCBOR(m.Payload)
 		if err != nil {
 			return err
 		}
@@ -117,7 +128,7 @@ func (s *SignMessage) WithSign(signers key.Signers, externalData []byte) error {
 			}
 		}
 
-		sig.toSign, err = sm.toSign(sigm.Protected, externalData)
+		sig.toSign, err = mm.toSign(sigm.Protected, externalData)
 		if err != nil {
 			return err
 		}
@@ -127,38 +138,38 @@ func (s *SignMessage) WithSign(signers key.Signers, externalData []byte) error {
 			return err
 		}
 		sig.sm = sigm
-		sm.Signatures = append(sm.Signatures, sig)
+		mm.Signatures = append(mm.Signatures, sig)
 	}
 
-	s.sm = sm
+	m.mm = mm
 	return nil
 }
 
 // Verify verifies a COSE_Sign message with some Verifiers.
 // It should call `SignMessage.UnmarshalCBOR` before calling this method.
 // `externalData` should be the same as the one used in SignMessage.WithSign.
-func (s *SignMessage) Verify(verifiers key.Verifiers, externalData []byte) error {
+func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) error {
 	if len(verifiers) == 0 {
 		return errors.New("cose/go/cose: SignMessage.Verify: no verifiers")
 	}
 
-	if s.sm == nil || s.sm.Signatures == nil {
+	if m.mm == nil || m.mm.Signatures == nil {
 		return errors.New("cose/go/cose: SignMessage.Verify: should call SignMessage.UnmarshalCBOR")
 	}
 
-	if len(s.sm.Signatures) == 0 {
+	if len(m.mm.Signatures) == 0 {
 		return errors.New("cose/go/cose: SignMessage.Verify: no signatures")
 	}
 
 	var err error
-	for _, sig := range s.sm.Signatures {
+	for _, sig := range m.mm.Signatures {
 		kid := sig.Kid()
 		verifier := verifiers.Lookup(kid)
 		if verifier == nil {
 			return fmt.Errorf("cose/go/cose: SignMessage.Verify: no verifier for kid h'%s'", kid.String())
 		}
 
-		sig.toSign, err = s.sm.toSign(sig.sm.Protected, externalData)
+		sig.toSign, err = m.mm.toSign(sig.sm.Protected, externalData)
 		if err != nil {
 			return err
 		}
@@ -170,17 +181,17 @@ func (s *SignMessage) Verify(verifiers key.Verifiers, externalData []byte) error
 	return nil
 }
 
-func (sm *signMessage) toSign(sign_protected, external_aad []byte) ([]byte, error) {
+func (mm *signMessage) toSign(sign_protected, external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
 	// Sig_structure https://datatracker.ietf.org/doc/html/rfc9052#name-signing-and-verification-pr
 	return key.MarshalCBOR([]any{
 		"Signature",    // context
-		sm.Protected,   // body_protected
+		mm.Protected,   // body_protected
 		sign_protected, // sign_protected
 		external_aad,   // external_aad
-		sm.Payload,     // payload
+		mm.Payload,     // payload
 	})
 }
 
@@ -189,49 +200,59 @@ const cborTagCOSESign = 98
 
 // MarshalCBOR implements the CBOR Marshaler interface for SignMessage.
 // It should call `SignMessage.WithSign` before calling this method.
-func (s *SignMessage) MarshalCBOR() ([]byte, error) {
-	if s.sm == nil || s.sm.Signatures == nil {
+func (m *SignMessage[T]) MarshalCBOR() ([]byte, error) {
+	if m.mm == nil || m.mm.Signatures == nil {
 		return nil, errors.New("cose/go/cose: SignMessage.MarshalCBOR: should call SignMessage.WithSign")
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  cborTagCOSESign,
-		Content: s.sm,
+		Content: m.mm,
 	})
 }
 
-// signMessagePrefix represents the fixed prefix of COSE_Sign_Tagged.
-var signMessagePrefix = []byte{
-	0xd8, 0x62, // #6.98
-	0x84, // Array of length 4
-}
-
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for SignMessage.
-func (s *SignMessage) UnmarshalCBOR(data []byte) error {
-	if s == nil {
+func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
+	if m == nil {
 		return errors.New("cose/go/cose: SignMessage.UnmarshalCBOR: nil SignMessage")
+	}
+
+	if bytes.HasPrefix(data, cwtPrefix) {
+		data = data[2:]
 	}
 
 	if !bytes.HasPrefix(data, signMessagePrefix) {
 		return errors.New("cose/go/cose: SignMessage.UnmarshalCBOR: invalid COSE_Sign_Tagged object")
 	}
 
-	sm := &signMessage{}
-	if err := key.UnmarshalCBOR(data[2:], sm); err != nil {
+	mm := &signMessage{}
+	if err := key.UnmarshalCBOR(data[2:], mm); err != nil {
 		return err
 	}
 
 	protected := Headers{}
-	if len(sm.Protected) > 0 {
-		if err := key.UnmarshalCBOR(sm.Protected, &protected); err != nil {
+	if len(mm.Protected) > 0 {
+		if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
 			return err
 		}
 	}
 
-	s.Protected = protected
-	s.Unprotected = sm.Unprotected
-	s.Payload = sm.Payload
-	s.sm = sm
+	if len(mm.Payload) > 0 {
+		switch any(m.Payload).(type) {
+		case []byte:
+			m.Payload = any(mm.Payload).(T)
+		case cbor.RawMessage:
+			m.Payload = any(mm.Payload).(T)
+		default:
+			if err := key.UnmarshalCBOR(mm.Payload, &m.Payload); err != nil {
+				return err
+			}
+		}
+	}
+
+	m.Protected = protected
+	m.Unprotected = mm.Unprotected
+	m.mm = mm
 	return nil
 }
 
@@ -298,16 +319,16 @@ func (s *Signature) Kid() key.ByteStr {
 
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
-func (s *SignMessage) Bytesify() []byte {
-	b, _ := s.MarshalCBOR()
+func (m *SignMessage[T]) Bytesify() []byte {
+	b, _ := m.MarshalCBOR()
 	return b
 }
 
 // Signatures returns the signatures of the SignMessage.
 // If the SignMessage is not signed, it returns nil.
-func (s *SignMessage) Signatures() []*Signature {
-	if s.sm == nil {
+func (m *SignMessage[t]) Signatures() []*Signature {
+	if m.mm == nil {
 		return nil
 	}
-	return s.sm.Signatures
+	return m.mm.Signatures
 }

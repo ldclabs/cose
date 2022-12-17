@@ -43,9 +43,9 @@ func TestEncrypt0Message(t *testing.T) {
 		encryptor, err := tc.key.Encryptor()
 		require.NoError(t, err, tc.title)
 
-		obj := &Encrypt0Message{
+		obj := &Encrypt0Message[[]byte]{
 			Unprotected:        Headers{HeaderLabelIV: tc.iv},
-			Plaintext:          tc.plaintext,
+			Payload:            tc.plaintext,
 			DetachedCiphertext: tc.detachedCiphertext,
 		}
 
@@ -62,13 +62,13 @@ func TestEncrypt0Message(t *testing.T) {
 		require.NoError(t, err, tc.title)
 		assert.Equal(tc.output, output, tc.title)
 
-		var obj2 Encrypt0Message
+		var obj2 Encrypt0Message[[]byte]
 		require.NoError(t, key.UnmarshalCBOR(tc.output, &obj2), tc.title)
 		require.NoError(t, obj2.Decrypt(encryptor, nil), tc.title)
 		// verify repeatedly should ok
 		require.NoError(t, obj2.Decrypt(encryptor, nil), tc.title)
 		assert.Equal(tc.toEnc, obj2.toEnc, tc.title)
 		assert.Equal(output, obj2.Bytesify(), tc.title)
-		assert.Equal(tc.plaintext, obj2.Plaintext, tc.title)
+		assert.Equal(tc.plaintext, obj2.Payload, tc.title)
 	}
 }

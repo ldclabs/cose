@@ -57,34 +57,34 @@ func TestSign(t *testing.T) {
 		verifiers, err := tc.ks.Verifiers()
 		require.NoError(t, err, tc.title)
 
-		obj := &SignMessage{Payload: tc.payload}
+		obj := &SignMessage[[]byte]{Payload: tc.payload}
 		err = obj.WithSign(signers, nil)
 		require.NoError(t, err, tc.title)
 		assert.Equal(2, len(obj.Signatures()))
-		assert.Equal(tc.toSigns[0], obj.sm.Signatures[0].toSign, tc.title)
-		assert.Equal(tc.toSigns[1], obj.sm.Signatures[1].toSign, tc.title)
+		assert.Equal(tc.toSigns[0], obj.mm.Signatures[0].toSign, tc.title)
+		assert.Equal(tc.toSigns[1], obj.mm.Signatures[1].toSign, tc.title)
 
 		output, err := key.MarshalCBOR(obj)
 		require.NoError(t, err, tc.title)
 		assert.NotEqual(tc.output, output, tc.title)
 
-		var obj2 SignMessage
+		var obj2 SignMessage[[]byte]
 		require.NoError(t, key.UnmarshalCBOR(output, &obj2), tc.title)
 		require.NoError(t, obj2.Verify(verifiers, nil), tc.title)
 		assert.Equal(2, len(obj2.Signatures()))
-		assert.Equal(tc.toSigns[0], obj2.sm.Signatures[0].toSign, tc.title)
-		assert.Equal(tc.toSigns[1], obj2.sm.Signatures[1].toSign, tc.title)
+		assert.Equal(tc.toSigns[0], obj2.mm.Signatures[0].toSign, tc.title)
+		assert.Equal(tc.toSigns[1], obj2.mm.Signatures[1].toSign, tc.title)
 		assert.Equal(obj.Signatures()[0].Signature(), obj2.Signatures()[0].Signature(), tc.title)
 		assert.Equal(obj.Signatures()[1].Signature(), obj2.Signatures()[1].Signature(), tc.title)
 		assert.Equal(output, obj2.Bytesify(), tc.title)
 		assert.Equal(tc.payload, obj2.Payload, tc.title)
 
-		var obj3 SignMessage
+		var obj3 SignMessage[[]byte]
 		require.NoError(t, key.UnmarshalCBOR(tc.output, &obj3), tc.title)
 		require.NoError(t, obj3.Verify(verifiers, nil), tc.title)
 		assert.Equal(2, len(obj3.Signatures()))
-		assert.Equal(tc.toSigns[0], obj3.sm.Signatures[0].toSign, tc.title)
-		assert.Equal(tc.toSigns[1], obj3.sm.Signatures[1].toSign, tc.title)
+		assert.Equal(tc.toSigns[0], obj3.mm.Signatures[0].toSign, tc.title)
+		assert.Equal(tc.toSigns[1], obj3.mm.Signatures[1].toSign, tc.title)
 		assert.NotEqual(obj.Signatures()[0].Signature(), obj3.Signatures()[0].Signature(), tc.title)
 		assert.NotEqual(obj.Signatures()[1].Signature(), obj3.Signatures()[1].Signature(), tc.title)
 		assert.Equal(tc.output, obj3.Bytesify(), tc.title)

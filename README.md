@@ -66,6 +66,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/cwt"
 	"github.com/ldclabs/cose/key/ed25519"
 )
@@ -91,7 +92,7 @@ func main() {
 		panic(err)
 	}
 
-	// Create a set of claims
+	// create a claims set
 	claims := cwt.Claims{
 		Issuer:     "ldc:ca",
 		Subject:    "ldc:chain",
@@ -100,18 +101,20 @@ func main() {
 		CWTID:      []byte{1, 2, 3, 4},
 	}
 
-	// Sign the claims
-	cwtData, err := claims.Sign1AndEncode(signer, nil)
+	// sign with Sign1Message
+	obj := cose.Sign1Message[cwt.Claims]{Payload: claims}
+	cwtData, err := obj.SignAndEncode(signer, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// Verify the claims
-	myClaims, err := cwt.Verify1AndDecode(verifier, cwtData, nil)
+	// decode and verify the cwt
+	obj2, err := cose.VerifySign1Message[cwt.Claims](verifier, cwtData, nil)
 	if err != nil {
 		panic(err)
 	}
 
+	// validate the cwt's claims
 	validator, err := cwt.NewValidator(&cwt.ValidatorOpts{
 		ExpectedIssuer:   "ldc:ca",
 		ExpectedAudience: "ldc:txpool",
@@ -121,16 +124,19 @@ func main() {
 		panic(err)
 	}
 
-	// Validate the claims
-	err = validator.Validate(myClaims)
-	fmt.Printf("%v\n", err)
-	// cose/go/cwt: Validator.Validate: token has expired
+	err = validator.Validate(&obj2.Payload)
+	fmt.Printf("Validate Claims: %v\n", err)
+	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
 
-	cborData := myClaims.Bytesify()
+	cborData, err := key.MarshalCBOR(obj2.Payload)
+	// cborData, err := cbor.Marshal(myClaims)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
 	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
 
-	jsonData, err := json.Marshal(myClaims)
+	jsonData, err := json.Marshal(obj2.Payload)
 	if err != nil {
 		panic(err)
 	}
@@ -149,6 +155,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/cwt"
 	"github.com/ldclabs/cose/key"
 	"github.com/ldclabs/cose/key/ecdsa"
@@ -167,7 +174,7 @@ func main() {
 	}
 	ks := key.KeySet{privKey1, privKey2}
 
-	// Create a set of claims
+	// create a claims set
 	claims := cwt.ClaimsMap{
 		cwt.KeyIss:    "ldc:ca",
 		cwt.KeySub:    "ldc:chain",
@@ -181,17 +188,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	cwtData, err := claims.SignAndEncode(signers, nil)
+	// sign with SignMessage
+	obj := cose.SignMessage[cwt.ClaimsMap]{Payload: claims}
+	cwtData, err := obj.SignAndEncode(signers, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// Verify the claims
+	// decode and verify the cwt
 	verifiers, err := ks.Verifiers()
 	if err != nil {
 		panic(err)
 	}
-	myClaims, err := cwt.VerifyAndDecodeMap(verifiers, cwtData, nil)
+	obj2, err := cose.VerifySignMessage[cwt.ClaimsMap](verifiers, cwtData, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -206,11 +215,11 @@ func main() {
 		panic(err)
 	}
 
-	err = validator.ValidateMap(myClaims)
-	fmt.Printf("%v\n", err)
-	// cose/go/cwt: Validator.Validate: token has expired
+	err = validator.ValidateMap(obj2.Payload)
+	fmt.Printf("Validate Claims: %v\n", err)
+	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
 
-	cborData, err := key.MarshalCBOR(myClaims)
+	cborData, err := key.MarshalCBOR(obj2.Payload)
 	// cborData, err := cbor.Marshal(myClaims)
 	if err != nil {
 		panic(err)
@@ -218,7 +227,7 @@ func main() {
 	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
 	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
 
-	jsonData, err := json.Marshal(myClaims)
+	jsonData, err := json.Marshal(obj2.Payload)
 	if err != nil {
 		panic(err)
 	}

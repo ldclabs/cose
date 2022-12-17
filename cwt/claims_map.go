@@ -4,9 +4,6 @@
 package cwt
 
 import (
-	"bytes"
-
-	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -67,72 +64,6 @@ func (cm ClaimsMap) GetBytes(k key.IntKey) ([]byte, error) {
 // If the underlying value is not a string, it returns ("", error).
 func (cm ClaimsMap) GetString(k key.IntKey) (string, error) {
 	return key.IntMap(cm).GetString(k)
-}
-
-// Verify1AndDecodeMap verifies and decodes a CWT in COSE_Sign1 format with a verifier and returns a ClaimsMap.
-// externalData should be the same as the one used in Sign1AndEncode.
-// It can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
-func Verify1AndDecodeMap(verifier key.Verifier, coseData, externalData []byte) (ClaimsMap, error) {
-	// remove optional CWT CBOR tag
-	if bytes.HasPrefix(coseData, cwtPrefix) {
-		coseData = coseData[2:]
-	}
-
-	s, err := cose.VerifySign1Message(verifier, coseData, externalData)
-	if err != nil {
-		return nil, err
-	}
-
-	claims := ClaimsMap{}
-	if err = key.UnmarshalCBOR(s.Payload, &claims); err != nil {
-		return nil, err
-	}
-	return claims, nil
-}
-
-// VerifyAndDecodeMap verifies and decodes a CWT in COSE_Sign format with some verifiers and returns a ClaimsMap.
-// externalData should be the same as the one used in SignAndEncode.
-// It can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
-func VerifyAndDecodeMap(verifiers key.Verifiers, coseData, externalData []byte) (ClaimsMap, error) {
-	// remove optional CWT CBOR tag
-	if bytes.HasPrefix(coseData, cwtPrefix) {
-		coseData = coseData[2:]
-	}
-
-	s, err := cose.VerifySignMessage(verifiers, coseData, externalData)
-	if err != nil {
-		return nil, err
-	}
-
-	claims := ClaimsMap{}
-	if err = key.UnmarshalCBOR(s.Payload, &claims); err != nil {
-		return nil, err
-	}
-	return claims, nil
-}
-
-// Sign1AndEncode signs and encodes a CWT in COSE_Sign1 format with a signer.
-// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
-func (claims ClaimsMap) Sign1AndEncode(signer key.Signer, externalData []byte) ([]byte, error) {
-	data, err := key.MarshalCBOR(claims)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &cose.Sign1Message{Payload: data}
-	return s.SignAndEncode(signer, externalData)
-}
-
-// SignAndEncode signs and encodes a CWT in COSE_Sign format with some signers.
-// externalData can be nil. https://datatracker.ietf.org/doc/html/rfc9052#section-4-3
-func (claims ClaimsMap) SignAndEncode(signers key.Signers, externalData []byte) ([]byte, error) {
-	data, err := key.MarshalCBOR(claims)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &cose.SignMessage{Payload: data}
-	return s.SignAndEncode(signers, externalData)
 }
 
 // Bytesify returns a CBOR-encoded byte slice.

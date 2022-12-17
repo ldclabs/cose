@@ -39,7 +39,7 @@ func TestMac0(t *testing.T) {
 		macer, err := tc.key.MACer()
 		require.NoError(t, err, tc.title)
 
-		obj := &Mac0Message{Unprotected: Headers{}, Payload: tc.payload}
+		obj := &Mac0Message[[]byte]{Unprotected: Headers{}, Payload: tc.payload}
 		err = obj.Compute(macer, nil)
 		require.NoError(t, err, tc.title)
 		assert.Equal(tc.toMac, obj.toMac, tc.title)
@@ -53,7 +53,7 @@ func TestMac0(t *testing.T) {
 		require.NoError(t, err, tc.title)
 		assert.Equal(tc.output, output, tc.title)
 
-		var obj2 Mac0Message
+		var obj2 Mac0Message[[]byte]
 		require.NoError(t, key.UnmarshalCBOR(output, &obj2), tc.title)
 		require.NoError(t, obj2.Verify(macer, nil), tc.title)
 		// verify repeatedly should ok

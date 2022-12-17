@@ -96,25 +96,29 @@ func TestClaimsSign1AndVerify(t *testing.T) {
 		verifier, err := tc.key.Verifier()
 		require.NoError(err, tc.title)
 
-		coseData, err := tc.claims.Sign1AndEncode(signer, nil)
+		s := cose.Sign1Message[Claims]{Payload: tc.claims}
+		coseData, err := s.SignAndEncode(signer, nil)
 		require.NoError(err, tc.title)
 		assert.NotEqual(tc.output, coseData, tc.title)
+		assert.NotEqual(tc.sig, s.Signature(), tc.title)
+		assert.NotEqual(tc.output, s.Bytesify(), tc.title)
 
-		claims2, err := Verify1AndDecode(verifier, coseData, nil)
+		s2, err := cose.VerifySign1Message[Claims](verifier, coseData, nil)
 		require.NoError(err, tc.title)
-		assert.Equal(tc.claims.Bytesify(), claims2.Bytesify(), tc.title)
+		assert.Equal(tc.claims.Bytesify(), s2.Payload.Bytesify(), tc.title)
+		assert.NotEqual(tc.sig, s2.Signature(), tc.title)
+		assert.NotEqual(tc.output, s2.Bytesify(), tc.title)
+		assert.Equal(s.Signature(), s2.Signature(), tc.title)
+		assert.Equal(s.Bytesify(), s2.Bytesify(), tc.title)
 
-		coseData2, err := claims2.Sign1AndEncode(signer, nil)
+		coseData2, err := s2.SignAndEncode(signer, nil)
 		require.NoError(err, tc.title)
 		assert.NotEqual(coseData, coseData2, tc.title)
 
-		claims3, err := Verify1AndDecode(verifier, tc.output, nil)
+		s3, err := cose.VerifySign1Message[Claims](verifier, tc.output, nil)
 		require.NoError(err, tc.title)
-		assert.Equal(tc.claims.Bytesify(), claims3.Bytesify(), tc.title)
-
-		s, err := cose.VerifySign1Message(verifier, tc.output, nil)
-		require.NoError(err, tc.title)
-		assert.Equal(tc.sig, s.Signature(), tc.title)
-		assert.Equal(tc.output, s.Bytesify(), tc.title)
+		assert.Equal(tc.claims.Bytesify(), s3.Payload.Bytesify(), tc.title)
+		assert.Equal(tc.sig, s3.Signature(), tc.title)
+		assert.Equal(tc.output, s3.Bytesify(), tc.title)
 	}
 }

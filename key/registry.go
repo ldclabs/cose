@@ -14,6 +14,7 @@ type VerifierFactory func(Key) (Verifier, error)
 // MACerFactory is a function that returns a MACer for the given key.
 type MACerFactory func(Key) (MACer, error)
 
+// EncryptorFactory is a function that returns a Encryptor for the given key.
 type EncryptorFactory func(Key) (Encryptor, error)
 
 type keyTriple [3]int
