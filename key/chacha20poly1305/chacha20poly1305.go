@@ -5,7 +5,6 @@ package chacha20poly1305
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
 	"fmt"
 	"io"
 
@@ -16,20 +15,17 @@ import (
 
 // GenerateKey generates a new Key with given algorithm for ChaCha20/Poly1305.
 func GenerateKey() (key.Key, error) {
-	kb := key.GetRandomBytes(uint16(keySize))
-	_, err := io.ReadFull(rand.Reader, kb)
+	k := key.GetRandomBytes(uint16(keySize))
+	_, err := io.ReadFull(rand.Reader, k)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/chacha20poly1305: GenerateKey: %w", err)
 	}
 
-	idhash := sha1.New()
-	idhash.Write(kb)
-
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
 		key.ParamAlg: key.AlgChaCha20Poly1305,
-		key.ParamK:   kb, // REQUIRED
+		key.ParamK:   k, // REQUIRED
 	}, nil
 }
 
@@ -40,12 +36,9 @@ func KeyFrom(k []byte) (key.Key, error) {
 			keySize, len(k))
 	}
 
-	idhash := sha1.New()
-	idhash.Write(k)
-
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
 		key.ParamAlg: key.AlgChaCha20Poly1305,
 		key.ParamK:   append(make([]byte, 0, len(k)), k...), // REQUIRED
 	}, nil

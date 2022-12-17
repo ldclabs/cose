@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"strings"
+
+	"golang.org/x/crypto/sha3"
 )
 
 // ByteStr represents a byte string.
@@ -49,4 +51,10 @@ func Base64Bytesify(s string) []byte {
 
 	b, _ := enc.DecodeString(s)
 	return b
+}
+
+// SumKid returns a 20 bytes kid with given data.
+func SumKid(data []byte) ByteStr {
+	d := sha3.Sum256(data)
+	return d[:20]
 }

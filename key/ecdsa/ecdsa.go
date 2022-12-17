@@ -8,7 +8,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha1"
 	"errors"
 	"fmt"
 	"math/big"
@@ -23,22 +22,18 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/go/key/ecdsa: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
-	privKey, err := ecdsa.GenerateKey(crv, rand.Reader)
+	pk, err := ecdsa.GenerateKey(crv, rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: GenerateKey: %w", err)
 	}
 
-	idhash := sha1.New()
-	idhash.Write(privKey.PublicKey.X.Bytes())
-	idhash.Write(privKey.PublicKey.Y.Bytes())
-
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyEC2,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
 		key.ParamAlg: alg,
-		key.ParamCrv: c,                 // REQUIRED
-		key.ParamD:   privKey.D.Bytes(), // REQUIRED
+		key.ParamCrv: c,            // REQUIRED
+		key.ParamD:   pk.D.Bytes(), // REQUIRED
 	}, nil
 }
 
@@ -60,14 +55,10 @@ func KeyFromPrivate(pk ecdsa.PrivateKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
 	}
 
-	idhash := sha1.New()
-	idhash.Write(pk.PublicKey.X.Bytes())
-	idhash.Write(pk.PublicKey.Y.Bytes())
-
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyEC2,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamCrv: c,            // REQUIRED
 		key.ParamD:   pk.D.Bytes(), // REQUIRED
@@ -92,14 +83,10 @@ func KeyFromPublic(pk ecdsa.PublicKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
 	}
 
-	idhash := sha1.New()
-	idhash.Write(pk.X.Bytes())
-	idhash.Write(pk.Y.Bytes())
-
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyEC2,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(pk.X.Bytes()), // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamCrv: c,            // REQUIRED
 		key.ParamX:   pk.X.Bytes(), // REQUIRED

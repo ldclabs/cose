@@ -6,7 +6,6 @@ package hmac
 import (
 	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha1"
 	"fmt"
 	"hash"
 	"io"
@@ -21,20 +20,17 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/go/key/hmac: GenerateKey: algorithm mismatch %q`, alg.String())
 	}
 
-	kb := key.GetRandomBytes(uint16(keySize))
-	_, err := io.ReadFull(rand.Reader, kb)
+	k := key.GetRandomBytes(uint16(keySize))
+	_, err := io.ReadFull(rand.Reader, k)
 	if err != nil {
 		return nil, fmt.Errorf("cose/go/key/hmac: GenerateKey: %w", err)
 	}
 
-	idhash := sha1.New()
-	idhash.Write(kb)
-
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
 		key.ParamAlg: alg,
-		key.ParamK:   kb, // REQUIRED
+		key.ParamK:   k, // REQUIRED
 	}, nil
 }
 
@@ -48,12 +44,9 @@ func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: key length mismatch %q`, alg.String())
 	}
 
-	idhash := sha1.New()
-	idhash.Write(k)
-
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
 		key.ParamAlg: alg,
 		key.ParamK:   append(make([]byte, 0, len(k)), k...), // REQUIRED
 	}, nil

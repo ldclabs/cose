@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/sha1"
 	"errors"
 	"fmt"
 
@@ -21,35 +20,39 @@ func GenerateKey() (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/ed25519: GenerateKey: %w", err)
 	}
 
-	idhash := sha1.New()
-	idhash.Write(pubKey)
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyOKP,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(pubKey), // default kid, can be set to other value.
 		key.ParamAlg: key.AlgEdDSA,
 		key.ParamCrv: key.CrvEd25519, // REQUIRED
 		key.ParamD:   privKey.Seed(), // REQUIRED
 	}, nil
 }
 
+// KeyFromSeed returns a private Key with given ed25519.PrivateKey seed.
+func KeyFromSeed(seed []byte) (key.Key, error) {
+	if len(seed) != ed25519.SeedSize {
+		return nil, fmt.Errorf(`cose/go/key/ed25519: KeyFromSeed: invalid ed25519 seed size, expected %d, got %d`,
+			ed25519.SeedSize, len(seed))
+	}
+
+	return KeyFromPrivate(ed25519.NewKeyFromSeed(seed))
+}
+
 // KeyFromPrivate returns a private Key with given ed25519.PrivateKey.
 func KeyFromPrivate(pk ed25519.PrivateKey) (key.Key, error) {
 	if ed25519.PrivateKeySize != len(pk) {
-		return nil, fmt.Errorf(`cose/go/key/ed25519: PrivKeyFromSeed: invalid ed25519..PublicKey size, expected %d, got %d`,
+		return nil, fmt.Errorf(`cose/go/key/ed25519: KeyFromPrivate: invalid ed25519.PrivateKey size, expected %d, got %d`,
 			ed25519.PrivateKeySize, len(pk))
 	}
 
-	pubKey := pk.Public().(ed25519.PublicKey)
-
-	idhash := sha1.New()
-	idhash.Write(pubKey)
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyOKP,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(pk.Public().(ed25519.PublicKey)), // default kid, can be set to other value.
 		key.ParamAlg: key.AlgEdDSA,
 		key.ParamCrv: key.CrvEd25519, // REQUIRED
 		key.ParamD:   pk.Seed(),      // REQUIRED
@@ -59,17 +62,15 @@ func KeyFromPrivate(pk ed25519.PrivateKey) (key.Key, error) {
 // KeyFromPublic returns a public Key with given ed25519.PublicKey.
 func KeyFromPublic(pk ed25519.PublicKey) (key.Key, error) {
 	if ed25519.PublicKeySize != len(pk) {
-		return nil, fmt.Errorf(`cose/go/key/ed25519: KeyFromPub: invalid ed25519.PublicKey size, expected %d, got %d`,
+		return nil, fmt.Errorf(`cose/go/key/ed25519: KeyFromPublic: invalid ed25519.PublicKey size, expected %d, got %d`,
 			ed25519.PublicKeySize, len(pk))
 	}
 
-	idhash := sha1.New()
-	idhash.Write(pk)
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 	return map[key.IntKey]any{
 		key.ParamKty: key.KtyOKP,
-		key.ParamKid: idhash.Sum(nil)[:10], // default kid, can be set to other value.
+		key.ParamKid: key.SumKid(pk), // default kid, can be set to other value.
 		key.ParamAlg: key.AlgEdDSA,
 		key.ParamCrv: key.CrvEd25519, // REQUIRED
 		key.ParamX:   pk,             // REQUIRED
