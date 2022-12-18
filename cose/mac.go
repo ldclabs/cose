@@ -11,22 +11,23 @@ import (
 	"github.com/ldclabs/cose/key"
 )
 
-// Mac0Message represents a COSE_Mac0 object.
+// MacMessage represents a COSE_Mac object.
 //
-// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-signer
-type Mac0Message[T any] struct {
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-maced-message-with-recipien
+type MacMessage[T any] struct {
 	Protected   Headers
 	Unprotected Headers
 	Payload     T
 
-	mm    *mac0Message
-	toMac []byte
+	recipients []*Recipient
+	mm         *macMessage
+	toMac      []byte
 }
 
-// VerifyMac0Message verifies and decodes a COSE_Mac0 message with a MACer and returns a *Mac0Message.
+// VerifyMacMessage verifies and decodes a COSE_Mac message with a MACer and returns a *MacMessage.
 // `externalData` should be the same as the one used when computing.
-func VerifyMac0Message[T any](macer key.MACer, coseData, externalData []byte) (*Mac0Message[T], error) {
-	m := &Mac0Message[T]{}
+func VerifyMacMessage[T any](macer key.MACer, coseData, externalData []byte) (*MacMessage[T], error) {
+	m := &MacMessage[T]{}
 	if err := m.UnmarshalCBOR(coseData); err != nil {
 		return nil, err
 	}
@@ -36,27 +37,48 @@ func VerifyMac0Message[T any](macer key.MACer, coseData, externalData []byte) (*
 	return m, nil
 }
 
-// ComputeAndEncode computes and encodes a COSE_Mac0 message with a MACer.
+// ComputeAndEncode computes and encodes a COSE_Mac message with a MACer.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
-func (m *Mac0Message[T]) ComputeAndEncode(macer key.MACer, externalData []byte) ([]byte, error) {
+func (m *MacMessage[T]) ComputeAndEncode(macer key.MACer, externalData []byte) ([]byte, error) {
 	if err := m.Compute(macer, externalData); err != nil {
 		return nil, err
 	}
 	return m.MarshalCBOR()
 }
 
-// mac0Message represents a COSE_Mac0 structure to encode and decode.
-type mac0Message struct {
+// macMessage represents a COSE_Mac structure to encode and decode.
+type macMessage struct {
 	_           struct{} `cbor:",toarray"`
 	Protected   []byte
 	Unprotected Headers
 	Payload     []byte // can be nil
 	Tag         []byte
+	Recipients  []*Recipient
 }
 
-// Compute computes a COSE_Mac0 message' MAC with a MACer.
+// AddRecipient add a Recipient to the COSE_Mac message.
+func (m *MacMessage[T]) AddRecipient(recipient *Recipient) error {
+	if recipient == nil {
+		return errors.New("cose/go/cose: MacMessage.AddRecipient: nil recipient")
+	}
+
+	if err := recipient.init(); err != nil {
+		return err
+	}
+
+	recipient.context = "Mac_Recipient"
+	m.recipients = append(m.recipients, recipient)
+	return nil
+}
+
+// Recipients returns recipients in the COSE_Mac message
+func (m *MacMessage[T]) Recipients() []*Recipient {
+	return m.recipients
+}
+
+// Compute computes a COSE_Mac message' MAC with a MACer.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
-func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
+func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
 
@@ -73,7 +95,7 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 		}
 	}
 
-	mm := &mac0Message{
+	mm := &macMessage{
 		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 	}
@@ -109,12 +131,12 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 	return err
 }
 
-// Verify verifies a COSE_Mac0 message' MAC with a MACer.
-// It should call `Mac0Message.UnmarshalCBOR` before calling this method.
+// Verify verifies a COSE_Mac message' MAC with a MACer.
+// It should call `MacMessage.UnmarshalCBOR` before calling this method.
 // `externalData` should be the same as the one used when computing.
-func (m *Mac0Message[T]) Verify(macer key.MACer, externalData []byte) error {
+func (m *MacMessage[T]) Verify(macer key.MACer, externalData []byte) error {
 	if m.mm == nil || m.mm.Tag == nil {
-		return errors.New("cose/go/cose: Mac0Message.Verify: should call Mac0Message.UnmarshalCBOR")
+		return errors.New("cose/go/cose: MacMessage.Verify: should call MacMessage.UnmarshalCBOR")
 	}
 
 	var err error
@@ -126,36 +148,37 @@ func (m *Mac0Message[T]) Verify(macer key.MACer, externalData []byte) error {
 	return macer.MACVerify(m.toMac, m.mm.Tag)
 }
 
-func (mm *mac0Message) toMac(external_aad []byte) ([]byte, error) {
+func (mm *macMessage) toMac(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
 	// MAC_structure https://datatracker.ietf.org/doc/html/rfc9052#name-how-to-compute-and-verify-a
 	return key.MarshalCBOR([]any{
-		"MAC0",       // context
+		"MAC",        // context
 		mm.Protected, // body_protected
 		external_aad, // external_aad
 		mm.Payload,   // payload
 	})
 }
 
-// MarshalCBOR implements the CBOR Marshaler interface for Mac0Message.
-// It should call `Mac0Message.WithSign` before calling this method.
-func (m *Mac0Message[T]) MarshalCBOR() ([]byte, error) {
+// MarshalCBOR implements the CBOR Marshaler interface for MacMessage.
+// It should call `MacMessage.WithSign` before calling this method.
+func (m *MacMessage[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Tag == nil {
-		return nil, errors.New("cose/go/cose: Mac0Message.MarshalCBOR: should call Mac0Message.Compute")
+		return nil, errors.New("cose/go/cose: MacMessage.MarshalCBOR: should call MacMessage.Compute")
 	}
 
+	m.mm.Recipients = m.recipients
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSEMac0,
+		Number:  cborTagCOSEMac,
 		Content: m.mm,
 	})
 }
 
-// UnmarshalCBOR implements the CBOR Unmarshaler interface for Mac0Message.
-func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
+// UnmarshalCBOR implements the CBOR Unmarshaler interface for MacMessage.
+func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: Mac0Message.UnmarshalCBOR: nil Mac0Message")
+		return errors.New("cose/go/cose: MacMessage.UnmarshalCBOR: nil MacMessage")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {
@@ -163,11 +186,11 @@ func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	// support untagged message
-	if bytes.HasPrefix(data, mac0MessagePrefix) {
+	if bytes.HasPrefix(data, macMessagePrefix) {
 		data = data[1:]
 	}
 
-	mm := &mac0Message{}
+	mm := &macMessage{}
 	if err := key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
@@ -194,20 +217,21 @@ func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
 
 	m.Protected = protected
 	m.Unprotected = mm.Unprotected
+	m.recipients = mm.Recipients
 	m.mm = mm
 	return nil
 }
 
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
-func (m *Mac0Message[T]) Bytesify() []byte {
+func (m *MacMessage[T]) Bytesify() []byte {
 	b, _ := m.MarshalCBOR()
 	return b
 }
 
-// Tag returns the MAC tag of the Mac0Message.
+// Tag returns the MAC tag of the MacMessage.
 // If the MAC is not computed, it returns nil.
-func (m *Mac0Message[T]) Tag() []byte {
+func (m *MacMessage[T]) Tag() []byte {
 	if m.mm == nil {
 		return nil
 	}

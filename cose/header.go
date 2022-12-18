@@ -10,7 +10,7 @@ import "github.com/ldclabs/cose/key"
 // Reference https://www.iana.org/assignments/cose/cose.xhtml#header-parameters
 const (
 	HeaderLabelReserved          key.IntKey = 0
-	HeaderLabelAlgorithm         key.IntKey = 1 // protected header
+	HeaderLabelAlgorithm         key.IntKey = 1 // protected header or unprotected header
 	HeaderLabelCritical          key.IntKey = 2 // protected header
 	HeaderLabelContentType       key.IntKey = 3 // unprotected header
 	HeaderLabelKeyID             key.IntKey = 4 // unprotected header
@@ -18,6 +18,15 @@ const (
 	HeaderLabelPartialIV         key.IntKey = 6 // unprotected header
 	HeaderLabelCounterSignature  key.IntKey = 7 // unprotected header
 	HeaderLabelCounterSignature0 key.IntKey = 9 // unprotected header
+)
+
+// COSE Header Algorithm Parameters
+// Reference https://www.iana.org/assignments/cose/cose.xhtml#header-algorithm-parameters
+const (
+	HeaderAlgEphemeralKey key.IntKey = -1
+	HeaderAlgStaticKey    key.IntKey = -2
+	HeaderAlgStaticKeyID  key.IntKey = -3
+	HeaderAlgSalt         key.IntKey = -20
 )
 
 // Headers represents a COSE Generic_Headers structure.
@@ -65,12 +74,13 @@ func (h Headers) GetString(k key.IntKey) (string, error) {
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (h Headers) Bytesify() []byte {
-	b, _ := key.IntMap(h).MarshalCBOR()
+	// b, _ := key.IntMap(h).MarshalCBOR()
+	b, _ := key.MarshalCBOR(h)
 	return b
 }
 
-// MarshalCBOR implements the CBOR Marshaler interface for Headers.
-// It is the same as IntMap.MarshalCBOR.
-func (h Headers) MarshalCBOR() ([]byte, error) {
-	return key.IntMap(h).MarshalCBOR()
-}
+// // MarshalCBOR implements the CBOR Marshaler interface for Headers.
+// // It is the same as IntMap.MarshalCBOR.
+// func (h Headers) MarshalCBOR() ([]byte, error) {
+// 	return key.IntMap(h).MarshalCBOR()
+// }

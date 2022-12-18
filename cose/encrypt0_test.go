@@ -17,13 +17,12 @@ func TestEncrypt0Message(t *testing.T) {
 	assert := assert.New(t)
 
 	for _, tc := range []struct {
-		title              string
-		key                key.Key
-		iv                 []byte
-		plaintext          []byte
-		toEnc              []byte
-		detachedCiphertext bool
-		output             []byte
+		title     string
+		key       key.Key
+		iv        []byte
+		plaintext []byte
+		toEnc     []byte
+		output    []byte
 	}{
 		{
 			`Enc-04: Encryption example for spec - Direct ECDH`,
@@ -36,7 +35,6 @@ func TestEncrypt0Message(t *testing.T) {
 			key.HexBytesify("89F52F65A1C580933B5261A78C"),
 			[]byte("This is the content."),
 			key.HexBytesify("8368456E63727970743043A1010A40"),
-			false,
 			key.HexBytesify("D08343A1010AA1054D89F52F65A1C580933B5261A78C581C5974E1B99A3A4CC09A659AA2E9E7FFF161D38CE71CB45CE460FFB569"),
 		},
 	} {
@@ -44,9 +42,8 @@ func TestEncrypt0Message(t *testing.T) {
 		require.NoError(t, err, tc.title)
 
 		obj := &Encrypt0Message[[]byte]{
-			Unprotected:        Headers{HeaderLabelIV: tc.iv},
-			Payload:            tc.plaintext,
-			DetachedCiphertext: tc.detachedCiphertext,
+			Unprotected: Headers{HeaderLabelIV: tc.iv},
+			Payload:     tc.plaintext,
 		}
 
 		err = obj.Encrypt(encryptor, nil)

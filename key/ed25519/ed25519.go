@@ -59,6 +59,28 @@ func KeyFromPrivate(pk ed25519.PrivateKey) (key.Key, error) {
 	}, nil
 }
 
+// KeyToPrivate returns the private key from the given key.
+func KeyToPrivate(k key.Key) (ed25519.PrivateKey, error) {
+	if err := CheckKey(k); err != nil {
+		return nil, err
+	}
+
+	if !k.Has(key.ParamD) {
+		return nil, fmt.Errorf("cose/go/key/ed25519: KeyToPrivate: invalid key")
+	}
+
+	d, _ := k.GetBytes(key.ParamD)
+	privKey := ed25519.NewKeyFromSeed(d)
+
+	x, _ := k.GetBytes(key.ParamX)
+	if k.Has(key.ParamX) {
+		if !bytes.Equal(privKey.Public().([]byte), x) {
+			return nil, fmt.Errorf("cose/go/key/ed25519: KeyToPrivate: invalid parameters x")
+		}
+	}
+	return privKey, nil
+}
+
 // KeyFromPublic returns a public Key with given ed25519.PublicKey.
 func KeyFromPublic(pk ed25519.PublicKey) (key.Key, error) {
 	if ed25519.PublicKeySize != len(pk) {
@@ -75,6 +97,20 @@ func KeyFromPublic(pk ed25519.PublicKey) (key.Key, error) {
 		key.ParamCrv: key.CrvEd25519, // REQUIRED
 		key.ParamX:   pk,             // REQUIRED
 	}, nil
+}
+
+// KeyToPublic returns the public key from the given key.
+func KeyToPublic(k key.Key) (ed25519.PublicKey, error) {
+	if err := CheckKey(k); err != nil {
+		return nil, err
+	}
+
+	if !k.Has(key.ParamX) {
+		return nil, fmt.Errorf("cose/go/key/ed25519: KeyToPublic: invalid key")
+	}
+
+	x, _ := k.GetBytes(key.ParamX)
+	return ed25519.PublicKey(x), nil
 }
 
 // CheckKey checks whether the given key is a valid Ed25519 key.
@@ -197,22 +233,9 @@ type ed25519Signer struct {
 
 // NewSigner creates a key.Signer for the given private key.
 func NewSigner(k key.Key) (key.Signer, error) {
-	if err := CheckKey(k); err != nil {
+	privKey, err := KeyToPrivate(k)
+	if err != nil {
 		return nil, err
-	}
-
-	if !k.Has(key.ParamD) {
-		return nil, fmt.Errorf("cose/go/key/ed25519: NewSigner: invalid key")
-	}
-
-	d, _ := k.GetBytes(key.ParamD)
-	privKey := ed25519.NewKeyFromSeed(d)
-
-	x, _ := k.GetBytes(key.ParamX)
-	if k.Has(key.ParamX) {
-		if !bytes.Equal(privKey.Public().([]byte), x) {
-			return nil, fmt.Errorf("cose/go/key/ed25519: NewSigner: invalid parameters x")
-		}
 	}
 
 	return &ed25519Signer{key: k, privKey: privKey}, nil

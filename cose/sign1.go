@@ -24,7 +24,7 @@ type Sign1Message[T any] struct {
 }
 
 // VerifySign1Message verifies and decodes a COSE_Sign1 message with a Verifier and returns a *Sign1Message.
-// `externalData` should be the same as the one used in `Sign1Message.SignAndEncode`.
+// `externalData` should be the same as the one used when signing.
 func VerifySign1Message[T any](verifier key.Verifier, coseData, externalData []byte) (*Sign1Message[T], error) {
 	m := &Sign1Message[T]{}
 	if err := m.UnmarshalCBOR(coseData); err != nil {
@@ -110,7 +110,7 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 
 // Verify verifies a COSE_Sign1 message with a Verifier.
 // It should call `Sign1Message.UnmarshalCBOR` before calling this method.
-// `externalData` should be the same as the one used in `Sign1Message.WithSign`.
+// `externalData` should be the same as the one used when signing.
 func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) error {
 	if m.mm == nil || m.mm.Signature == nil {
 		return errors.New("cose/go/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
@@ -136,9 +136,6 @@ func (mm *sign1Message) toSign(external_aad []byte) ([]byte, error) {
 		mm.Payload,   // payload
 	})
 }
-
-// Reference: https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml#tags
-const cborTagCOSESign1 = 18
 
 // MarshalCBOR implements the CBOR Marshaler interface for Sign1Message.
 // It should call `Sign1Message.WithSign` before calling this method.

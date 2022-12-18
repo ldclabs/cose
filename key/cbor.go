@@ -10,7 +10,7 @@ import (
 )
 
 var encOpts = cbor.EncOptions{
-	Sort:          cbor.SortLengthFirst,
+	Sort:          cbor.SortBytewiseLexical,
 	IndefLength:   cbor.IndefLengthForbidden,
 	BigIntConvert: cbor.BigIntConvertNone,
 }

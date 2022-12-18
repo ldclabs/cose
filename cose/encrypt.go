@@ -11,22 +11,23 @@ import (
 	"github.com/ldclabs/cose/key"
 )
 
-// Encrypt0Message represents a COSE_Encrypt0 object.
+// EncryptMessage represents a COSE_Encrypt object.
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-single-recipient-encrypted
-type Encrypt0Message[T any] struct {
+type EncryptMessage[T any] struct {
 	Protected   Headers
 	Unprotected Headers
 	Payload     T
 
-	mm    *encrypt0Message
-	toEnc []byte
+	recipients []*Recipient
+	mm         *encryptMessage
+	toEnc      []byte
 }
 
-// DecryptEncrypt0Message decrypts and decodes a COSE_Encrypt0 message with a Encryptor and returns a *Encrypt0Message.
+// DecryptEncryptMessage decrypts and decodes a COSE_Encrypt message with a Encryptor and returns a *EncryptMessage.
 // `externalData` should be the same as the one used when encrypting.
-func DecryptEncrypt0Message[T any](encryptor key.Encryptor, coseData, externalData []byte) (*Encrypt0Message[T], error) {
-	m := &Encrypt0Message[T]{}
+func DecryptEncryptMessage[T any](encryptor key.Encryptor, coseData, externalData []byte) (*EncryptMessage[T], error) {
+	m := &EncryptMessage[T]{}
 	if err := m.UnmarshalCBOR(coseData); err != nil {
 		return nil, err
 	}
@@ -36,26 +37,47 @@ func DecryptEncrypt0Message[T any](encryptor key.Encryptor, coseData, externalDa
 	return m, nil
 }
 
-// EncryptAndEncode encrypts and encodes a COSE_Encrypt0 message with a Encryptor.
+// EncryptAndEncode encrypts and encodes a COSE_Encrypt message with a Encryptor.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
-func (m *Encrypt0Message[T]) EncryptAndEncode(encryptor key.Encryptor, externalData []byte) ([]byte, error) {
+func (m *EncryptMessage[T]) EncryptAndEncode(encryptor key.Encryptor, externalData []byte) ([]byte, error) {
 	if err := m.Encrypt(encryptor, externalData); err != nil {
 		return nil, err
 	}
 	return m.MarshalCBOR()
 }
 
-// encrypt0Message represents a COSE_Encrypt0 structure to encode and decode.
-type encrypt0Message struct {
+// encryptMessage represents a COSE_Encrypt structure to encode and decode.
+type encryptMessage struct {
 	_           struct{} `cbor:",toarray"`
 	Protected   []byte
 	Unprotected Headers
 	Ciphertext  []byte // can be nil
+	Recipients  []*Recipient
 }
 
-// Encrypt encrypt a COSE_Encrypt0 message with a Encryptor.
+// AddRecipient add a Recipient to the COSE_Encrypt message.
+func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
+	if recipient == nil {
+		return errors.New("cose/go/cose: EncryptMessage.AddRecipient: nil recipient")
+	}
+
+	if err := recipient.init(); err != nil {
+		return err
+	}
+
+	recipient.context = "Enc_Recipient"
+	m.recipients = append(m.recipients, recipient)
+	return nil
+}
+
+// Recipients returns recipients in the COSE_Encrypt message
+func (m *EncryptMessage[T]) Recipients() []*Recipient {
+	return m.recipients
+}
+
+// Encrypt encrypt a COSE_Encrypt message with a Encryptor.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
-func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byte) error {
+func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
 
@@ -82,7 +104,7 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 		m.Unprotected[HeaderLabelIV] = iv
 	}
 
-	mm := &encrypt0Message{
+	mm := &encryptMessage{
 		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 	}
@@ -116,16 +138,17 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 	if err != nil {
 		return err
 	}
+
 	m.mm = mm
 	return nil
 }
 
-// Decrypt decrypts a COSE_Encrypt0 message with a Encryptor.
-// It should call `Encrypt0Message.UnmarshalCBOR` before calling this method.
+// Decrypt decrypts a COSE_Encrypt message with a Encryptor.
+// It should call `EncryptMessage.UnmarshalCBOR` before calling this method.
 // `externalData` should be the same as the one used when encrypting.
-func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byte) error {
+func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte) error {
 	if m.mm == nil || m.mm.Ciphertext == nil {
-		return errors.New("cose/go/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
+		return errors.New("cose/go/cose: EncryptMessage.Decrypt: should call EncryptMessage.UnmarshalCBOR")
 	}
 
 	var err error
@@ -159,35 +182,37 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 	return nil
 }
 
-func (mm *encrypt0Message) toEnc(external_aad []byte) ([]byte, error) {
+func (mm *encryptMessage) toEnc(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
+
 	// Enc_structure https://datatracker.ietf.org/doc/html/rfc9052#name-how-to-encrypt-and-decrypt-
 	return key.MarshalCBOR([]any{
-		"Encrypt0",   // context
+		"Encrypt",    // context
 		mm.Protected, // body_protected
 		external_aad, // external_aad
 	})
 }
 
-// MarshalCBOR implements the CBOR Marshaler interface for Encrypt0Message.
-// It should call `Encrypt0Message.Encrypt` before calling this method.
-func (m *Encrypt0Message[T]) MarshalCBOR() ([]byte, error) {
+// MarshalCBOR implements the CBOR Marshaler interface for EncryptMessage.
+// It should call `EncryptMessage.Encrypt` before calling this method.
+func (m *EncryptMessage[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Ciphertext == nil {
-		return nil, errors.New("cose/go/cose: Encrypt0Message.MarshalCBOR: should call Encrypt0Message.Encrypt")
+		return nil, errors.New("cose/go/cose: EncryptMessage.MarshalCBOR: should call EncryptMessage.Encrypt")
 	}
 
+	m.mm.Recipients = m.recipients
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSEEncrypt0,
+		Number:  cborTagCOSEEncrypt,
 		Content: m.mm,
 	})
 }
 
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Mac0Message.
-func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
+func (m *EncryptMessage[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: Encrypt0Message.UnmarshalCBOR: nil Encrypt0Message")
+		return errors.New("cose/go/cose: EncryptMessage.UnmarshalCBOR: nil EncryptMessage")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {
@@ -195,11 +220,11 @@ func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	// support untagged message
-	if bytes.HasPrefix(data, encrypt0MessagePrefix) {
+	if bytes.HasPrefix(data, encryptMessagePrefix) {
 		data = data[1:]
 	}
 
-	mm := &encrypt0Message{}
+	mm := &encryptMessage{}
 	if err := key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
@@ -213,13 +238,14 @@ func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
 
 	m.Protected = protected
 	m.Unprotected = mm.Unprotected
+	m.recipients = mm.Recipients
 	m.mm = mm
 	return nil
 }
 
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
-func (m *Encrypt0Message[T]) Bytesify() []byte {
+func (m *EncryptMessage[T]) Bytesify() []byte {
 	b, _ := m.MarshalCBOR()
 	return b
 }

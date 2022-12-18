@@ -131,12 +131,13 @@ func (k Key) MarshalJSON() ([]byte, error) {
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (k Key) Bytesify() []byte {
-	b, _ := IntMap(k).MarshalCBOR()
+	// b, _ := IntMap(k).MarshalCBOR()
+	b, _ := MarshalCBOR(k)
 	return b
 }
 
-// MarshalCBOR implements the CBOR Marshaler interface for Key.
-// It is the same as IntMap.MarshalCBOR.
-func (k Key) MarshalCBOR() ([]byte, error) {
-	return IntMap(k).MarshalCBOR()
-}
+// // MarshalCBOR implements the CBOR Marshaler interface for Key.
+// // It is the same as IntMap.MarshalCBOR.
+// func (k Key) MarshalCBOR() ([]byte, error) {
+// 	return IntMap(k).MarshalCBOR()
+// }

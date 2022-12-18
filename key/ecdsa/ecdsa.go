@@ -38,7 +38,7 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 }
 
 // KeyFromPrivate returns a private Key with given ecdsa.PrivateKey.
-func KeyFromPrivate(pk ecdsa.PrivateKey) (key.Key, error) {
+func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
 	var alg key.Alg
 	var c key.Crv
 	switch curve := pk.Curve.Params().Name; curve {
@@ -65,8 +65,34 @@ func KeyFromPrivate(pk ecdsa.PrivateKey) (key.Key, error) {
 	}, nil
 }
 
+// KeyToPrivate returns the ecdsa.PrivateKey for the given key.Key.
+func KeyToPrivate(k key.Key) (*ecdsa.PrivateKey, error) {
+	if err := CheckKey(k); err != nil {
+		return nil, err
+	}
+
+	if !k.Has(key.ParamD) {
+		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPrivate: invalid parameter d")
+	}
+
+	d, _ := k.GetBytes(key.ParamD)
+	crv, _ := getCurve(k.Alg())
+	privKey := new(ecdsa.PrivateKey)
+	privKey.PublicKey.Curve = crv
+	privKey.D = new(big.Int).SetBytes(d)
+	privKey.PublicKey.X, privKey.PublicKey.Y = crv.ScalarBaseMult(d)
+
+	if x, _ := k.GetBytes(key.ParamX); x != nil && !bytes.Equal(privKey.PublicKey.X.Bytes(), x) {
+		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPrivate: invalid parameters x for %q", k.Kid())
+	}
+	if y, _ := k.GetBytes(key.ParamY); y != nil && !bytes.Equal(privKey.PublicKey.Y.Bytes(), y) {
+		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPrivate: invalid parameters y for %q", k.Kid())
+	}
+	return privKey, nil
+}
+
 // KeyFromPublic returns a public Key with given ecdsa.PublicKey.
-func KeyFromPublic(pk ecdsa.PublicKey) (key.Key, error) {
+func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
 	var alg key.Alg
 	var c key.Crv
 	switch curve := pk.Curve.Params().Name; curve {
@@ -92,6 +118,50 @@ func KeyFromPublic(pk ecdsa.PublicKey) (key.Key, error) {
 		key.ParamX:   pk.X.Bytes(), // REQUIRED
 		key.ParamY:   pk.Y.Bytes(), // REQUIRED
 	}, nil
+}
+
+// KeyToPublic returns the ecdsa.PublicKey for the given key.Key.
+func KeyToPublic(k key.Key) (*ecdsa.PublicKey, error) {
+	pk, err := ToPublicKey(k)
+	if err != nil {
+		return nil, err
+	}
+	return keyToPublic(pk)
+}
+
+func keyToPublic(pk key.Key) (*ecdsa.PublicKey, error) {
+	crv, _ := getCurve(pk.Alg())
+
+	x, _ := pk.GetBytes(key.ParamX)
+	ix := new(big.Int).SetBytes(x)
+
+	y, _ := pk.GetBytes(key.ParamY)
+	iy := new(big.Int).SetBytes(y)
+
+	if y == nil {
+		boolY, err := pk.GetBool(key.ParamY)
+		if err != nil {
+			return nil, err
+		}
+		compressed := make([]byte, 1+len(x))
+		if boolY {
+			compressed[0] = 0x03
+		} else {
+			compressed[0] = 0x02
+		}
+		copy(compressed[1:], x)
+		ix, iy = elliptic.UnmarshalCompressed(crv, compressed)
+	}
+
+	pubKey := &ecdsa.PublicKey{
+		Curve: crv,
+		X:     ix,
+		Y:     iy,
+	}
+	if !pubKey.Curve.IsOnCurve(pubKey.X, pubKey.Y) {
+		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPublic: invalid public key")
+	}
+	return pubKey, nil
 }
 
 // CheckKey checks whether the given key is a valid ECDSA key.
@@ -231,25 +301,31 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 	return pk, nil
 }
 
-func TryCompresse(k key.Key) {
+// ToCompressedKey converts the given key to a compressed key.
+// It can be used in Recipient.
+func ToCompressedKey(k key.Key) (key.Key, error) {
 	if err := CheckKey(k); err != nil {
-		return
+		return nil, err
+	}
+
+	ck := key.Key{
+		key.ParamKty: k[key.ParamKty],
+		key.ParamCrv: k[key.ParamCrv],
 	}
 
 	if k.Has(key.ParamD) {
-		delete(k, key.ParamX)
-		delete(k, key.ParamY)
-		return
+		ck[key.ParamD] = k[key.ParamD]
+		return ck, nil
 	}
 
-	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
-	if y, err := k.GetBytes(key.ParamY); err == nil {
-		boolY := false
-		if b0 := y[0] & 0b10000000; b0 == 1 { // sign bit
-			boolY = true
-		}
-		k[key.ParamY] = boolY
+	ck[key.ParamX] = k[key.ParamX]
+	y, _ := k.GetBytes(key.ParamY)
+	boolY := false
+	if b0 := y[0] >> 7; b0 == 1 { // sign bit
+		boolY = true
 	}
+	ck[key.ParamY] = boolY
+	return ck, nil
 }
 
 type ecdsaSigner struct {
@@ -259,26 +335,9 @@ type ecdsaSigner struct {
 
 // NewSigner creates a key.Signer for the given private key.
 func NewSigner(k key.Key) (key.Signer, error) {
-	if err := CheckKey(k); err != nil {
+	privKey, err := KeyToPrivate(k)
+	if err != nil {
 		return nil, err
-	}
-
-	if !k.Has(key.ParamD) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: NewSigner: invalid parameter d")
-	}
-
-	d, _ := k.GetBytes(key.ParamD)
-	crv, _ := getCurve(k.Alg())
-	privKey := new(ecdsa.PrivateKey)
-	privKey.PublicKey.Curve = crv
-	privKey.D = new(big.Int).SetBytes(d)
-	privKey.PublicKey.X, privKey.PublicKey.Y = crv.ScalarBaseMult(d)
-
-	if x, _ := k.GetBytes(key.ParamX); x != nil && !bytes.Equal(privKey.PublicKey.X.Bytes(), x) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: NewSigner: invalid parameters x for %q", k.Kid())
-	}
-	if y, _ := k.GetBytes(key.ParamY); y != nil && !bytes.Equal(privKey.PublicKey.Y.Bytes(), y) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: NewSigner: invalid parameters y for %q", k.Kid())
 	}
 	return &ecdsaSigner{key: k, privKey: privKey}, nil
 }
@@ -316,38 +375,10 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 		return nil, err
 	}
 
-	crv, _ := getCurve(pk.Alg())
-
-	x, _ := pk.GetBytes(key.ParamX)
-	ix := new(big.Int).SetBytes(x)
-
-	y, _ := pk.GetBytes(key.ParamY)
-	iy := new(big.Int).SetBytes(y)
-
-	if y == nil {
-		boolY, err := pk.GetBool(key.ParamY)
-		if err != nil {
-			return nil, err
-		}
-		compressed := make([]byte, 1+len(x))
-		if boolY {
-			compressed[0] = 0x03
-		} else {
-			compressed[0] = 0x02
-		}
-		copy(compressed[1:], x)
-		ix, iy = elliptic.UnmarshalCompressed(crv, compressed)
+	pubKey, err := keyToPublic(pk)
+	if err != nil {
+		return nil, err
 	}
-
-	pubKey := &ecdsa.PublicKey{
-		Curve: crv,
-		X:     ix,
-		Y:     iy,
-	}
-	if !pubKey.Curve.IsOnCurve(pubKey.X, pubKey.Y) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: NewVerifier: invalid public key")
-	}
-
 	return &ecdsaVerifier{key: pk, pubKey: pubKey}, nil
 }
 

@@ -9,11 +9,15 @@ var cwtPrefix = []byte{
 	0xd8, 0x3d, // #6.61
 }
 
+const cborTagCOSESign1 = 18
+
 // sign1MessagePrefix represents the fixed prefix of COSE_Sign1_Tagged.
 var sign1MessagePrefix = []byte{
 	0xd2, // #6.18
 	0x84, // array of length 4
 }
+
+const cborTagCOSESign = 98
 
 // signMessagePrefix represents the fixed prefix of COSE_Sign_Tagged.
 var signMessagePrefix = []byte{
@@ -21,14 +25,34 @@ var signMessagePrefix = []byte{
 	0x84, // Array of length 4
 }
 
+const cborTagCOSEMac0 = 17
+
 // mac0MessagePrefix represents the fixed prefix of COSE_Mac0_Tagged.
 var mac0MessagePrefix = []byte{
 	0xd1, // #6.17
 	0x84, // array of length 4
 }
 
-// mac0MessagePrefix represents the fixed prefix of COSE_Encrypt0_Tagged.
+const cborTagCOSEMac = 97
+
+// macMessagePrefix represents the fixed prefix of COSE_Mac_Tagged.
+var macMessagePrefix = []byte{
+	0xd8, 0x61, // #6.97
+	0x85, // array of length 5
+}
+
+const cborTagCOSEEncrypt0 = 16
+
+// encrypt0MessagePrefix represents the fixed prefix of COSE_Encrypt0_Tagged.
 var encrypt0MessagePrefix = []byte{
 	0xd0, // #6.16
 	0x83, // array of length 3
+}
+
+const cborTagCOSEEncrypt = 96
+
+// encryptMessagePrefix represents the fixed prefix of COSE_Encrypt_Tagged.
+var encryptMessagePrefix = []byte{
+	0xd8, 0x60, // #6.96
+	0x83, // array of length 4
 }

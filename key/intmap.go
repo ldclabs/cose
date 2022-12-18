@@ -4,12 +4,9 @@
 package key
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"math"
 	"reflect"
-	"sort"
 )
 
 // IntKey is a key type for the IntMap, value is from -65536 to 65536.
@@ -206,37 +203,37 @@ func (m IntMap) GetString(k IntKey) (string, error) {
 	return "", nil
 }
 
-// MarshalCBOR implements the CBOR Marshaler interface for IntMap.
-// It sorts the int keys in increasing order and then encode the map.
-// The map's capacity should be small, no more than 23 that is enough for COSE, CWT cases.
-func (m IntMap) MarshalCBOR() ([]byte, error) {
-	var err error
-	var b bytes.Buffer
-	n := len(m)
-	if n > 23 {
-		return nil, errors.New("too many map items")
-	}
+// // MarshalCBOR implements the CBOR Marshaler interface for IntMap.
+// // It sorts the int keys in increasing order and then encode the map.
+// // The map's capacity should be small, no more than 23 that is enough for COSE, CWT cases.
+// func (m IntMap) MarshalCBOR() ([]byte, error) {
+// 	var err error
+// 	var b bytes.Buffer
+// 	n := len(m)
+// 	if n > 23 {
+// 		return nil, errors.New("too many map items")
+// 	}
 
-	keys := make([]int, 0, n)
-	for k := range m {
-		if k < minInt || k > maxInt {
-			return nil, fmt.Errorf("invalid IntKey %d", k)
-		}
+// 	keys := make([]int, 0, n)
+// 	for k := range m {
+// 		if k < minInt || k > maxInt {
+// 			return nil, fmt.Errorf("invalid IntKey %d", k)
+// 		}
 
-		keys = append(keys, int(k))
-	}
-	sort.Ints(keys)
+// 		keys = append(keys, int(k))
+// 	}
+// 	sort.Ints(keys)
 
-	// CBOR head: map with 0-23 items
-	b.WriteByte(0xa0 | byte(n))
-	enc := NewEncoder(&b)
-	for _, k := range keys {
-		if err = enc.Encode(k); err != nil {
-			return nil, err
-		}
-		if err = enc.Encode(m[IntKey(k)]); err != nil {
-			return nil, err
-		}
-	}
-	return b.Bytes(), nil
-}
+// 	// CBOR head: map with 0-23 items
+// 	b.WriteByte(0xa0 | byte(n))
+// 	enc := NewEncoder(&b)
+// 	for _, k := range keys {
+// 		if err = enc.Encode(k); err != nil {
+// 			return nil, err
+// 		}
+// 		if err = enc.Encode(m[IntKey(k)]); err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	return b.Bytes(), nil
+// }

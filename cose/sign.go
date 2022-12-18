@@ -24,7 +24,7 @@ type SignMessage[T any] struct {
 }
 
 // VerifySignMessage verifies and decodes a COSE_Sign format with some Verifiers and returns a *SignMessage.
-// `externalData` should be the same as the one used in `SignMessage.SignAndEncode`.
+// `externalData` should be the same as the one used when signing.
 func VerifySignMessage[T any](verifiers key.Verifiers, coseData, externalData []byte) (*SignMessage[T], error) {
 	m := &SignMessage[T]{}
 	if err := m.UnmarshalCBOR(coseData); err != nil {
@@ -147,7 +147,7 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 
 // Verify verifies a COSE_Sign message with some Verifiers.
 // It should call `SignMessage.UnmarshalCBOR` before calling this method.
-// `externalData` should be the same as the one used in SignMessage.WithSign.
+// `externalData` should be the same as the one used when signing.
 func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) error {
 	if len(verifiers) == 0 {
 		return errors.New("cose/go/cose: SignMessage.Verify: no verifiers")
@@ -194,9 +194,6 @@ func (mm *signMessage) toSign(sign_protected, external_aad []byte) ([]byte, erro
 		mm.Payload,     // payload
 	})
 }
-
-// Reference: https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml#tags
-const cborTagCOSESign = 98
 
 // MarshalCBOR implements the CBOR Marshaler interface for SignMessage.
 // It should call `SignMessage.WithSign` before calling this method.
