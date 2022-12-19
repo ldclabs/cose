@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	_ "github.com/ldclabs/cose/key/aesccm"
 )
@@ -26,11 +27,11 @@ func TestEncrypt0Message(t *testing.T) {
 	}{
 		{
 			`Enc-04: Encryption example for spec - Direct ECDH`,
-			map[key.IntKey]any{
-				key.ParamKty: key.KtySymmetric,
-				key.ParamKid: []byte("our-secret2"),
-				key.ParamAlg: key.AlgAESCCM1664128,
-				key.ParamK:   key.Base64Bytesify("hJtXhkV8FJG-Onbc6mxCcY"),
+			map[int]any{
+				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+				iana.KeyParameterKid:        []byte("our-secret2"),
+				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_128,
+				iana.SymmetricKeyParameterK: key.Base64Bytesify("hJtXhkV8FJG-Onbc6mxCcY"),
 			},
 			key.HexBytesify("89F52F65A1C580933B5261A78C"),
 			[]byte("This is the content."),
@@ -42,7 +43,7 @@ func TestEncrypt0Message(t *testing.T) {
 		require.NoError(t, err, tc.title)
 
 		obj := &Encrypt0Message[[]byte]{
-			Unprotected: Headers{HeaderLabelIV: tc.iv},
+			Unprotected: Headers{iana.HeaderParameterIV: tc.iv},
 			Payload:     tc.plaintext,
 		}
 

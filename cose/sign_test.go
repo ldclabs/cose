@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	_ "github.com/ldclabs/cose/key/ecdsa"
 )
@@ -26,21 +27,21 @@ func TestSign(t *testing.T) {
 		{
 			`Case: JOSE Cookbook Example 4.8 - multiple signatures`,
 			key.KeySet{
-				map[key.IntKey]any{
-					key.ParamKty: key.KtyEC2,
-					key.ParamKid: []byte("11"), //  h'3131'
-					key.ParamCrv: key.CrvP256,
-					key.ParamX:   key.Base64Bytesify("usWxHK2PmfnHKwXPS54m0kTcGJ90UiglWiGahtagnv8"),
-					key.ParamY:   key.Base64Bytesify("IBOL-C3BttVivg-lSreASjpkttcsz-1rb7btKLv8EX4"),
-					key.ParamD:   key.Base64Bytesify("V8kgd2ZBRuh2dgyVINBUqpPDr7BOMGcF22CQMIUHtNM"),
+				map[int]any{
+					iana.KeyParameterKty:    iana.KeyTypeEC2,
+					iana.KeyParameterKid:    []byte("11"), //  h'3131'
+					iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
+					iana.EC2KeyParameterX:   key.Base64Bytesify("usWxHK2PmfnHKwXPS54m0kTcGJ90UiglWiGahtagnv8"),
+					iana.EC2KeyParameterY:   key.Base64Bytesify("IBOL-C3BttVivg-lSreASjpkttcsz-1rb7btKLv8EX4"),
+					iana.EC2KeyParameterD:   key.Base64Bytesify("V8kgd2ZBRuh2dgyVINBUqpPDr7BOMGcF22CQMIUHtNM"),
 				},
-				map[key.IntKey]any{
-					key.ParamKty: key.KtyEC2,
-					key.ParamKid: []byte("bilbo.baggins@hobbiton.example"),
-					key.ParamCrv: key.CrvP521,
-					key.ParamX:   key.Base64Bytesify("cpkss6wI7PPlxj3t7A1RqMH3nvL4L5Tzxze_XeeYZnHqxiX-gle70DlGRMqqOq-PJ6RYX7vK0PJFdiAIXlyPQq0"),
-					key.ParamY:   key.Base64Bytesify("AdymlHvOiLxXkEhayXQnNCvDX4h9htZaCJN34kfmC6pV5OhQHiraVySsUdaQkAgDPrwQrJmbnX9cwlGfP-HqHZR1"),
-					key.ParamD:   key.Base64Bytesify("AAhRON2r9cqXX1hg-RoI6R1tX5p2rUAYdmpHZoC1XNM56KtscrX6zbKipQrCW9CGZH3T4ubpnoTKLDYJ_fF3_rJt"),
+				map[int]any{
+					iana.KeyParameterKty:    iana.KeyTypeEC2,
+					iana.KeyParameterKid:    []byte("bilbo.baggins@hobbiton.example"),
+					iana.EC2KeyParameterCrv: iana.EllipticCurveP_521,
+					iana.EC2KeyParameterX:   key.Base64Bytesify("cpkss6wI7PPlxj3t7A1RqMH3nvL4L5Tzxze_XeeYZnHqxiX-gle70DlGRMqqOq-PJ6RYX7vK0PJFdiAIXlyPQq0"),
+					iana.EC2KeyParameterY:   key.Base64Bytesify("AdymlHvOiLxXkEhayXQnNCvDX4h9htZaCJN34kfmC6pV5OhQHiraVySsUdaQkAgDPrwQrJmbnX9cwlGfP-HqHZR1"),
+					iana.EC2KeyParameterD:   key.Base64Bytesify("AAhRON2r9cqXX1hg-RoI6R1tX5p2rUAYdmpHZoC1XNM56KtscrX6zbKipQrCW9CGZH3T4ubpnoTKLDYJ_fF3_rJt"),
 				},
 			},
 			[][]byte{

@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -21,11 +22,11 @@ func GenerateKey() (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/chacha20poly1305: GenerateKey: %w", err)
 	}
 
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
-		key.ParamAlg: key.AlgChaCha20Poly1305,
-		key.ParamK:   k, // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
+		iana.KeyParameterAlg:        iana.AlgorithmChaCha20Poly1305,
+		iana.SymmetricKeyParameterK: k, // REQUIRED
 	}, nil
 }
 
@@ -36,11 +37,11 @@ func KeyFrom(k []byte) (key.Key, error) {
 			keySize, len(k))
 	}
 
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
-		key.ParamAlg: key.AlgChaCha20Poly1305,
-		key.ParamK:   append(make([]byte, 0, len(k)), k...), // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
+		iana.KeyParameterAlg:        iana.AlgorithmChaCha20Poly1305,
+		iana.SymmetricKeyParameterK: append(make([]byte, 0, len(k)), k...), // REQUIRED
 	}, nil
 }
 
@@ -48,27 +49,27 @@ func KeyFrom(k []byte) (key.Key, error) {
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#name-chacha20-and-poly1305
 func CheckKey(k key.Key) error {
-	if k.Kty() != key.KtySymmetric {
-		return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: invalid key type, expected "Symmetric", got %q`, k.Kty().String())
+	if k.Kty() != iana.KeyTypeSymmetric {
+		return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
 	}
 
 	for p := range k {
 		switch p {
-		case key.ParamKty, key.ParamKid, key.ParamK:
+		case iana.KeyParameterKty, iana.KeyParameterKid, iana.SymmetricKeyParameterK:
 			// continue
 
-		case key.ParamAlg: // optional
+		case iana.KeyParameterAlg: // optional
 			switch k.Alg() {
-			case key.AlgChaCha20Poly1305:
+			case iana.AlgorithmChaCha20Poly1305:
 			// continue
 			default:
-				return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: algorithm mismatch %q`, k.Alg().String())
+				return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: algorithm mismatch %d`, k.Alg())
 			}
 
-		case key.ParamOps: // optional
+		case iana.KeyParameterKeyOps: // optional
 			for _, op := range k.Ops() {
 				switch op {
-				case key.OpEncrypt, key.OpDecrypt:
+				case iana.KeyOperationEncrypt, iana.KeyOperationDecrypt:
 				// continue
 				default:
 					return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: invalid parameter key_ops %q`, op)
@@ -76,12 +77,12 @@ func CheckKey(k key.Key) error {
 			}
 
 		default:
-			return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: redundant parameter %q`, k.ParamString(p))
+			return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: redundant parameter %d`, p)
 		}
 	}
 
 	// REQUIRED
-	kb, err := k.GetBytes(key.ParamK)
+	kb, err := k.GetBytes(iana.SymmetricKeyParameterK)
 	if err != nil {
 		return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: invalid parameter k, %v`, err)
 	}
@@ -105,7 +106,7 @@ func New(k key.Key) (key.Encryptor, error) {
 		return nil, err
 	}
 
-	cek, _ := k.GetBytes(key.ParamK)
+	cek, _ := k.GetBytes(iana.SymmetricKeyParameterK)
 	return &chacha{key: k, cek: cek}, nil
 }
 
@@ -113,7 +114,7 @@ func New(k key.Key) (key.Encryptor, error) {
 // Encrypt encrypts a plaintext with the given iv and additional data.
 // It returns the ciphertext or error.
 func (h *chacha) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
-	if !h.key.Ops().EmptyOrHas(key.OpEncrypt) {
+	if !h.key.Ops().EmptyOrHas(iana.KeyOperationEncrypt) {
 		return nil, fmt.Errorf("cose/go/key/chacha20poly1305: Encrypt: invalid key_ops")
 	}
 
@@ -132,7 +133,7 @@ func (h *chacha) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
 // Decrypt decrypts a ciphertext with the given iv and additional data.
 // It returns the corresponding plaintext or error.
 func (h *chacha) Decrypt(iv, ciphertext, additionalData []byte) ([]byte, error) {
-	if !h.key.Ops().EmptyOrHas(key.OpMACVerify) {
+	if !h.key.Ops().EmptyOrHas(iana.KeyOperationDecrypt) {
 		return nil, fmt.Errorf("cose/go/key/chacha20poly1305: Decrypt: invalid key_ops")
 	}
 
@@ -167,7 +168,7 @@ const (
 
 func getKeySize(alg key.Alg) (keySize int) {
 	switch alg {
-	case key.AlgChaCha20Poly1305, key.AlgReserved:
+	case iana.AlgorithmChaCha20Poly1305, iana.AlgorithmReserved:
 		return keySize
 	default:
 		return 0

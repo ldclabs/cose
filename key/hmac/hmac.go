@@ -10,6 +10,7 @@ import (
 	"hash"
 	"io"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -17,7 +18,7 @@ import (
 func GenerateKey(alg key.Alg) (key.Key, error) {
 	keySize, _ := getKeySize(alg)
 	if keySize == 0 {
-		return nil, fmt.Errorf(`cose/go/key/hmac: GenerateKey: algorithm mismatch %q`, alg.String())
+		return nil, fmt.Errorf(`cose/go/key/hmac: GenerateKey: algorithm mismatch %d`, alg)
 	}
 
 	k := key.GetRandomBytes(uint16(keySize))
@@ -26,11 +27,11 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/hmac: GenerateKey: %w", err)
 	}
 
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
-		key.ParamAlg: alg,
-		key.ParamK:   k, // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
+		iana.KeyParameterAlg:        alg,
+		iana.SymmetricKeyParameterK: k, // REQUIRED
 	}, nil
 }
 
@@ -38,17 +39,17 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 	keySize, _ := getKeySize(alg)
 	if keySize == 0 {
-		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: algorithm mismatch %q`, alg.String())
+		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: algorithm mismatch %d`, alg)
 	}
 	if keySize != len(k) {
-		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: key length mismatch %q`, alg.String())
+		return nil, fmt.Errorf(`cose/go/key/hmac: KeyFrom: key length mismatch %d`, alg)
 	}
 
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtySymmetric,
-		key.ParamKid: key.SumKid(k), // default kid, can be set to other value.
-		key.ParamAlg: alg,
-		key.ParamK:   append(make([]byte, 0, len(k)), k...), // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
+		iana.KeyParameterAlg:        alg,
+		iana.SymmetricKeyParameterK: append(make([]byte, 0, len(k)), k...), // REQUIRED
 	}, nil
 }
 
@@ -56,27 +57,27 @@ func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti
 func CheckKey(k key.Key) error {
-	if k.Kty() != key.KtySymmetric {
-		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid key type, expected "Symmetric", got %q`, k.Kty().String())
+	if k.Kty() != iana.KeyTypeSymmetric {
+		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
 	}
 
 	for p := range k {
 		switch p {
-		case key.ParamKty, key.ParamKid, key.ParamK:
+		case iana.KeyParameterKty, iana.KeyParameterKid, iana.SymmetricKeyParameterK:
 			// continue
 
-		case key.ParamAlg: // optional
+		case iana.KeyParameterAlg: // optional
 			switch k.Alg() {
-			case key.AlgHMAC25664, key.AlgHMAC256256, key.AlgHMAC384384, key.AlgHMAC512512:
+			case iana.AlgorithmHMAC_256_64, iana.AlgorithmHMAC_256_256, iana.AlgorithmHMAC_384_384, iana.AlgorithmHMAC_512_512:
 			// continue
 			default:
-				return fmt.Errorf(`cose/go/key/hmac: CheckKey: algorithm mismatch %q`, k.Alg().String())
+				return fmt.Errorf(`cose/go/key/hmac: CheckKey: algorithm mismatch %d`, k.Alg())
 			}
 
-		case key.ParamOps: // optional
+		case iana.KeyParameterKeyOps: // optional
 			for _, op := range k.Ops() {
 				switch op {
-				case key.OpMACCreate, key.OpMACVerify:
+				case iana.KeyOperationMacCreate, iana.KeyOperationMacVerify:
 				// continue
 				default:
 					return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter key_ops %q`, op)
@@ -84,12 +85,12 @@ func CheckKey(k key.Key) error {
 			}
 
 		default:
-			return fmt.Errorf(`cose/go/key/hmac: CheckKey: redundant parameter %q`, k.ParamString(p))
+			return fmt.Errorf(`cose/go/key/hmac: CheckKey: redundant parameter %d`, p)
 		}
 	}
 
 	// REQUIRED
-	kb, err := k.GetBytes(key.ParamK)
+	kb, err := k.GetBytes(iana.SymmetricKeyParameterK)
 	if err != nil {
 		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid parameter k, %v`, err)
 	}
@@ -114,7 +115,7 @@ func New(k key.Key) (key.MACer, error) {
 		return nil, err
 	}
 
-	kb, _ := k.GetBytes(key.ParamK)
+	kb, _ := k.GetBytes(iana.SymmetricKeyParameterK)
 	h := k.Alg().HashFunc()
 	if !h.Available() {
 		return nil, fmt.Errorf("cose/go/key/hmac: NewHMAC: hash function is not available")
@@ -127,7 +128,7 @@ func New(k key.Key) (key.MACer, error) {
 // MACCreate implements the key.MACer interface.
 // MACCreate computes message authentication code (MAC) for the given data.
 func (h *hMAC) MACCreate(data []byte) ([]byte, error) {
-	if !h.key.Ops().EmptyOrHas(key.OpMACCreate) {
+	if !h.key.Ops().EmptyOrHas(iana.KeyOperationMacCreate) {
 		return nil, fmt.Errorf("cose/go/key/hmac: MACCreate: invalid key_ops")
 	}
 
@@ -137,8 +138,8 @@ func (h *hMAC) MACCreate(data []byte) ([]byte, error) {
 // MACVerify implements the key.MACer interface.
 // MACVerify verifies whether the given MAC is a correct message authentication code (MAC) the given data.
 func (h *hMAC) MACVerify(data, mac []byte) error {
-	if !h.key.Ops().EmptyOrHas(key.OpMACVerify) {
-		return fmt.Errorf("cose/go/key/hmac: MACCreate: invalid key_ops")
+	if !h.key.Ops().EmptyOrHas(iana.KeyOperationMacVerify) {
+		return fmt.Errorf("cose/go/key/hmac: MACVerify: invalid key_ops")
 	}
 
 	expectedMAC, err := h.create(data)
@@ -168,13 +169,13 @@ func (h *hMAC) Key() key.Key {
 
 func getKeySize(alg key.Alg) (keySize, tagSize int) {
 	switch alg {
-	case key.AlgHMAC25664, key.AlgReserved:
+	case iana.AlgorithmHMAC_256_64, iana.AlgorithmReserved:
 		return 32, 8
-	case key.AlgHMAC256256:
+	case iana.AlgorithmHMAC_256_256:
 		return 32, 32
-	case key.AlgHMAC384384:
+	case iana.AlgorithmHMAC_384_384:
 		return 48, 48
-	case key.AlgHMAC512512:
+	case iana.AlgorithmHMAC_512_512:
 		return 64, 64
 	default:
 		return 0, 0

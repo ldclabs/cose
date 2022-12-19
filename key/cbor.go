@@ -4,8 +4,6 @@
 package key
 
 import (
-	"io"
-
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -47,9 +45,4 @@ func UnmarshalCBOR(data []byte, v any) error {
 // ValidCBOR returns true if data is valid CBOR.
 func ValidCBOR(data []byte) error {
 	return decMode.Valid(data)
-}
-
-// NewEncoder returns a new CBOR encoder with the special cbor.EncOptions.
-func NewEncoder(w io.Writer) *cbor.Encoder {
-	return encMode.NewEncoder(w)
 }

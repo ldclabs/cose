@@ -3,7 +3,11 @@
 
 package key
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ldclabs/cose/iana"
+)
 
 // SignerFactory is a function that returns a Signer for the given key.
 type SignerFactory func(Key) (Signer, error)
@@ -29,23 +33,23 @@ var (
 // RegisterSigner registers a SignerFactory for the given key type, algorithm, and curve.
 // For example, to register a SignerFactory for ed25519 signer:
 //
-//	key.RegisterSigner(key.KtyOKP, key.AlgEdDSA, key.CrvEd25519, ed25519.NewSigner)
-func RegisterSigner(kty Kty, alg Alg, crv Crv, fn SignerFactory) {
+//	key.RegisterSigner(iana.KeyTypeOKP, iana.AlgorithmEdDSA, iana.EllipticCurveEd25519, ed25519.NewSigner)
+func RegisterSigner(kty int, alg Alg, crv Crv, fn SignerFactory) {
 	signers[keyTriple{int(kty), int(alg), int(crv)}] = fn
 }
 
 // RegisterVerifier registers a VerifierFactory for the given key type, algorithm, and curve.
-func RegisterVerifier(kty Kty, alg Alg, crv Crv, fn VerifierFactory) {
+func RegisterVerifier(kty int, alg Alg, crv Crv, fn VerifierFactory) {
 	verifiers[keyTriple{int(kty), int(alg), int(crv)}] = fn
 }
 
 // RegisterMACer registers a MACerFactory for the given key type, algorithm.
-func RegisterMACer(kty Kty, alg Alg, fn MACerFactory) {
+func RegisterMACer(kty int, alg Alg, fn MACerFactory) {
 	macers[keyTriple{int(kty), int(alg), 0}] = fn
 }
 
 // RegisterEncryptor registers a EncryptorFactory for the given key type, algorithm.
-func RegisterEncryptor(kty Kty, alg Alg, fn EncryptorFactory) {
+func RegisterEncryptor(kty int, alg Alg, fn EncryptorFactory) {
 	encryptors[keyTriple{int(kty), int(alg), 0}] = fn
 }
 
@@ -116,16 +120,16 @@ func (k Key) Encryptor() (Encryptor, error) {
 func (k Key) tripleKey() keyTriple {
 	kty := k.Kty()
 	alg := k.Alg()
-	crv, _ := k[ParamCrv].(Crv)
-	if alg == AlgReserved {
+	crv, _ := k.GetInt(-1) // OKPKeyParameterCrv, EC2KeyParameterCrv
+	if alg == iana.AlgorithmReserved {
 		switch kty {
-		case KtyOKP:
-			alg = AlgEdDSA
-			crv = CrvEd25519
+		case iana.KeyTypeOKP:
+			alg = iana.AlgorithmEdDSA
+			crv = iana.EllipticCurveEd25519
 
-		case KtyEC2:
-			alg = AlgES256
-			crv = CrvP256
+		case iana.KeyTypeEC2:
+			alg = iana.AlgorithmES256
+			crv = iana.EllipticCurveP_256
 		}
 	}
 
@@ -133,9 +137,9 @@ func (k Key) tripleKey() keyTriple {
 }
 
 func (k Key) tripleName() string {
-	name := k.Kty().String() + "_" + k.Alg().String()
-	if crv, ok := k[ParamCrv].(Crv); ok {
-		name += "_" + crv.String()
+	name := fmt.Sprintf("kty(%d)_alg(%d)", k.Kty(), k.Alg())
+	if crv, _ := k.GetInt(-1); crv != 0 {
+		name += fmt.Sprintf("_crv(%d)", crv)
 	}
 	return name
 }

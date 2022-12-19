@@ -9,6 +9,7 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -45,30 +46,21 @@ func (m *Sign1Message[T]) SignAndEncode(signer key.Signer, externalData []byte) 
 	return m.MarshalCBOR()
 }
 
-// sign1Message represents a COSE_Sign1 structure to encode and decode.
-type sign1Message struct {
-	_           struct{} `cbor:",toarray"`
-	Protected   []byte
-	Unprotected Headers
-	Payload     []byte // can be nil
-	Signature   []byte
-}
-
 // WithSign signs a COSE_Sign1 message with a Signer.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
 func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
 
-		if alg := signer.Key().Alg(); alg != key.AlgReserved {
-			m.Protected[HeaderLabelAlgorithm] = alg
+		if alg := signer.Key().Alg(); alg != iana.AlgorithmReserved {
+			m.Protected[iana.HeaderParameterAlg] = alg
 		}
 	}
 	if m.Unprotected == nil {
 		m.Unprotected = Headers{}
 
 		if kid := signer.Key().Kid(); len(kid) > 0 {
-			m.Unprotected[HeaderLabelKeyID] = kid
+			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
 	}
 
@@ -124,6 +116,15 @@ func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) err
 	return verifier.Verify(toSign, m.mm.Signature)
 }
 
+// sign1Message represents a COSE_Sign1 structure to encode and decode.
+type sign1Message struct {
+	_           struct{} `cbor:",toarray"`
+	Protected   []byte
+	Unprotected Headers
+	Payload     []byte // can be nil
+	Signature   []byte
+}
+
 func (mm *sign1Message) toSign(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
@@ -145,7 +146,7 @@ func (m *Sign1Message[T]) MarshalCBOR() ([]byte, error) {
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSESign1,
+		Number:  iana.CBORTagCOSESign1,
 		Content: m.mm,
 	})
 }

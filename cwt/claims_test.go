@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ldclabs/cose/cose"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	_ "github.com/ldclabs/cose/key/ecdsa"
 
@@ -68,14 +69,14 @@ func TestClaimsSign1AndVerify(t *testing.T) {
 	}{
 		{
 			`Case: Example Signed CWT`,
-			map[key.IntKey]any{
-				key.ParamKty: key.KtyEC2,
-				key.ParamKid: key.HexBytesify("4173796d6d65747269634543445341323536"),
-				key.ParamAlg: key.AlgES256,
-				key.ParamCrv: key.CrvP256,
-				key.ParamX:   key.HexBytesify("143329cce7868e416927599cf65a34f3ce2ffda55a7eca69ed8919a394d42f0f"),
-				key.ParamY:   key.HexBytesify("60f7f1a780d8a783bfb7a2dd6b2796e8128dbbcef9d3d168db9529971a36e7b9"),
-				key.ParamD:   key.HexBytesify("6c1382765aec5358f117733d281c1c7bdc39884d04a45a1e6c67c858bc206c19"),
+			map[int]any{
+				iana.KeyParameterKty:    iana.KeyTypeEC2,
+				iana.KeyParameterKid:    key.HexBytesify("4173796d6d65747269634543445341323536"),
+				iana.KeyParameterAlg:    iana.AlgorithmES256,
+				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
+				iana.EC2KeyParameterX:   key.HexBytesify("143329cce7868e416927599cf65a34f3ce2ffda55a7eca69ed8919a394d42f0f"),
+				iana.EC2KeyParameterY:   key.HexBytesify("60f7f1a780d8a783bfb7a2dd6b2796e8128dbbcef9d3d168db9529971a36e7b9"),
+				iana.EC2KeyParameterD:   key.HexBytesify("6c1382765aec5358f117733d281c1c7bdc39884d04a45a1e6c67c858bc206c19"),
 			},
 			Claims{
 				Issuer:     "coap://as.example.com",

@@ -4,16 +4,17 @@
 package aesccm
 
 import (
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
 func init() {
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM1664128, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM1664256, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM6464128, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM6464256, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM16128128, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM16128256, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM64128128, New)
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgAESCCM64128256, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_16_64_128, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_16_64_256, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_64_64_128, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_64_64_256, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_16_128_128, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_16_128_256, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_64_128_128, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmAES_CCM_64_128_256, New)
 }

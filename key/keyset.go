@@ -5,12 +5,6 @@ package key
 
 import "bytes"
 
-// Reference https://datatracker.ietf.org/doc/html/rfc9052#section-11.3.2
-const (
-	MIMEApplicationCOSEKey    = "application/cose-key"
-	MIMEApplicationCOSEKeySet = "application/cose-key-set"
-)
-
 type KeySet []Key
 
 // Lookup returns the first key matching the given key id.
@@ -25,7 +19,7 @@ func (ks KeySet) Lookup(kid []byte) Key {
 	return nil
 }
 
-// Signers returns the signers for the keys in the key set.
+// Signers returns the signers for the keys in the KeySet.
 func (ks KeySet) Signers() (Signers, error) {
 	signers := make(Signers, 0, len(ks))
 	for _, k := range ks {
@@ -39,7 +33,7 @@ func (ks KeySet) Signers() (Signers, error) {
 	return signers, nil
 }
 
-// Verifiers returns the verifiers for the keys in the key set.
+// Verifiers returns the verifiers for the keys in the KeySet.
 func (ks KeySet) Verifiers() (Verifiers, error) {
 	verifiers := make(Verifiers, 0, len(ks))
 	for _, k := range ks {

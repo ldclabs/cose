@@ -4,12 +4,13 @@
 package hmac
 
 import (
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
 func init() {
-	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC25664, New)
-	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC256256, New)
-	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC384384, New)
-	key.RegisterMACer(key.KtySymmetric, key.AlgHMAC512512, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmHMAC_256_64, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmHMAC_256_256, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmHMAC_384_384, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmHMAC_512_512, New)
 }

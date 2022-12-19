@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMap(t *testing.T) {
+func TestIntMap(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
@@ -32,75 +32,63 @@ func TestMap(t *testing.T) {
 		15: Str("hello"),
 	}
 
-	smallInt, err := m.GetSmallInt(1)
+	smallInt, err := m.GetInt(1)
 	assert.NoError(err)
 	assert.Equal(1, smallInt)
 
-	smallInt, err = m.GetSmallInt(-1)
+	smallInt, err = m.GetInt(-1)
 	assert.NoError(err)
 	assert.Equal(-1, smallInt)
 
-	smallInt, err = m.GetSmallInt(0)
+	smallInt, err = m.GetInt(0)
 	assert.Error(err)
 	assert.Equal(0, smallInt)
 
-	smallInt, err = m.GetSmallInt(-10)
+	smallInt, err = m.GetInt(-10)
 	assert.NoError(err)
 	assert.Equal(0, smallInt)
 
-	smallInt, err = m.GetSmallInt(100000)
+	smallInt, err = m.GetInt(10)
 	assert.Error(err)
 	assert.Equal(0, smallInt)
 
-	smallInt, err = m.GetSmallInt(10)
-	assert.Error(err)
-	assert.Equal(0, smallInt)
-
-	vInt, err := m.GetInt(1)
+	vInt, err := m.GetInt64(1)
 	assert.NoError(err)
 	assert.Equal(int64(1), vInt)
 
-	vInt, err = m.GetInt(-1)
+	vInt, err = m.GetInt64(-1)
 	assert.NoError(err)
 	assert.Equal(int64(-1), vInt)
 
-	vInt, err = m.GetInt(0)
+	vInt, err = m.GetInt64(0)
 	assert.NoError(err)
 	assert.Equal(int64(math.MaxInt64), vInt)
 
-	vInt, err = m.GetInt(10)
+	vInt, err = m.GetInt64(10)
 	assert.Error(err)
 	assert.Equal(int64(0), vInt)
 
-	vInt, err = m.GetInt(-10)
+	vInt, err = m.GetInt64(-10)
 	assert.NoError(err)
 	assert.Equal(int64(0), vInt)
 
-	vInt, err = m.GetInt(100000)
-	assert.Error(err)
-	assert.Equal(int64(0), vInt)
-
-	vUint, err := m.GetUint(1)
+	vUint, err := m.GetUint64(1)
 	assert.NoError(err)
 	assert.Equal(uint64(1), vUint)
 
-	vUint, err = m.GetUint(-1)
+	vUint, err = m.GetUint64(-1)
 	assert.Error(err)
 	assert.Equal(uint64(0), vUint)
 
-	vUint, err = m.GetUint(-10)
+	vUint, err = m.GetUint64(-10)
 	assert.NoError(err)
 	assert.Equal(uint64(0), vUint)
 
-	vUint, err = m.GetUint(100000)
-	assert.Error(err)
-	assert.Equal(uint64(0), vUint)
-
-	vUint, err = m.GetUint(0)
+	vUint, err = m.GetUint64(0)
 	assert.NoError(err)
 	assert.Equal(uint64(math.MaxInt64), vUint)
 
-	vUint, err = m.GetUint(10)
+	vUint, err = m.GetUint64(10)
 	assert.Error(err)
 	assert.Equal(uint64(0), vUint)
 
@@ -114,10 +102,6 @@ func TestMap(t *testing.T) {
 
 	vb, err = m.GetBytes(-10)
 	assert.NoError(err)
-	assert.Nil(vb)
-
-	vb, err = m.GetBytes(100000)
-	assert.Error(err)
 	assert.Nil(vb)
 
 	vb, err = m.GetBytes(10)
@@ -163,10 +147,6 @@ func TestMap(t *testing.T) {
 	vs, err = m.GetString(15)
 	assert.NoError(err)
 	assert.Equal("hello", vs)
-
-	vs, err = m.GetString(100000)
-	assert.Error(err)
-	assert.Equal("", vs)
 
 	data, err := MarshalCBOR(m)
 	require.NoError(err)

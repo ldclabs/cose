@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/ldclabs/cose/iana"
 )
 
 const (
@@ -98,12 +100,12 @@ func (v *Validator) ValidateMap(claims ClaimsMap) error {
 		now = v.opts.FixedNow
 	}
 
-	if !claims.Has(KeyExp) && !v.opts.AllowMissingExpiration {
+	if !claims.Has(iana.CWTClaimExp) && !v.opts.AllowMissingExpiration {
 		return fmt.Errorf("cose/go/cwt: Validator.Validate: token doesn't have an expiration set")
 	}
 
-	if claims.Has(KeyExp) {
-		exp, err := claims.GetUint(KeyExp)
+	if claims.Has(iana.CWTClaimExp) {
+		exp, err := claims.GetUint64(iana.CWTClaimExp)
 		if err != nil {
 			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid exp claim, %v", err)
 		}
@@ -113,8 +115,8 @@ func (v *Validator) ValidateMap(claims ClaimsMap) error {
 		}
 	}
 
-	if claims.Has(KeyNbf) {
-		nbf, err := claims.GetUint(KeyNbf)
+	if claims.Has(iana.CWTClaimNbf) {
+		nbf, err := claims.GetUint64(iana.CWTClaimNbf)
 		if err != nil {
 			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid nbf claim, %v", err)
 		}
@@ -123,8 +125,8 @@ func (v *Validator) ValidateMap(claims ClaimsMap) error {
 		}
 	}
 
-	if claims.Has(KeyIat) {
-		iat, err := claims.GetUint(KeyIat)
+	if claims.Has(iana.CWTClaimIat) {
+		iat, err := claims.GetUint64(iana.CWTClaimIat)
 		if err != nil {
 			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid iat claim, %v", err)
 		}
@@ -135,7 +137,7 @@ func (v *Validator) ValidateMap(claims ClaimsMap) error {
 		}
 	}
 
-	iss, err := claims.GetString(KeyIss)
+	iss, err := claims.GetString(iana.CWTClaimIss)
 	if err != nil {
 		return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid iss claim, %v", err)
 	}
@@ -143,7 +145,7 @@ func (v *Validator) ValidateMap(claims ClaimsMap) error {
 		return fmt.Errorf("cose/go/cwt: Validator.Validate: validating issuer claim: got %s, want %s", iss, v.opts.ExpectedIssuer)
 	}
 
-	aud, err := claims.GetString(KeyAud)
+	aud, err := claims.GetString(iana.CWTClaimAud)
 	if err != nil {
 		return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid aud claim, %v", err)
 	}

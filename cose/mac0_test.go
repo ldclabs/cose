@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	_ "github.com/ldclabs/cose/key/aesmac"
 )
@@ -25,11 +26,11 @@ func TestMac0(t *testing.T) {
 	}{
 		{
 			`MAC0 example with direct shared key and AES-MAC/64`,
-			map[key.IntKey]any{
-				key.ParamKty: key.KtySymmetric,
-				key.ParamKid: []byte("our-secret"),
-				key.ParamAlg: key.AlgAESMAC25664,
-				key.ParamK:   key.Base64Bytesify("hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"),
+			map[int]any{
+				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+				iana.KeyParameterKid:        []byte("our-secret"),
+				iana.KeyParameterAlg:        iana.AlgorithmAES_MAC_256_64,
+				iana.SymmetricKeyParameterK: key.Base64Bytesify("hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"),
 			},
 			key.HexBytesify("84644D41433043A1010F4054546869732069732074686520636F6E74656E742E"),
 			[]byte("This is the content."),

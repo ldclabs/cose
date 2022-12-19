@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -45,23 +46,14 @@ func (m *Mac0Message[T]) ComputeAndEncode(macer key.MACer, externalData []byte) 
 	return m.MarshalCBOR()
 }
 
-// mac0Message represents a COSE_Mac0 structure to encode and decode.
-type mac0Message struct {
-	_           struct{} `cbor:",toarray"`
-	Protected   []byte
-	Unprotected Headers
-	Payload     []byte // can be nil
-	Tag         []byte
-}
-
 // Compute computes a COSE_Mac0 message' MAC with a MACer.
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
 func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
 
-		if alg := macer.Key().Alg(); alg != key.AlgReserved {
-			m.Protected[HeaderLabelAlgorithm] = alg
+		if alg := macer.Key().Alg(); alg != iana.AlgorithmReserved {
+			m.Protected[iana.HeaderParameterAlg] = alg
 		}
 	}
 
@@ -69,7 +61,7 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 		m.Unprotected = Headers{}
 
 		if kid := macer.Key().Kid(); len(kid) > 0 {
-			m.Unprotected[HeaderLabelKeyID] = kid
+			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
 	}
 
@@ -126,6 +118,15 @@ func (m *Mac0Message[T]) Verify(macer key.MACer, externalData []byte) error {
 	return macer.MACVerify(m.toMac, m.mm.Tag)
 }
 
+// mac0Message represents a COSE_Mac0 structure to encode and decode.
+type mac0Message struct {
+	_           struct{} `cbor:",toarray"`
+	Protected   []byte
+	Unprotected Headers
+	Payload     []byte // can be nil
+	Tag         []byte
+}
+
 func (mm *mac0Message) toMac(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
@@ -147,7 +148,7 @@ func (m *Mac0Message[T]) MarshalCBOR() ([]byte, error) {
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSEMac0,
+		Number:  iana.CBORTagCOSEMac0,
 		Content: m.mm,
 	})
 }

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -22,12 +23,12 @@ func GenerateKey() (key.Key, error) {
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtyOKP,
-		key.ParamKid: key.SumKid(pubKey), // default kid, can be set to other value.
-		key.ParamAlg: key.AlgEdDSA,
-		key.ParamCrv: key.CrvEd25519, // REQUIRED
-		key.ParamD:   privKey.Seed(), // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:    iana.KeyTypeOKP,
+		iana.KeyParameterKid:    key.SumKid(pubKey), // default kid, can be set to other value.
+		iana.KeyParameterAlg:    iana.AlgorithmEdDSA,
+		iana.OKPKeyParameterCrv: iana.EllipticCurveEd25519, // REQUIRED
+		iana.OKPKeyParameterD:   privKey.Seed(),            // REQUIRED
 	}, nil
 }
 
@@ -50,12 +51,12 @@ func KeyFromPrivate(pk ed25519.PrivateKey) (key.Key, error) {
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtyOKP,
-		key.ParamKid: key.SumKid(pk.Public().(ed25519.PublicKey)), // default kid, can be set to other value.
-		key.ParamAlg: key.AlgEdDSA,
-		key.ParamCrv: key.CrvEd25519, // REQUIRED
-		key.ParamD:   pk.Seed(),      // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:    iana.KeyTypeOKP,
+		iana.KeyParameterKid:    key.SumKid(pk.Public().(ed25519.PublicKey)), // default kid, can be set to other value.
+		iana.KeyParameterAlg:    iana.AlgorithmEdDSA,
+		iana.OKPKeyParameterCrv: iana.EllipticCurveEd25519, // REQUIRED
+		iana.OKPKeyParameterD:   pk.Seed(),                 // REQUIRED
 	}, nil
 }
 
@@ -65,15 +66,15 @@ func KeyToPrivate(k key.Key) (ed25519.PrivateKey, error) {
 		return nil, err
 	}
 
-	if !k.Has(key.ParamD) {
+	if !k.Has(iana.OKPKeyParameterD) {
 		return nil, fmt.Errorf("cose/go/key/ed25519: KeyToPrivate: invalid key")
 	}
 
-	d, _ := k.GetBytes(key.ParamD)
+	d, _ := k.GetBytes(iana.OKPKeyParameterD)
 	privKey := ed25519.NewKeyFromSeed(d)
 
-	x, _ := k.GetBytes(key.ParamX)
-	if k.Has(key.ParamX) {
+	x, _ := k.GetBytes(iana.OKPKeyParameterX)
+	if k.Has(iana.OKPKeyParameterX) {
 		if !bytes.Equal(privKey.Public().([]byte), x) {
 			return nil, fmt.Errorf("cose/go/key/ed25519: KeyToPrivate: invalid parameters x")
 		}
@@ -90,12 +91,12 @@ func KeyFromPublic(pk ed25519.PublicKey) (key.Key, error) {
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
-	return map[key.IntKey]any{
-		key.ParamKty: key.KtyOKP,
-		key.ParamKid: key.SumKid(pk), // default kid, can be set to other value.
-		key.ParamAlg: key.AlgEdDSA,
-		key.ParamCrv: key.CrvEd25519, // REQUIRED
-		key.ParamX:   pk,             // REQUIRED
+	return map[int]any{
+		iana.KeyParameterKty:    iana.KeyTypeOKP,
+		iana.KeyParameterKid:    key.SumKid(pk), // default kid, can be set to other value.
+		iana.KeyParameterAlg:    iana.AlgorithmEdDSA,
+		iana.OKPKeyParameterCrv: iana.EllipticCurveEd25519, // REQUIRED
+		iana.OKPKeyParameterX:   pk,                        // REQUIRED
 	}, nil
 }
 
@@ -105,11 +106,11 @@ func KeyToPublic(k key.Key) (ed25519.PublicKey, error) {
 		return nil, err
 	}
 
-	if !k.Has(key.ParamX) {
+	if !k.Has(iana.OKPKeyParameterX) {
 		return nil, fmt.Errorf("cose/go/key/ed25519: KeyToPublic: invalid key")
 	}
 
-	x, _ := k.GetBytes(key.ParamX)
+	x, _ := k.GetBytes(iana.OKPKeyParameterX)
 	return ed25519.PublicKey(x), nil
 }
 
@@ -118,24 +119,25 @@ func KeyToPublic(k key.Key) (ed25519.PublicKey, error) {
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 func CheckKey(k key.Key) error {
-	if k.Kty() != key.KtyOKP {
-		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid key type, expected "OKP", got %q`, k.Kty().String())
+	if k.Kty() != iana.KeyTypeOKP {
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid key type, expected "OKP", got %d`, k.Kty())
 	}
 
 	for p := range k {
 		switch p {
-		case key.ParamKty, key.ParamKid, key.ParamCrv, key.ParamX, key.ParamD:
+		case iana.KeyParameterKty, iana.KeyParameterKid, iana.OKPKeyParameterCrv,
+			iana.OKPKeyParameterX, iana.OKPKeyParameterD:
 			// continue
 
-		case key.ParamAlg: // optional
-			if k.Alg() != key.AlgEdDSA {
-				return fmt.Errorf(`cose/go/key/ed25519: CheckKey: algorithm mismatch %q`, k.Alg().String())
+		case iana.KeyParameterAlg: // optional
+			if k.Alg() != iana.AlgorithmEdDSA {
+				return fmt.Errorf(`cose/go/key/ed25519: CheckKey: algorithm mismatch %d`, k.Alg())
 			}
 
-		case key.ParamOps: // optional
+		case iana.KeyParameterKeyOps: // optional
 			for _, op := range k.Ops() {
 				switch op {
-				case key.OpSign, key.OpVerify:
+				case iana.KeyOperationSign, iana.KeyOperationVerify:
 				// continue
 				default:
 					return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter key_ops %q`, op)
@@ -143,33 +145,33 @@ func CheckKey(k key.Key) error {
 			}
 
 		default:
-			return fmt.Errorf(`cose/go/key/ed25519: CheckKey: redundant parameter %q`, k.ParamString(p))
+			return fmt.Errorf(`cose/go/key/ed25519: CheckKey: redundant parameter %d`, p)
 		}
 	}
 
 	// RECOMMENDED
-	if k.Has(key.ParamKid) {
-		if x, err := k.GetBytes(key.ParamKid); err != nil || len(x) == 0 {
+	if k.Has(iana.KeyParameterKid) {
+		if x, err := k.GetBytes(iana.KeyParameterKid); err != nil || len(x) == 0 {
 			return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter kid`)
 		}
 	}
 
 	// REQUIRED
-	if cc, err := k.GetSmallInt(key.ParamCrv); err != nil || cc != int(key.CrvEd25519) {
-		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter crv %q`, key.Crv(cc).String())
+	if cc, err := k.GetInt(iana.OKPKeyParameterCrv); err != nil || cc != int(iana.EllipticCurveEd25519) {
+		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter crv %d`, cc)
 	}
 
 	// REQUIRED for private key
-	hasD := k.Has(key.ParamD)
-	d, _ := k.GetBytes(key.ParamD)
+	hasD := k.Has(iana.OKPKeyParameterD)
+	d, _ := k.GetBytes(iana.OKPKeyParameterD)
 	if hasD && len(d) != ed25519.SeedSize {
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter d`)
 	}
 
 	// REQUIRED for public key
 	// RECOMMENDED for private key
-	hasX := k.Has(key.ParamX)
-	x, _ := k.GetBytes(key.ParamX)
+	hasX := k.Has(iana.OKPKeyParameterX)
+	x, _ := k.GetBytes(iana.OKPKeyParameterX)
 	if hasX && len(x) != ed25519.PublicKeySize {
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid parameter x`)
 	}
@@ -179,10 +181,10 @@ func CheckKey(k key.Key) error {
 	case !hasD && !hasX:
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: missing parameter x or d`)
 
-	case hasD && !ops.EmptyOrHas(key.OpSign):
+	case hasD && !ops.EmptyOrHas(iana.KeyOperationSign):
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: don't include "sign"`)
 
-	case !hasD && !ops.EmptyOrHas(key.OpVerify):
+	case !hasD && !ops.EmptyOrHas(iana.KeyOperationVerify):
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: don't include "verify"`)
 	}
 
@@ -196,33 +198,33 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 		return nil, err
 	}
 
-	if !k.Has(key.ParamD) {
-		if !k.Has(key.ParamX) {
+	if !k.Has(iana.OKPKeyParameterD) {
+		if !k.Has(iana.OKPKeyParameterX) {
 			return nil, errors.New(`cose/go/key/ed25519: ToPublicKey: missing parameter x`)
 		}
 		return k, nil
 	}
 
-	d, _ := k.GetBytes(key.ParamD)
-	pk := map[key.IntKey]any{
-		key.ParamKty: k.Kty(),
-		key.ParamCrv: k[key.ParamCrv],
+	d, _ := k.GetBytes(iana.OKPKeyParameterD)
+	pk := map[int]any{
+		iana.KeyParameterKty:    k.Kty(),
+		iana.OKPKeyParameterCrv: k[iana.OKPKeyParameterCrv],
 	}
 
-	if v, ok := k[key.ParamKid]; ok {
-		pk[key.ParamKid] = v
+	if v, ok := k[iana.KeyParameterKid]; ok {
+		pk[iana.KeyParameterKid] = v
 	}
 
-	if v, ok := k[key.ParamAlg]; ok {
-		pk[key.ParamAlg] = v
+	if v, ok := k[iana.KeyParameterAlg]; ok {
+		pk[iana.KeyParameterAlg] = v
 	}
 
-	if _, ok := k[key.ParamOps]; ok {
-		pk[key.ParamOps] = key.Ops{key.OpVerify}
+	if _, ok := k[iana.KeyParameterKeyOps]; ok {
+		pk[iana.KeyParameterKeyOps] = key.Ops{iana.KeyOperationVerify}
 	}
 
 	privKey := ed25519.NewKeyFromSeed(d)
-	pk[key.ParamX] = privKey.Public()
+	pk[iana.OKPKeyParameterX] = privKey.Public()
 	return pk, nil
 }
 
@@ -244,6 +246,10 @@ func NewSigner(k key.Key) (key.Signer, error) {
 // Sign implements the key.Signer interface.
 // Sign computes the digital signature for data.
 func (e *ed25519Signer) Sign(data []byte) ([]byte, error) {
+	if !e.key.Ops().EmptyOrHas(iana.KeyOperationSign) {
+		return nil, fmt.Errorf("cose/go/key/ed25519: Sign: invalid key_ops")
+	}
+
 	return ed25519.Sign(e.privKey, data), nil
 }
 
@@ -265,13 +271,17 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 		return nil, err
 	}
 
-	x, _ := pk.GetBytes(key.ParamX)
+	x, _ := pk.GetBytes(iana.OKPKeyParameterX)
 	return &ed25519Verifier{key: pk, pubKey: ed25519.PublicKey(x)}, nil
 }
 
 // Verify implements the key.Verifier interface.
 // Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ed25519Verifier) Verify(data, sig []byte) error {
+	if !e.key.Ops().EmptyOrHas(iana.KeyOperationVerify) {
+		return fmt.Errorf("cose/go/key/ed25519: Verify: invalid key_ops")
+	}
+
 	if !ed25519.Verify(e.pubKey, data, sig) {
 		return fmt.Errorf("cose/go/key/ed25519: Verify: invalid signature")
 	}

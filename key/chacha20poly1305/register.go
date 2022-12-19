@@ -4,9 +4,10 @@
 package chacha20poly1305
 
 import (
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
 func init() {
-	key.RegisterEncryptor(key.KtySymmetric, key.AlgChaCha20Poly1305, New)
+	key.RegisterEncryptor(iana.KeyTypeSymmetric, iana.AlgorithmChaCha20Poly1305, New)
 }

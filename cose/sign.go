@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -44,15 +45,6 @@ func (m *SignMessage[T]) SignAndEncode(signers key.Signers, externalData []byte)
 	}
 
 	return m.MarshalCBOR()
-}
-
-// signMessage represents a COSE_Sign structure to encode and decode.
-type signMessage struct {
-	_           struct{} `cbor:",toarray"`
-	Protected   []byte
-	Unprotected Headers
-	Payload     []byte // can be nil
-	Signatures  []*Signature
 }
 
 // Signature represents a COSE_Signature object.
@@ -110,11 +102,11 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 			Protected:   Headers{},
 			Unprotected: Headers{},
 		}
-		if alg := signer.Key().Alg(); alg != key.AlgReserved {
-			sig.Protected[HeaderLabelAlgorithm] = alg
+		if alg := signer.Key().Alg(); alg != iana.AlgorithmReserved {
+			sig.Protected[iana.HeaderParameterAlg] = alg
 		}
 		if kid := signer.Key().Kid(); len(kid) > 0 {
-			sig.Unprotected[HeaderLabelKeyID] = kid
+			sig.Unprotected[iana.HeaderParameterKid] = kid
 		}
 
 		sigm := &signatureMessage{
@@ -181,6 +173,15 @@ func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) er
 	return nil
 }
 
+// signMessage represents a COSE_Sign structure to encode and decode.
+type signMessage struct {
+	_           struct{} `cbor:",toarray"`
+	Protected   []byte
+	Unprotected Headers
+	Payload     []byte // can be nil
+	Signatures  []*Signature
+}
+
 func (mm *signMessage) toSign(sign_protected, external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
@@ -203,7 +204,7 @@ func (m *SignMessage[T]) MarshalCBOR() ([]byte, error) {
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSESign,
+		Number:  iana.CBORTagCOSESign,
 		Content: m.mm,
 	})
 }
@@ -310,7 +311,7 @@ func (s *Signature) Kid() key.ByteStr {
 		return nil
 	}
 
-	kid, _ := key.IntMap(s.Unprotected).GetBytes(HeaderLabelKeyID)
+	kid, _ := key.IntMap(s.Unprotected).GetBytes(iana.HeaderParameterKid)
 	return kid
 }
 

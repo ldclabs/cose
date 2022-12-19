@@ -4,11 +4,12 @@
 package ed25519
 
 import (
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
 func init() {
-	key.RegisterSigner(key.KtyOKP, key.AlgEdDSA, key.CrvEd25519, NewSigner)
+	key.RegisterSigner(iana.KeyTypeOKP, iana.AlgorithmEdDSA, iana.EllipticCurveEd25519, NewSigner)
 
-	key.RegisterVerifier(key.KtyOKP, key.AlgEdDSA, key.CrvEd25519, NewVerifier)
+	key.RegisterVerifier(iana.KeyTypeOKP, iana.AlgorithmEdDSA, iana.EllipticCurveEd25519, NewVerifier)
 }

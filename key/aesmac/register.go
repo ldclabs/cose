@@ -4,12 +4,13 @@
 package aesmac
 
 import (
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
 func init() {
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC12864, New)
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC25664, New)
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC128128, New)
-	key.RegisterMACer(key.KtySymmetric, key.AlgAESMAC256128, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmAES_MAC_128_64, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmAES_MAC_256_64, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmAES_MAC_128_128, New)
+	key.RegisterMACer(iana.KeyTypeSymmetric, iana.AlgorithmAES_MAC_256_128, New)
 }

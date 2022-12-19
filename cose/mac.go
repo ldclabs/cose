@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -46,16 +47,6 @@ func (m *MacMessage[T]) ComputeAndEncode(macer key.MACer, externalData []byte) (
 	return m.MarshalCBOR()
 }
 
-// macMessage represents a COSE_Mac structure to encode and decode.
-type macMessage struct {
-	_           struct{} `cbor:",toarray"`
-	Protected   []byte
-	Unprotected Headers
-	Payload     []byte // can be nil
-	Tag         []byte
-	Recipients  []*Recipient
-}
-
 // AddRecipient add a Recipient to the COSE_Mac message.
 func (m *MacMessage[T]) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
@@ -82,8 +73,8 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
 
-		if alg := macer.Key().Alg(); alg != key.AlgReserved {
-			m.Protected[HeaderLabelAlgorithm] = alg
+		if alg := macer.Key().Alg(); alg != iana.AlgorithmReserved {
+			m.Protected[iana.HeaderParameterAlg] = alg
 		}
 	}
 
@@ -91,7 +82,7 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 		m.Unprotected = Headers{}
 
 		if kid := macer.Key().Kid(); len(kid) > 0 {
-			m.Unprotected[HeaderLabelKeyID] = kid
+			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
 	}
 
@@ -148,6 +139,16 @@ func (m *MacMessage[T]) Verify(macer key.MACer, externalData []byte) error {
 	return macer.MACVerify(m.toMac, m.mm.Tag)
 }
 
+// macMessage represents a COSE_Mac structure to encode and decode.
+type macMessage struct {
+	_           struct{} `cbor:",toarray"`
+	Protected   []byte
+	Unprotected Headers
+	Payload     []byte // can be nil
+	Tag         []byte
+	Recipients  []*Recipient
+}
+
 func (mm *macMessage) toMac(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
@@ -170,7 +171,7 @@ func (m *MacMessage[T]) MarshalCBOR() ([]byte, error) {
 
 	m.mm.Recipients = m.recipients
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSEMac,
+		Number:  iana.CBORTagCOSEMac,
 		Content: m.mm,
 	})
 }

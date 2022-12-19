@@ -6,6 +6,7 @@ package cose
 import (
 	"errors"
 
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -77,14 +78,14 @@ func (m *Recipient) Encrypt(encryptor key.Encryptor, externalData []byte) error 
 		return err
 	}
 
-	iv, err := m.Unprotected.GetBytes(HeaderLabelIV)
+	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
 		return err
 	}
 
 	if len(iv) == 0 {
 		iv := key.GetRandomBytes(uint16(encryptor.NonceSize()))
-		m.Unprotected[HeaderLabelIV] = iv
+		m.Unprotected[iana.HeaderParameterIV] = iv
 	}
 
 	toEnc, err := m.mm.toEnc(m.context, externalData)
@@ -103,7 +104,7 @@ func (m *Recipient) Decrypt(encryptor key.Encryptor, externalData []byte) error 
 		return errors.New("cose/go/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
 	}
 
-	iv, err := m.Unprotected.GetBytes(HeaderLabelIV)
+	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
 		return err
 	}

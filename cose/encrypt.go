@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
 
@@ -46,16 +47,7 @@ func (m *EncryptMessage[T]) EncryptAndEncode(encryptor key.Encryptor, externalDa
 	return m.MarshalCBOR()
 }
 
-// encryptMessage represents a COSE_Encrypt structure to encode and decode.
-type encryptMessage struct {
-	_           struct{} `cbor:",toarray"`
-	Protected   []byte
-	Unprotected Headers
-	Ciphertext  []byte // can be nil
-	Recipients  []*Recipient
-}
-
-// AddRecipient add a Recipient to the COSE_Encrypt message.
+// AddRecipient add a COSE Recipient to the COSE_Encrypt message.
 func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
 		return errors.New("cose/go/cose: EncryptMessage.AddRecipient: nil recipient")
@@ -81,8 +73,8 @@ func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte
 	if m.Protected == nil {
 		m.Protected = Headers{}
 
-		if alg := encryptor.Key().Alg(); alg != key.AlgReserved {
-			m.Protected[HeaderLabelAlgorithm] = alg
+		if alg := encryptor.Key().Alg(); alg != iana.AlgorithmReserved {
+			m.Protected[iana.HeaderParameterAlg] = alg
 		}
 	}
 
@@ -90,18 +82,18 @@ func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte
 		m.Unprotected = Headers{}
 
 		if kid := encryptor.Key().Kid(); len(kid) > 0 {
-			m.Unprotected[HeaderLabelKeyID] = kid
+			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
 	}
 
-	iv, err := m.Unprotected.GetBytes(HeaderLabelIV)
+	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
 		return err
 	}
 
 	if len(iv) == 0 {
-		iv := key.GetRandomBytes(uint16(encryptor.NonceSize()))
-		m.Unprotected[HeaderLabelIV] = iv
+		iv = key.GetRandomBytes(uint16(encryptor.NonceSize()))
+		m.Unprotected[iana.HeaderParameterIV] = iv
 	}
 
 	mm := &encryptMessage{
@@ -157,7 +149,7 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 		return err
 	}
 
-	iv, err := m.Unprotected.GetBytes(HeaderLabelIV)
+	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
 		return err
 	}
@@ -182,6 +174,15 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 	return nil
 }
 
+// encryptMessage represents a COSE_Encrypt structure to encode and decode.
+type encryptMessage struct {
+	_           struct{} `cbor:",toarray"`
+	Protected   []byte
+	Unprotected Headers
+	Ciphertext  []byte // can be nil
+	Recipients  []*Recipient
+}
+
 func (mm *encryptMessage) toEnc(external_aad []byte) ([]byte, error) {
 	if external_aad == nil {
 		external_aad = []byte{}
@@ -204,7 +205,7 @@ func (m *EncryptMessage[T]) MarshalCBOR() ([]byte, error) {
 
 	m.mm.Recipients = m.recipients
 	return key.MarshalCBOR(cbor.Tag{
-		Number:  cborTagCOSEEncrypt,
+		Number:  iana.CBORTagCOSEEncrypt,
 		Content: m.mm,
 	})
 }

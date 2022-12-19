@@ -8,15 +8,25 @@ COSE, CWT and crypto Keys
 - [COSE, CWT and crypto Keys](#cose-cwt-and-crypto-keys)
 - [Index](#index)
 - [Introduction](#introduction)
+- [Features](#features)
 - [Installation](#installation)
 - [Examples](#examples)
-	- [Create a simple CWT with one signer](#create-a-simple-cwt-with-one-signer)
-	- [Create a rich CWT with two signers](#create-a-rich-cwt-with-two-signers)
+	- [Create a simple CWT with a signer](#create-a-simple-cwt-with-a-signer)
+	- [Create a complex CWT with one more signers](#create-a-complex-cwt-with-one-more-signers)
 - [Reference](#reference)
 
 ## Introduction
 
 COSE is a standard for signing and encrypting data in the [CBOR][cbor] data format. It is designed to be simple and efficient, and to be usable in constrained environments. It is intended to be used in a variety of applications, including the Internet of Things, and is designed to be extensible to support new algorithms and applications.
+
+## Features
+
+* CWT: Full support;
+* COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1;
+* Algorithms:
+  - Signing: ECDSA, Ed25519
+  - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305
+  - MAC: AES-MAC, HMAC
 
 ## Installation
 
@@ -56,7 +66,7 @@ import (
 
 ## Examples
 
-### Create a simple CWT with one signer
+### Create a simple CWT with a signer
 
 ```go
 package main
@@ -135,17 +145,10 @@ func main() {
 	}
 	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
 	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
-
-	jsonData, err := json.Marshal(obj2.Payload)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("JSON(%d bytes): %s\n", len(jsonData), string(jsonData))
-	// JSON(87 bytes): {"iss":"ldc:ca","sub":"ldc:chain","aud":"ldc:txpool","exp":1670123579,"cti":"01020304"}
 }
 ```
 
-### Create a rich CWT with two signers
+### Create a complex CWT with one more signers
 
 ```go
 package main
@@ -157,6 +160,7 @@ import (
 
 	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/cwt"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	"github.com/ldclabs/cose/key/ecdsa"
 	"github.com/ldclabs/cose/key/ed25519"
@@ -168,7 +172,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	privKey2, err := ecdsa.GenerateKey(key.AlgES256)
+	privKey2, err := ecdsa.GenerateKey(iana.AlgorithmES256)
 	if err != nil {
 		panic(err)
 	}
@@ -176,11 +180,12 @@ func main() {
 
 	// create a claims set
 	claims := cwt.ClaimsMap{
-		cwt.KeyIss:    "ldc:ca",
-		cwt.KeySub:    "ldc:chain",
-		cwt.KeyAud:    "ldc:txpool",
-		cwt.KeyExp:    1670123579,
-		key.IntKey(9): "read,write", // The scope of an access token, https://www.iana.org/assignments/cwt/cwt.xhtml.
+		iana.CWTClaimIss:   "ldc:ca",
+		iana.CWTClaimSub:   "ldc:chain",
+		iana.CWTClaimAud:   "ldc:txpool",
+		iana.CWTClaimExp:   1670123579,
+		iana.CWTClaimScope: "read,write",
+		// and more claims...
 	}
 
 	// Sign the claims
@@ -226,13 +231,6 @@ func main() {
 	}
 	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
 	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
-
-	jsonData, err := json.Marshal(obj2.Payload)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("JSON(%d bytes): %s\n", len(jsonData), string(jsonData))
-	// JSON(79 bytes): {"1":"ldc:ca","2":"ldc:chain","3":"ldc:txpool","4":1670123579,"9":"read,write"}
 }
 ```
 

@@ -4,12 +4,12 @@
 package cwt_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/cwt"
+	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	"github.com/ldclabs/cose/key/ecdsa"
 	"github.com/ldclabs/cose/key/ed25519"
@@ -80,17 +80,9 @@ func ExampleClaims() {
 	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
 	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
 
-	jsonData, err := json.Marshal(obj2.Payload)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("JSON(%d bytes): %s\n", len(jsonData), string(jsonData))
-	// JSON(87 bytes): {"iss":"ldc:ca","sub":"ldc:chain","aud":"ldc:txpool","exp":1670123579,"cti":"01020304"}
-
 	// Output:
 	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
 	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
-	// JSON(87 bytes): {"iss":"ldc:ca","sub":"ldc:chain","aud":"ldc:txpool","exp":1670123579,"cti":"01020304"}
 }
 
 func ExampleClaimsMap() {
@@ -99,7 +91,7 @@ func ExampleClaimsMap() {
 	if err != nil {
 		panic(err)
 	}
-	privKey2, err := ecdsa.GenerateKey(key.AlgES256)
+	privKey2, err := ecdsa.GenerateKey(iana.AlgorithmES256)
 	if err != nil {
 		panic(err)
 	}
@@ -107,11 +99,11 @@ func ExampleClaimsMap() {
 
 	// create a claims set
 	claims := cwt.ClaimsMap{
-		cwt.KeyIss:    "ldc:ca",
-		cwt.KeySub:    "ldc:chain",
-		cwt.KeyAud:    "ldc:txpool",
-		cwt.KeyExp:    1670123579,
-		key.IntKey(9): "read,write", // The scope of an access token, https://www.iana.org/assignments/cwt/cwt.xhtml.
+		iana.CWTClaimIss:   "ldc:ca",
+		iana.CWTClaimSub:   "ldc:chain",
+		iana.CWTClaimAud:   "ldc:txpool",
+		iana.CWTClaimExp:   1670123579,
+		iana.CWTClaimScope: "read,write",
 	}
 
 	// Sign the claims
@@ -158,15 +150,7 @@ func ExampleClaimsMap() {
 	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
 	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
 
-	jsonData, err := json.Marshal(obj2.Payload)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("JSON(%d bytes): %s\n", len(jsonData), string(jsonData))
-	// JSON(79 bytes): {"1":"ldc:ca","2":"ldc:chain","3":"ldc:txpool","4":1670123579,"9":"read,write"}
-
 	// Output:
 	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
 	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
-	// JSON(79 bytes): {"1":"ldc:ca","2":"ldc:chain","3":"ldc:txpool","4":1670123579,"9":"read,write"}
 }
