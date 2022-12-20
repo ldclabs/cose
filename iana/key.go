@@ -34,7 +34,7 @@ const (
 
 // IANA-registered COSE key types.
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#key-type
 // as of 2022-12-19.
 const (
 	// This value is reserved
@@ -53,9 +53,9 @@ const (
 	KeyTypeWalnutDSA = 6
 )
 
-// IANA-registered COSE key parameters for keys of type [`KeyType::OKP`].
+// IANA-registered COSE key parameters for keys of type [KeyType::OKP].
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
 // as of 2022-12-19.
 const (
 	// EC identifier - Taken from the "COSE Elliptic Curves" registry
@@ -72,9 +72,9 @@ const (
 	OKPKeyParameterD = -4
 )
 
-// IANA-registered COSE key parameters for keys of type [`KeyType::EC2`].
+// IANA-registered COSE key parameters for keys of type [KeyType::EC2].
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
 // as of 2022-12-19.
 const (
 	// EC identifier - Taken from the "COSE Elliptic Curves" registry
@@ -95,7 +95,7 @@ const (
 	EC2KeyParameterD = -4
 )
 
-// IANA-registered COSE key parameters for keys of type [`KeyType::RSA`].
+// IANA-registered COSE key parameters for keys of type [KeyType::RSA].
 //
 // From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters>
 // as of 2022-12-19.
@@ -150,9 +150,9 @@ const (
 	RSAKeyParameterTI = -12
 )
 
-// IANA-registered COSE key parameters for keys of type [`KeyType::Symmetric`].
+// IANA-registered COSE key parameters for keys of type [KeyType::Symmetric].
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
 // as of 2022-12-19.
 const (
 	// Key Value
@@ -161,9 +161,9 @@ const (
 	SymmetricKeyParameterK = -1
 )
 
-// IANA-registered COSE key parameters for keys of type [`KeyType::HSS_LMS`].
+// IANA-registered COSE key parameters for keys of type [KeyType::HSS_LMS].
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
 // as of 2022-12-19.
 const (
 	// Public key for HSS/LMS hash-based digital signature
@@ -172,9 +172,9 @@ const (
 	HSS_LMSKeyParameterPub = -1
 )
 
-// IANA-registered COSE key parameters for keys of type [`KeyType::WalnutDSA`].
+// IANA-registered COSE key parameters for keys of type [KeyType::WalnutDSA].
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
 // as of 2022-12-19.
 const (
 	// Group and Matrix (NxN) size

@@ -3,6 +3,7 @@ module github.com/ldclabs/cose
 go 1.19
 
 require (
+	github.com/aead/ecdh v0.2.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/pion/dtls/v2 v2.1.5
 	github.com/stretchr/testify v1.8.1

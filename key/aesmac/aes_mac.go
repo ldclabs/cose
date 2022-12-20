@@ -162,12 +162,14 @@ func (h *aesMAC) create(plaintext []byte) ([]byte, error) {
 		x = aes.BlockSize - x
 	}
 
-	ciphertext := append(make([]byte, 0, len(plaintext)+x), plaintext...)
+	ciphertext := make([]byte, len(plaintext)+x)
+	copy(ciphertext, plaintext)
 	mode := cipher.NewCBCEncrypter(h.block, fixedIV)
 	mode.CryptBlocks(ciphertext, ciphertext)
 
+	sum := ciphertext[len(ciphertext)-aes.BlockSize:]
 	tag := make([]byte, h.tagSize)
-	copy(tag, ciphertext[len(ciphertext)-aes.BlockSize:]) // last block message
+	copy(tag, sum)
 	return tag, nil
 }
 

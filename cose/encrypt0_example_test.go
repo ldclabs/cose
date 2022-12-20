@@ -10,6 +10,7 @@ import (
 	"github.com/ldclabs/cose/cwt"
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
+	_ "github.com/ldclabs/cose/key/aesccm"
 )
 
 func ExampleEncrypt0Message() {

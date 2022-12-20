@@ -5,7 +5,7 @@ package iana
 
 // IANA-registered COSE header parameters.
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#header-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#header-parameters
 // as of 2022-12-19.
 const (
 	// Reserved
@@ -82,7 +82,7 @@ const (
 
 // IANA-registered COSE header algorithm parameters.
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#header-algorithm-parameters>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#header-algorithm-parameters
 // as of 2022-12-19.
 const (
 	// static key X.509 certificate chain

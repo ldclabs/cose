@@ -4,7 +4,7 @@
 package iana
 
 // CBOR Web Token (CWT) Claims
-// From IANA registry <https://www.iana.org/assignments/cwt/cwt.xhtml>
+// From IANA registry https://www.iana.org/assignments/cwt/cwt.xhtml
 // as of 2022-12-19.
 const (
 	// Health certificate ("hcert": map).

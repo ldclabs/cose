@@ -9,6 +9,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/key"
+	_ "github.com/ldclabs/cose/key/ecdsa"
 )
 
 func ExampleSignMessage() {

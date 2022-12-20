@@ -5,7 +5,7 @@ package iana
 
 // CBOR tag values for COSE structures.
 //
-// From IANA registry <https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml>
+// From IANA registry https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml
 // as of 2022-12-19.
 const (
 	// COSE Single Recipient Encrypted Data Object

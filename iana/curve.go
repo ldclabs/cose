@@ -5,7 +5,7 @@ package iana
 
 // IANA-registered COSE elliptic curves.
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#elliptic-curves>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#elliptic-curves
 // as of 2022-12-19.
 const (
 	EllipticCurveReserved = 0

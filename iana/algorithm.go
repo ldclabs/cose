@@ -5,7 +5,7 @@ package iana
 
 // IANA-registered COSE algorithms.
 //
-// From IANA registry <https://www.iana.org/assignments/cose/cose.xhtml#algorithms>
+// From IANA registry https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 // as of 2022-12-19.
 const (
 	// RSASSA-PKCS1-v1_5 using SHA-1

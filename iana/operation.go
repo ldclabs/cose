@@ -5,7 +5,7 @@ package iana
 
 // Key operation values.
 //
-// See <https://datatracker.ietf.org/doc/html/rfc9052#name-key-operation-values>
+// See https://datatracker.ietf.org/doc/html/rfc9052#name-key-operation-values
 const (
 	// Key is used to create signatures. Requires private key fields.
 	KeyOperationSign = 1

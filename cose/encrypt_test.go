@@ -4,8 +4,10 @@
 package cose
 
 import (
+	"crypto/elliptic"
 	"testing"
 
+	"github.com/aead/ecdh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/ldclabs/cose/key"
 	"github.com/ldclabs/cose/key/aesgcm"
 	"github.com/ldclabs/cose/key/ecdsa"
+	"github.com/ldclabs/cose/key/hkdf"
 )
 
 func TestEncryptMessage(t *testing.T) {
@@ -25,6 +28,7 @@ func TestEncryptMessage(t *testing.T) {
 		cek       []byte
 		iv        []byte
 		plaintext []byte
+		context   []byte
 		toEnc     []byte
 		output    []byte
 	}{
@@ -50,11 +54,37 @@ func TestEncryptMessage(t *testing.T) {
 			key.HexBytesify("56074D506729CA40C4B4FE50C6439893"),
 			key.HexBytesify("C9CF4DF2FE6C632BF7886413"),
 			[]byte("This is the content."),
+			key.HexBytesify("840183F6F6F683F6F6F682188044A1013818"),
 			key.HexBytesify("8367456E637279707443A1010140"),
 			key.HexBytesify("D8608443A10101A1054CC9CF4DF2FE6C632BF788641358247ADBE2709CA818FB415F1E5DF66F4E1A51053BA6D65A1A0C52A357DA7A644B8070A151B0818344A1013818A20458246D65726961646F632E6272616E64796275636B406275636B6C616E642E6578616D706C6520A40102200121582098F50A4FF6C05861C8860D13A638EA56C3F5AD7590BBFBF054E1C7B4D91D628022F5F6"),
 		},
 	} {
-		gcmkey, err := aesgcm.KeyFrom(iana.AlgorithmA128GCM, tc.cek)
+		kdfContext := KDFContext{
+			AlgorithmID: iana.AlgorithmA128GCM,
+			SuppPubInfo: SuppPubInfo{
+				KeyDataLength: 128,
+				Protected: Headers{
+					iana.HeaderParameterAlg: iana.AlgorithmECDH_ES_HKDF_256,
+				},
+			},
+		}
+		ctxData, err := key.MarshalCBOR(kdfContext)
+		require.NoError(t, err, tc.title)
+		assert.Equal(tc.context, ctxData, tc.title)
+
+		p256 := ecdh.Generic(elliptic.P256())
+
+		privK, err := tc.keyR.GetBytes(iana.EC2KeyParameterD)
+		require.NoError(t, err, tc.title)
+		pubK, err := ecdsa.KeyToPublic(tc.keyS)
+		require.NoError(t, err, tc.title)
+		secret := p256.ComputeSecret(privK, ecdh.Point{X: pubK.X, Y: pubK.Y})
+
+		cek, err := hkdf.HKDF256(secret, nil, ctxData, 128/8)
+		require.NoError(t, err, tc.title)
+		assert.Equal(tc.cek, cek, tc.title)
+
+		gcmkey, err := aesgcm.KeyFrom(iana.AlgorithmA128GCM, cek)
 		require.NoError(t, err, tc.title)
 
 		encryptor, err := gcmkey.Encryptor()
@@ -72,7 +102,7 @@ func TestEncryptMessage(t *testing.T) {
 		ck, err := ecdsa.ToCompressedKey(tc.keyS)
 		require.NoError(t, err, tc.title)
 		rp := &Recipient{
-			Protected: Headers{iana.HeaderParameterAlg: -25}, // ECDH-ES + HKDF-256
+			Protected: Headers{iana.HeaderParameterAlg: iana.AlgorithmECDH_ES_HKDF_256},
 			Unprotected: Headers{
 				iana.HeaderAlgorithmParameterEphemeralKey: ck,
 				iana.HeaderParameterKid:                   []byte("meriadoc.brandybuck@buckland.example"),

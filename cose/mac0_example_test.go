@@ -10,6 +10,7 @@ import (
 	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
+	_ "github.com/ldclabs/cose/key/aesmac"
 )
 
 func ExampleMac0Message() {
