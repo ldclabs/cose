@@ -1,6 +1,9 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package iana registers COSE: https://www.iana.org/assignments/cose/cose.xhtml,
+// CWT: https://www.iana.org/assignments/cwt/cwt.xhtml,
+// and CBOR Tags: https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml.
 package iana
 
 // IANA-registered COSE algorithms.

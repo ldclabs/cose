@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package key implements algorithms and key objects for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053.
 package key
 
 import (

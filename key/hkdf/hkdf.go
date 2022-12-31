@@ -1,12 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package hkdf implements the HMAC-based Extract-and-Expand Key Derivation
-// Function (HKDF) as defined in https://datatracker.ietf.org/doc/html/rfc9053#name-key-derivation-functions-kd.
-//
-// HKDF is a cryptographic key derivation function (KDF) with the goal of
-// expanding limited input keying material into one or more cryptographically
-// strong secret keys.
+// Package hkdf implements key derivation function HKDF for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053#name-key-derivation-functions-kd
 package hkdf
 
 import (

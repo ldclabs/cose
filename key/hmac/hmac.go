@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package hmac implements message authentication code algorithm HMAC for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti.
 package hmac
 
 import (
@@ -54,8 +56,6 @@ func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 }
 
 // CheckKey checks whether the given key is a valid HMAC key.
-//
-// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeSymmetric {
 		return fmt.Errorf(`cose/go/key/hmac: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())

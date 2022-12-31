@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package aesgcm implements content encryption algorithm AES-GCM for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053#name-aes-gcm.
 package aesgcm
 
 import (
@@ -54,8 +56,6 @@ func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 }
 
 // CheckKey checks whether the given key is a valid AES-GCM key.
-//
-// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-aes-gcm
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeSymmetric {
 		return fmt.Errorf(`cose/go/key/aesgcm: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())

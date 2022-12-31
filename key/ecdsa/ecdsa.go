@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package ecdsa implements signature algorithm ECDSA for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053#name-ecdsa.
 package ecdsa
 
 import (
@@ -56,7 +58,6 @@ func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
 	}
 
-	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[int]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
@@ -110,7 +111,6 @@ func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
 	}
 
-	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[int]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.X.Bytes()), // default kid, can be set to other value.
@@ -166,8 +166,6 @@ func keyToPublic(pk key.Key) (*ecdsa.PublicKey, error) {
 }
 
 // CheckKey checks whether the given key is a valid ECDSA key.
-//
-// Reference https://datatracker.ietf.org/doc/html/rfc9053#section-2-1
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeEC2 {
 		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid key type, expected "EC2", got %d`, k.Kty())

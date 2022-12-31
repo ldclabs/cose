@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package chacha20poly1305 implements content encryption algorithm ChaCha20/Poly1305 for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053#name-chacha20-and-poly1305.
 package chacha20poly1305
 
 import (
@@ -46,8 +48,6 @@ func KeyFrom(k []byte) (key.Key, error) {
 }
 
 // CheckKey checks whether the given key is a valid ChaCha20/Poly1305 key.
-//
-// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-chacha20-and-poly1305
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeSymmetric {
 		return fmt.Errorf(`cose/go/key/chacha20poly1305: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())

@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package cose implements CBOR Object Signing and Encryption (COSE) as defined in RFC9052.
+// https://datatracker.ietf.org/doc/html/rfc9052.
 package cose
 
 import "github.com/ldclabs/cose/key"

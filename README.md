@@ -1,4 +1,4 @@
-COSE, CWT and crypto Keys
+COSE, CWT, Algorithms and Keys
 -------------------------
 [![CI](https://github.com/ldclabs/cose/actions/workflows/ci-cover.yml/badge.svg)](https://github.com/ldclabs/cose/actions?query=workflow%3Aci-cover)
 [![Codecov](https://codecov.io/gh/ldclabs/cose/branch/main/graph/badge.svg)](https://codecov.io/gh/ldclabs/cose)
@@ -8,11 +8,12 @@ COSE, CWT and crypto Keys
 
 ## Index
 
-- [COSE, CWT and crypto Keys](#cose-cwt-and-crypto-keys)
+- [COSE, CWT, Algorithms and Keys](#cose-cwt-algorithms-and-keys)
 - [Index](#index)
 - [Introduction](#introduction)
 - [Features](#features)
 - [Installation](#installation)
+- [Packages](#packages)
 - [Examples](#examples)
 	- [Create a simple CWT with a signer](#create-a-simple-cwt-with-a-signer)
 	- [Create a complex CWT with one more signers](#create-a-complex-cwt-with-one-more-signers)
@@ -45,27 +46,31 @@ To import in the cwt package:
 import "github.com/ldclabs/cose/cwt"
 ```
 
-To import in the cose package:
-
-```go
-import "github.com/ldclabs/cose/cose"
-```
-
-To import in the key package:
-
-```go
-import "github.com/ldclabs/cose/key"
-```
-
 To register crypto algorithms:
 
 ```go
 import (
-  _ "github.com/ldclabs/cose/key/ecdsa"
   _ "github.com/ldclabs/cose/key/ed25519"
-  _ "github.com/ldclabs/cose/key/hmac"
+  _ "github.com/ldclabs/cose/key/aesgcm"
 )
 ```
+
+## Packages
+
+| Package name                                           | Import                         | Description                    |
+|--------------------------------------------------------|--------------------------------|--------------------------------|
+| [cose](https://pkg.go.dev/github.com/ldclabs/cose/cose) | "github.com/ldclabs/cose/cose" | [RFC9052: CBOR Object Signing and Encryption][cose-spec] |
+| [cwt](https://pkg.go.dev/github.com/ldclabs/cose/cwt) | "github.com/ldclabs/cose/cwt" | [RFC8392: CBOR Web Token][cwt-spec] |
+| [iana](https://pkg.go.dev/github.com/ldclabs/cose/iana) | "github.com/ldclabs/cose/iana" | [IANA: COSE][iana-cose] + [IANA: CWT][iana-cwt] + [IANA: CBOR Tags][iana-cbor-tags]|
+| [key](https://pkg.go.dev/github.com/ldclabs/cose/key) | "github.com/ldclabs/cose/key" | [RFC9053: Algorithms and Key Objects][algorithms-spec] |
+| [ed25519](https://pkg.go.dev/github.com/ldclabs/cose/key/ed25519) | "github.com/ldclabs/cose/key/ed25519" | Signature Algorithm: [Ed25519](https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa) |
+| [ecdsa](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdsa) | "github.com/ldclabs/cose/key/ecdsa" | Signature Algorithm: [ECDSA](https://datatracker.ietf.org/doc/html/rfc9053#name-ecdsa) |
+| [hmac](https://pkg.go.dev/github.com/ldclabs/cose/key/hmac) | "github.com/ldclabs/cose/key/hmac" | Message Authentication Code (MAC) Algorithm: [HMAC](https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti) |
+| [aesmac](https://pkg.go.dev/github.com/ldclabs/cose/key/aesmac) | "github.com/ldclabs/cose/key/aesmac" | Message Authentication Code (MAC) Algorithm: [AES-CBC-MAC](https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti) |
+| [aesgcm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesgcm) | "github.com/ldclabs/cose/key/aesgcm" | Content Encryption Algorithm: [AES-GCM](https://datatracker.ietf.org/doc/html/rfc9053#name-aes-gcm) |
+| [aesccm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesccm) | "github.com/ldclabs/cose/key/aesccm" | Content Encryption Algorithm: [AES-CCM](https://datatracker.ietf.org/doc/html/rfc9053#name-aes-ccm) |
+| [chacha20poly1305](https://pkg.go.dev/github.com/ldclabs/cose/key/chacha20poly1305) | "github.com/ldclabs/cose/key/chacha20poly1305" | Content Encryption Algorithm: [ChaCha20/Poly1305](https://datatracker.ietf.org/doc/html/rfc9053#name-chacha20-and-poly1305) |
+| [hkdf](https://pkg.go.dev/github.com/ldclabs/cose/key/hkdf) | "github.com/ldclabs/cose/key/hkdf" | Key Derivation Functions (KDFs) Algorithm: [HKDF](https://datatracker.ietf.org/doc/html/rfc9053#name-key-derivation-functions-kd) |
 
 ## Examples
 

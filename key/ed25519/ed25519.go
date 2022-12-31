@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package ed25519 implements signature algorithm Ed25519 for COSE as defined in RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa.
 package ed25519
 
 import (
@@ -115,9 +117,6 @@ func KeyToPublic(k key.Key) (ed25519.PublicKey, error) {
 }
 
 // CheckKey checks whether the given key is a valid Ed25519 key.
-//
-// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
-// Reference https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeOKP {
 		return fmt.Errorf(`cose/go/key/ed25519: CheckKey: invalid key type, expected "OKP", got %d`, k.Kty())

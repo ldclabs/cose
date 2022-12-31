@@ -1,6 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// Package cwt implements CBOR Web Token (CWT) as defined in RFC8392.
+// https://datatracker.ietf.org/doc/html/rfc8392.
 package cwt
 
 import (
