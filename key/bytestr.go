@@ -19,7 +19,7 @@ func (bstr ByteStr) String() string {
 	return hex.EncodeToString(bstr)
 }
 
-// Base64 returns the base64url string representation of the byte string.
+// Base64 returns the raw base64url string representation of the byte string.
 func (bstr ByteStr) Base64() string {
 	return base64.RawURLEncoding.EncodeToString(bstr)
 }
@@ -37,7 +37,10 @@ func (bstr ByteStr) MarshalJSON() ([]byte, error) {
 // HexBytesify converts a hex string to []byte.
 // It returns nil if the string is not a valid hex string.
 func HexBytesify(h string) []byte {
-	b, _ := hex.DecodeString(h)
+	b, err := hex.DecodeString(h)
+	if err != nil {
+		return nil
+	}
 	return b
 }
 
@@ -49,12 +52,17 @@ func Base64Bytesify(s string) []byte {
 		enc = base64.URLEncoding
 	}
 
-	b, _ := enc.DecodeString(s)
+	b, err := enc.DecodeString(s)
+	if err != nil {
+		return nil
+	}
 	return b
 }
 
 // SumKid returns a 20 bytes kid with given data.
 func SumKid(data []byte) ByteStr {
-	d := sha3.Sum256(data)
-	return d[:20]
+	sum := sha3.Sum256(data)
+	id := make([]byte, 20)
+	copy(id, sum[:])
+	return id
 }

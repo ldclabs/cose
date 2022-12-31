@@ -5,6 +5,7 @@ package key
 
 import "bytes"
 
+// KeySet is a set of Keys.
 type KeySet []Key
 
 // Lookup returns the first key matching the given key id.

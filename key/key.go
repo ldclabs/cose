@@ -1,7 +1,8 @@
 // (c) 2022-2022, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package key implements algorithms and key objects for COSE as defined in RFC9053.
+// Package key implements algorithms and key objects for COSE as defined in RFC9052 and RFC9053.
+// https://datatracker.ietf.org/doc/html/rfc9052#name-key-objects.
 // https://datatracker.ietf.org/doc/html/rfc9053.
 package key
 
@@ -13,7 +14,7 @@ import (
 
 // Key represents a COSE_Key object.
 //
-// Reference https://datatracker.ietf.org/doc/html/rfc9052#section-7
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-key-objects.
 type Key IntMap
 
 // Kty returns the key type.
@@ -44,13 +45,14 @@ func (k Key) SetKid(kid ByteStr) {
 // Alg returns the key algorithm.
 // If It is elliptic-curves key and algorithm is not present,
 // it will return the algorithm that matched the curve.
+//
 // Reference https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 func (k Key) Alg() Alg {
 	v, err := k.GetInt(iana.KeyParameterAlg)
 	if err == nil && v == 0 {
-		// alg is optional, try lookup it by crv
-		if c, err := k.GetInt(-1); err == nil {
-			return Crv(c).Alg()
+		// alg is optional, try lookup it by crv ( or iana.EC2KeyParameterCrv)
+		if c, err := k.GetInt(iana.OKPKeyParameterCrv); err == nil {
+			return CrvAlg(c)
 		}
 	}
 	return Alg(v)
@@ -145,7 +147,7 @@ func (k Key) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Key.
 func (k *Key) UnmarshalCBOR(data []byte) error {
 	if k == nil {
-		return errors.New("cose/go/key: Key.UnmarshalCBOR: nil Key")
+		return errors.New("cose/key: Key.UnmarshalCBOR: nil Key")
 	}
 	return UnmarshalCBOR(data, (*IntMap)(k))
 }

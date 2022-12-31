@@ -10,7 +10,7 @@ import (
 	"github.com/ldclabs/cose/iana"
 )
 
-// Algorithm represents an IANA algorithm entry in the COSE Algorithms registry.
+// Alg represents an IANA algorithm entry in the COSE Algorithms registry.
 //
 // Reference https://www.iana.org/assignments/cose/cose.xhtml#algorithms
 type Alg int
@@ -32,7 +32,7 @@ func (a Alg) HashFunc() crypto.Hash {
 // ComputeHash computes a hash of the given data using the given hash.
 func ComputeHash(h crypto.Hash, data []byte) ([]byte, error) {
 	if !h.Available() {
-		return nil, errors.New("hash function is not available")
+		return nil, errors.New("cose/key: ComputeHash: hash function is not available")
 	}
 
 	hh := h.New()

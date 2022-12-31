@@ -137,7 +137,7 @@ func TestRegister(t *testing.T) {
 			iana.OKPKeyParameterCrv: -999,
 		}
 		_, err = k.Signer()
-		assert.ErrorContains(err, "signer for kty(1)_alg(-999)_crv(-999) is not registered")
+		assert.ErrorContains(err, "kty(1)_alg(-999)_crv(-999) is not registered")
 
 		fn := func(Key) (Signer, error) { return nil, nil }
 		RegisterSigner(iana.KeyTypeOKP, -999, -999, fn)
@@ -150,7 +150,7 @@ func TestRegister(t *testing.T) {
 
 		delete(signers, k.tripleKey())
 		_, err = k.Signer()
-		assert.ErrorContains(err, "signer for kty(1)_alg(-999)_crv(-999) is not registered")
+		assert.ErrorContains(err, "kty(1)_alg(-999)_crv(-999) is not registered")
 	})
 
 	t.Run("RegisterVerifier", func(t *testing.T) {
@@ -166,7 +166,7 @@ func TestRegister(t *testing.T) {
 			iana.OKPKeyParameterCrv: -999,
 		}
 		_, err = k.Verifier()
-		assert.ErrorContains(err, "verifier for kty(1)_alg(-999)_crv(-999) is not registered")
+		assert.ErrorContains(err, "kty(1)_alg(-999)_crv(-999) is not registered")
 
 		fn := func(Key) (Verifier, error) { return nil, nil }
 		RegisterVerifier(iana.KeyTypeOKP, -999, -999, fn)
@@ -179,7 +179,7 @@ func TestRegister(t *testing.T) {
 
 		delete(verifiers, k.tripleKey())
 		_, err = k.Verifier()
-		assert.ErrorContains(err, "verifier for kty(1)_alg(-999)_crv(-999) is not registered")
+		assert.ErrorContains(err, "kty(1)_alg(-999)_crv(-999) is not registered")
 	})
 
 	t.Run("RegisterMACer", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestRegister(t *testing.T) {
 			iana.KeyParameterAlg: -999,
 		}
 		_, err = k.MACer()
-		assert.ErrorContains(err, "macer for kty(4)_alg(-999) is not registered")
+		assert.ErrorContains(err, "kty(4)_alg(-999) is not registered")
 
 		fn := func(Key) (MACer, error) { return nil, nil }
 		RegisterMACer(iana.KeyTypeSymmetric, -999, fn)
@@ -207,7 +207,7 @@ func TestRegister(t *testing.T) {
 
 		delete(macers, k.tripleKey())
 		_, err = k.MACer()
-		assert.ErrorContains(err, "macer for kty(4)_alg(-999) is not registered")
+		assert.ErrorContains(err, "kty(4)_alg(-999) is not registered")
 	})
 
 	t.Run("RegisterEncryptor", func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestRegister(t *testing.T) {
 			iana.KeyParameterAlg: -999,
 		}
 		_, err = k.Encryptor()
-		assert.ErrorContains(err, "encryptor for kty(4)_alg(-999) is not registered")
+		assert.ErrorContains(err, "kty(4)_alg(-999) is not registered")
 
 		fn := func(Key) (Encryptor, error) { return nil, nil }
 		RegisterEncryptor(iana.KeyTypeSymmetric, -999, fn)
@@ -235,6 +235,6 @@ func TestRegister(t *testing.T) {
 
 		delete(encryptors, k.tripleKey())
 		_, err = k.Encryptor()
-		assert.ErrorContains(err, "encryptor for kty(4)_alg(-999) is not registered")
+		assert.ErrorContains(err, "kty(4)_alg(-999) is not registered")
 	})
 }

@@ -31,13 +31,13 @@ var (
 )
 
 // RegisterSigner registers a SignerFactory for the given key type, algorithm, and curve.
-// For example, to register a SignerFactory for ed25519 signer:
+// For example, to register a ed25519 signer factory:
 //
 //	key.RegisterSigner(iana.KeyTypeOKP, iana.AlgorithmEdDSA, iana.EllipticCurveEd25519, ed25519.NewSigner)
 func RegisterSigner(kty, alg, crv int, fn SignerFactory) {
 	tk := tripleKey{kty, alg, crv}
 	if _, ok := signers[tk]; ok {
-		panic(fmt.Errorf("signer for %s is already registered", tk.String()))
+		panic(fmt.Errorf("cose/key: RegisterSigner: %s is already registered", tk.String()))
 	}
 	signers[tk] = fn
 }
@@ -46,25 +46,25 @@ func RegisterSigner(kty, alg, crv int, fn SignerFactory) {
 func RegisterVerifier(kty, alg, crv int, fn VerifierFactory) {
 	tk := tripleKey{kty, alg, crv}
 	if _, ok := verifiers[tk]; ok {
-		panic(fmt.Errorf("verifier for %s is already registered", tk.String()))
+		panic(fmt.Errorf("cose/key: RegisterVerifier: %s is already registered", tk.String()))
 	}
 	verifiers[tk] = fn
 }
 
-// RegisterMACer registers a MACerFactory for the given key type, algorithm.
+// RegisterMACer registers a MACerFactory for the given key type and algorithm.
 func RegisterMACer(kty, alg int, fn MACerFactory) {
 	tk := tripleKey{kty, alg, 0}
 	if _, ok := macers[tk]; ok {
-		panic(fmt.Errorf("macer for %s is already registered", tk.String()))
+		panic(fmt.Errorf("cose/key: RegisterMACer: %s is already registered", tk.String()))
 	}
 	macers[tk] = fn
 }
 
-// RegisterEncryptor registers a EncryptorFactory for the given key type, algorithm.
+// RegisterEncryptor registers a EncryptorFactory for the given key type and algorithm.
 func RegisterEncryptor(kty, alg int, fn EncryptorFactory) {
 	tk := tripleKey{kty, alg, 0}
 	if _, ok := encryptors[tk]; ok {
-		panic(fmt.Errorf("encryptor for %s is already registered", tk.String()))
+		panic(fmt.Errorf("cose/key: RegisterEncryptor: %s is already registered", tk.String()))
 	}
 	encryptors[tk] = fn
 }
@@ -74,13 +74,13 @@ func RegisterEncryptor(kty, alg int, fn EncryptorFactory) {
 // an error is returned.
 func (k Key) Signer() (Signer, error) {
 	if k == nil {
-		return nil, fmt.Errorf("nil key")
+		return nil, fmt.Errorf("cose/key: Key.Signer: nil key")
 	}
 
 	tk := k.tripleKey()
 	fn, ok := signers[tk]
 	if !ok {
-		return nil, fmt.Errorf("signer for %s is not registered", tk.String())
+		return nil, fmt.Errorf("cose/key: Key.Signer: %s is not registered", tk.String())
 	}
 
 	return fn(k)
@@ -91,47 +91,47 @@ func (k Key) Signer() (Signer, error) {
 // an error is returned.
 func (k Key) Verifier() (Verifier, error) {
 	if k == nil {
-		return nil, fmt.Errorf("nil key")
+		return nil, fmt.Errorf("cose/key: Key.Verifier: nil key")
 	}
 
 	tk := k.tripleKey()
 	fn, ok := verifiers[tk]
 	if !ok {
-		return nil, fmt.Errorf("verifier for %s is not registered", tk.String())
+		return nil, fmt.Errorf("cose/key: Key.Verifier: %s is not registered", tk.String())
 	}
 
 	return fn(k)
 }
 
 // MACer returns a MACer for the given key.
-// If the key is nil, or MACerFactory for the given key type, algorithm not registered,
+// If the key is nil, or MACerFactory for the given key type and algorithm not registered,
 // an error is returned.
 func (k Key) MACer() (MACer, error) {
 	if k == nil {
-		return nil, fmt.Errorf("nil key")
+		return nil, fmt.Errorf("cose/key: Key.MACer: nil key")
 	}
 
 	tk := k.tripleKey()
 	fn, ok := macers[tk]
 	if !ok {
-		return nil, fmt.Errorf("macer for %s is not registered", tk.String())
+		return nil, fmt.Errorf("cose/key: Key.MACer: %s is not registered", tk.String())
 	}
 
 	return fn(k)
 }
 
 // Encryptor returns a Encryptor for the given key.
-// If the key is nil, or EncryptorFactory for the given key type, algorithm not registered,
+// If the key is nil, or EncryptorFactory for the given key type and algorithm not registered,
 // an error is returned.
 func (k Key) Encryptor() (Encryptor, error) {
 	if k == nil {
-		return nil, fmt.Errorf("nil key")
+		return nil, fmt.Errorf("cose/key: Key.Encryptor: nil key")
 	}
 
 	tk := k.tripleKey()
 	fn, ok := encryptors[tk]
 	if !ok {
-		return nil, fmt.Errorf("encryptor for %s is not registered", tk.String())
+		return nil, fmt.Errorf("cose/key: Key.Encryptor: %s is not registered", tk.String())
 	}
 
 	return fn(k)

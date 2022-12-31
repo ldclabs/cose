@@ -42,18 +42,17 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 
 // KeyFromPrivate returns a private Key with given ecdsa.PrivateKey.
 func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
-	var alg key.Alg
-	var c key.Crv
+	var alg, crv int
 	switch curve := pk.Curve.Params().Name; curve {
 	case "P-256":
 		alg = iana.AlgorithmES256
-		c = iana.EllipticCurveP_256
+		crv = iana.EllipticCurveP_256
 	case "P-384":
 		alg = iana.AlgorithmES384
-		c = iana.EllipticCurveP_384
+		crv = iana.EllipticCurveP_384
 	case "P-521":
 		alg = iana.AlgorithmES512
-		c = iana.EllipticCurveP_521
+		crv = iana.EllipticCurveP_521
 	default:
 		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
 	}
@@ -62,7 +61,7 @@ func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    alg,
-		iana.EC2KeyParameterCrv: c,            // REQUIRED
+		iana.EC2KeyParameterCrv: crv,          // REQUIRED
 		iana.EC2KeyParameterD:   pk.D.Bytes(), // REQUIRED
 	}, nil
 }
@@ -95,18 +94,17 @@ func KeyToPrivate(k key.Key) (*ecdsa.PrivateKey, error) {
 
 // KeyFromPublic returns a public Key with given ecdsa.PublicKey.
 func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
-	var alg key.Alg
-	var c key.Crv
+	var alg, crv int
 	switch curve := pk.Curve.Params().Name; curve {
 	case "P-256":
 		alg = iana.AlgorithmES256
-		c = iana.EllipticCurveP_256
+		crv = iana.EllipticCurveP_256
 	case "P-384":
 		alg = iana.AlgorithmES384
-		c = iana.EllipticCurveP_384
+		crv = iana.EllipticCurveP_384
 	case "P-521":
 		alg = iana.AlgorithmES512
-		c = iana.EllipticCurveP_521
+		crv = iana.EllipticCurveP_521
 	default:
 		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
 	}
@@ -115,7 +113,7 @@ func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.X.Bytes()), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    alg,
-		iana.EC2KeyParameterCrv: c,            // REQUIRED
+		iana.EC2KeyParameterCrv: crv,          // REQUIRED
 		iana.EC2KeyParameterX:   pk.X.Bytes(), // REQUIRED
 		iana.EC2KeyParameterY:   pk.Y.Bytes(), // REQUIRED
 	}, nil
@@ -467,7 +465,7 @@ var (
 	p521 = elliptic.P521()
 )
 
-func getCurve(alg key.Alg) (elliptic.Curve, key.Crv) {
+func getCurve(alg key.Alg) (elliptic.Curve, int) {
 	switch alg {
 	case iana.AlgorithmES256, iana.AlgorithmReserved:
 		return p256, iana.EllipticCurveP_256

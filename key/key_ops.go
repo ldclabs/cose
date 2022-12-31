@@ -6,7 +6,7 @@ package key
 // Ops represents the key operations.
 type Ops []int
 
-// Has returns true if the given operation is in the list of operations.
+// Has returns true if the given operation is in the operations.
 func (os Ops) Has(op int) bool {
 	for _, o := range os {
 		if o == op {
@@ -16,8 +16,8 @@ func (os Ops) Has(op int) bool {
 	return false
 }
 
-// EmptyOrHas returns true if the list of operations is empty,
-// or the given operation is in the list of operations.
+// EmptyOrHas returns true if the operations is empty,
+// or the given operation is in the operations.
 func (os Ops) EmptyOrHas(op int) bool {
 	return len(os) == 0 || os.Has(op)
 }

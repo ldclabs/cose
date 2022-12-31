@@ -9,8 +9,8 @@ import (
 	"reflect"
 )
 
-// IntMap represents a map of IntKey to any value.
-// It is base type of key.Key, cose.Header, cwt.ClaimsMap.
+// IntMap represents a map of int to any value.
+// It is the base type of key.Key, cose.Header, cwt.ClaimsMap.
 type IntMap map[int]any
 
 // ToInt converts the given value to int, the range is [math.MinInt32, math.MaxInt32].
@@ -22,17 +22,17 @@ func ToInt(v any) (int, error) {
 		if x >= math.MinInt32 && x <= math.MaxInt32 {
 			return int(x), nil
 		}
-		return 0, fmt.Errorf("invalid int %v", v)
+		return 0, fmt.Errorf("cose/key: ToInt: invalid int %v", v)
 
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
 		x := rv.Uint()
 		if x <= math.MaxInt32 {
 			return int(x), nil
 		}
-		return 0, fmt.Errorf("invalid int %v", v)
+		return 0, fmt.Errorf("cose/key: ToInt: invalid int %v", v)
 
 	default:
-		return 0, fmt.Errorf("invalid value type %T", v)
+		return 0, fmt.Errorf("cose/key: ToInt: invalid value type %T", v)
 	}
 }
 
@@ -53,7 +53,7 @@ func (m IntMap) GetBool(k int) (bool, error) {
 			return rv.Bool(), nil
 
 		default:
-			return false, fmt.Errorf("invalid value type %T", v)
+			return false, fmt.Errorf("cose/key: IntMap.GetBool: invalid value type %T", v)
 		}
 	}
 
@@ -88,10 +88,10 @@ func (m IntMap) GetInt64(k int) (int64, error) {
 			if x <= math.MaxInt64 {
 				return int64(x), nil
 			}
-			return 0, fmt.Errorf("invalid value %v", v)
+			return 0, fmt.Errorf("cose/key: IntMap.GetInt64: invalid value %v", v)
 
 		default:
-			return 0, fmt.Errorf("invalid value type %T", v)
+			return 0, fmt.Errorf("cose/key: IntMap.GetInt64: invalid value type %T", v)
 		}
 	}
 
@@ -111,13 +111,13 @@ func (m IntMap) GetUint64(k int) (uint64, error) {
 			if x >= 0 {
 				return uint64(x), nil
 			}
-			return 0, fmt.Errorf("invalid value %v", v)
+			return 0, fmt.Errorf("cose/key: IntMap.GetUint64: invalid value %v", v)
 
 		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
 			return rv.Uint(), nil
 
 		default:
-			return 0, fmt.Errorf("invalid value type %T", v)
+			return 0, fmt.Errorf("cose/key: IntMap.GetUint64: invalid value type %T", v)
 		}
 	}
 
@@ -136,7 +136,7 @@ func (m IntMap) GetBytes(k int) (b []byte, err error) {
 
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("invalid value type, %v", r)
+				err = fmt.Errorf("cose/key: IntMap.GetBytes: invalid value type, %v", r)
 			}
 		}()
 		return reflect.ValueOf(v).Bytes(), nil
@@ -160,7 +160,7 @@ func (m IntMap) GetString(k int) (string, error) {
 			return reflect.ValueOf(v).String(), nil
 
 		default:
-			return "", fmt.Errorf("invalid value type %T", v)
+			return "", fmt.Errorf("cose/key: IntMap.GetString: invalid value type %T", v)
 		}
 	}
 

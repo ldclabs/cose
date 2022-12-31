@@ -7,11 +7,8 @@ import (
 	"github.com/ldclabs/cose/iana"
 )
 
-// Crv represents the key's curve.
-type Crv int
-
-// Alg returns the algorithm that matched the key's curve.
-func (c Crv) Alg() Alg {
+// CrvAlg returns the algorithm that matched the key's curve.
+func CrvAlg(c int) Alg {
 	switch c {
 	case iana.EllipticCurveP_256:
 		return iana.AlgorithmES256
