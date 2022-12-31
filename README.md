@@ -1,5 +1,8 @@
 COSE, CWT and crypto Keys
 -------------------------
+[![CI](https://github.com/ldclabs/cose/actions/workflows/ci-cover.yml/badge.svg)](https://github.com/ldclabs/cose/actions?query=workflow%3Aci-cover)
+[![Codecov](https://codecov.io/gh/ldclabs/cose/branch/main/graph/badge.svg)](https://codecov.io/gh/ldclabs/cose)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ldclabs/cose.svg)](https://pkg.go.dev/github.com/ldclabs/cose)
 
 *A golang library for the [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBOR Web Token (CWT)][cwt-spec].*
 

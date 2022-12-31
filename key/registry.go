@@ -21,36 +21,52 @@ type MACerFactory func(Key) (MACer, error)
 // EncryptorFactory is a function that returns a Encryptor for the given key.
 type EncryptorFactory func(Key) (Encryptor, error)
 
-type keyTriple [3]int
+type tripleKey [3]int
 
 var (
-	signers    = map[keyTriple]SignerFactory{}
-	verifiers  = map[keyTriple]VerifierFactory{}
-	macers     = map[keyTriple]MACerFactory{}
-	encryptors = map[keyTriple]EncryptorFactory{}
+	signers    = map[tripleKey]SignerFactory{}
+	verifiers  = map[tripleKey]VerifierFactory{}
+	macers     = map[tripleKey]MACerFactory{}
+	encryptors = map[tripleKey]EncryptorFactory{}
 )
 
 // RegisterSigner registers a SignerFactory for the given key type, algorithm, and curve.
 // For example, to register a SignerFactory for ed25519 signer:
 //
 //	key.RegisterSigner(iana.KeyTypeOKP, iana.AlgorithmEdDSA, iana.EllipticCurveEd25519, ed25519.NewSigner)
-func RegisterSigner(kty int, alg Alg, crv Crv, fn SignerFactory) {
-	signers[keyTriple{int(kty), int(alg), int(crv)}] = fn
+func RegisterSigner(kty, alg, crv int, fn SignerFactory) {
+	tk := tripleKey{kty, alg, crv}
+	if _, ok := signers[tk]; ok {
+		panic(fmt.Errorf("signer for %s is already registered", tk.String()))
+	}
+	signers[tk] = fn
 }
 
 // RegisterVerifier registers a VerifierFactory for the given key type, algorithm, and curve.
-func RegisterVerifier(kty int, alg Alg, crv Crv, fn VerifierFactory) {
-	verifiers[keyTriple{int(kty), int(alg), int(crv)}] = fn
+func RegisterVerifier(kty, alg, crv int, fn VerifierFactory) {
+	tk := tripleKey{kty, alg, crv}
+	if _, ok := verifiers[tk]; ok {
+		panic(fmt.Errorf("verifier for %s is already registered", tk.String()))
+	}
+	verifiers[tk] = fn
 }
 
 // RegisterMACer registers a MACerFactory for the given key type, algorithm.
-func RegisterMACer(kty int, alg Alg, fn MACerFactory) {
-	macers[keyTriple{int(kty), int(alg), 0}] = fn
+func RegisterMACer(kty, alg int, fn MACerFactory) {
+	tk := tripleKey{kty, alg, 0}
+	if _, ok := macers[tk]; ok {
+		panic(fmt.Errorf("macer for %s is already registered", tk.String()))
+	}
+	macers[tk] = fn
 }
 
 // RegisterEncryptor registers a EncryptorFactory for the given key type, algorithm.
-func RegisterEncryptor(kty int, alg Alg, fn EncryptorFactory) {
-	encryptors[keyTriple{int(kty), int(alg), 0}] = fn
+func RegisterEncryptor(kty, alg int, fn EncryptorFactory) {
+	tk := tripleKey{kty, alg, 0}
+	if _, ok := encryptors[tk]; ok {
+		panic(fmt.Errorf("encryptor for %s is already registered", tk.String()))
+	}
+	encryptors[tk] = fn
 }
 
 // Signer returns a Signer for the given key.
@@ -61,9 +77,10 @@ func (k Key) Signer() (Signer, error) {
 		return nil, fmt.Errorf("nil key")
 	}
 
-	fn, ok := signers[k.tripleKey()]
+	tk := k.tripleKey()
+	fn, ok := signers[tk]
 	if !ok {
-		return nil, fmt.Errorf("signer for %s is not registered", k.tripleName())
+		return nil, fmt.Errorf("signer for %s is not registered", tk.String())
 	}
 
 	return fn(k)
@@ -77,9 +94,10 @@ func (k Key) Verifier() (Verifier, error) {
 		return nil, fmt.Errorf("nil key")
 	}
 
-	fn, ok := verifiers[k.tripleKey()]
+	tk := k.tripleKey()
+	fn, ok := verifiers[tk]
 	if !ok {
-		return nil, fmt.Errorf("verifier for %s is not registered", k.tripleName())
+		return nil, fmt.Errorf("verifier for %s is not registered", tk.String())
 	}
 
 	return fn(k)
@@ -93,9 +111,10 @@ func (k Key) MACer() (MACer, error) {
 		return nil, fmt.Errorf("nil key")
 	}
 
-	fn, ok := macers[k.tripleKey()]
+	tk := k.tripleKey()
+	fn, ok := macers[tk]
 	if !ok {
-		return nil, fmt.Errorf("macer for %s is not registered", k.tripleName())
+		return nil, fmt.Errorf("macer for %s is not registered", tk.String())
 	}
 
 	return fn(k)
@@ -109,18 +128,19 @@ func (k Key) Encryptor() (Encryptor, error) {
 		return nil, fmt.Errorf("nil key")
 	}
 
-	fn, ok := encryptors[k.tripleKey()]
+	tk := k.tripleKey()
+	fn, ok := encryptors[tk]
 	if !ok {
-		return nil, fmt.Errorf("encryptor for %s is not registered", k.tripleName())
+		return nil, fmt.Errorf("encryptor for %s is not registered", tk.String())
 	}
 
 	return fn(k)
 }
 
-func (k Key) tripleKey() keyTriple {
+func (k Key) tripleKey() tripleKey {
 	kty := k.Kty()
 	alg := k.Alg()
-	crv, _ := k.GetInt(-1) // OKPKeyParameterCrv, EC2KeyParameterCrv
+	crv, _ := k.GetInt(iana.OKPKeyParameterCrv) // or iana.EC2KeyParameterCrv
 	if alg == iana.AlgorithmReserved {
 		switch kty {
 		case iana.KeyTypeOKP:
@@ -133,13 +153,13 @@ func (k Key) tripleKey() keyTriple {
 		}
 	}
 
-	return keyTriple{int(kty), int(alg), int(crv)}
+	return tripleKey{kty, int(alg), crv}
 }
 
-func (k Key) tripleName() string {
-	name := fmt.Sprintf("kty(%d)_alg(%d)", k.Kty(), k.Alg())
-	if crv, _ := k.GetInt(-1); crv != 0 {
-		name += fmt.Sprintf("_crv(%d)", crv)
+func (tk tripleKey) String() string {
+	str := fmt.Sprintf("kty(%d)_alg(%d)", tk[0], tk[1])
+	if tk[2] != 0 {
+		str += fmt.Sprintf("_crv(%d)", tk[2])
 	}
-	return name
+	return str
 }
