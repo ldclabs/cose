@@ -8,10 +8,8 @@ package aesmac
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"crypto/subtle"
 	"fmt"
-	"io"
 
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
@@ -29,11 +27,6 @@ func GenerateKey(alg int) (key.Key, error) {
 	}
 
 	k := key.GetRandomBytes(uint16(keySize))
-	_, err := io.ReadFull(rand.Reader, k)
-	if err != nil {
-		return nil, fmt.Errorf("cose/key/aesmac: GenerateKey: %w", err)
-	}
-
 	return map[int]any{
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.

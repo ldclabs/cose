@@ -6,11 +6,9 @@
 package chacha20poly1305
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io"
 
-	"golang.org/x/crypto/chacha20poly1305"
+	gochacha20poly1305 "golang.org/x/crypto/chacha20poly1305"
 
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
@@ -19,11 +17,6 @@ import (
 // GenerateKey generates a new Key with given algorithm for ChaCha20/Poly1305.
 func GenerateKey() (key.Key, error) {
 	k := key.GetRandomBytes(uint16(keySize))
-	_, err := io.ReadFull(rand.Reader, k)
-	if err != nil {
-		return nil, fmt.Errorf("cose/key/chacha20poly1305: GenerateKey: %w", err)
-	}
-
 	return map[int]any{
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
@@ -50,7 +43,8 @@ func KeyFrom(k []byte) (key.Key, error) {
 // CheckKey checks whether the given key is a valid ChaCha20/Poly1305 key.
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeSymmetric {
-		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
+		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid key type, expected "Symmetric":4, got %d`,
+			k.Kty())
 	}
 
 	for p := range k {
@@ -72,7 +66,7 @@ func CheckKey(k key.Key) error {
 				case iana.KeyOperationEncrypt, iana.KeyOperationDecrypt:
 				// continue
 				default:
-					return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid parameter key_ops %d`, op)
 				}
 			}
 
@@ -84,11 +78,15 @@ func CheckKey(k key.Key) error {
 	// REQUIRED
 	kb, err := k.GetBytes(iana.SymmetricKeyParameterK)
 	if err != nil {
-		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid parameter k, %v`, err)
+		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid parameter k, %w`, err)
 	}
+
 	keySize := getKeySize(k.Alg())
+	if keySize == 0 {
+		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: algorithm mismatch %d`, k.Alg())
+	}
 	if len(kb) != keySize {
-		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid parameter k size, expected %d, got %d`,
+		return fmt.Errorf(`cose/key/chacha20poly1305: CheckKey: invalid key size, expected %d, got %d`,
 			keySize, len(kb))
 	}
 
@@ -103,7 +101,6 @@ func CheckKey(k key.Key) error {
 
 type chacha struct {
 	key key.Key
-	cek []byte
 }
 
 // New creates a key.Encryptor for the given ChaCha20/Poly1305 key.
@@ -112,8 +109,7 @@ func New(k key.Key) (key.Encryptor, error) {
 		return nil, err
 	}
 
-	cek, _ := k.GetBytes(iana.SymmetricKeyParameterK)
-	return &chacha{key: k, cek: cek}, nil
+	return &chacha{key: k}, nil
 }
 
 // Encrypt implements the key.Encryptor interface.
@@ -121,13 +117,15 @@ func New(k key.Key) (key.Encryptor, error) {
 // It returns the ciphertext or error.
 func (h *chacha) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
 	if !h.key.Ops().EmptyOrHas(iana.KeyOperationEncrypt) {
-		return nil, fmt.Errorf("cose/key/chacha20poly1305: Encrypt: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/chacha20poly1305: Encryptor.Encrypt: invalid key_ops")
 	}
 
 	if len(iv) != nonceSize {
-		return nil, fmt.Errorf("cose/key/chacha20poly1305: Encrypt: invalid nonce size, expected 12, got %d", len(iv))
+		return nil, fmt.Errorf("cose/key/chacha20poly1305: Encryptor.Encrypt: invalid nonce size, expected 12, got %d",
+			len(iv))
 	}
-	aead, err := chacha20poly1305.New(h.cek)
+	cek, _ := h.key.GetBytes(iana.SymmetricKeyParameterK)
+	aead, err := gochacha20poly1305.New(cek)
 	if err != nil {
 		return nil, err
 	}
@@ -140,14 +138,16 @@ func (h *chacha) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
 // It returns the corresponding plaintext or error.
 func (h *chacha) Decrypt(iv, ciphertext, additionalData []byte) ([]byte, error) {
 	if !h.key.Ops().EmptyOrHas(iana.KeyOperationDecrypt) {
-		return nil, fmt.Errorf("cose/key/chacha20poly1305: Decrypt: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/chacha20poly1305: Encryptor.Decrypt: invalid key_ops")
 	}
 
 	if len(iv) != nonceSize {
-		return nil, fmt.Errorf("cose/key/chacha20poly1305: Decrypt: invalid nonce size, expected 12, got %d", len(iv))
+		return nil, fmt.Errorf("cose/key/chacha20poly1305: Encryptor.Decrypt: invalid nonce size, expected 12, got %d",
+			len(iv))
 	}
 
-	aead, err := chacha20poly1305.New(h.cek)
+	cek, _ := h.key.GetBytes(iana.SymmetricKeyParameterK)
+	aead, err := gochacha20poly1305.New(cek)
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +172,9 @@ const (
 	nonceSize = 12
 )
 
-func getKeySize(alg key.Alg) (keySize int) {
+func getKeySize(alg key.Alg) int {
 	switch alg {
-	case iana.AlgorithmChaCha20Poly1305, iana.AlgorithmReserved:
+	case iana.AlgorithmChaCha20Poly1305:
 		return keySize
 	default:
 		return 0
