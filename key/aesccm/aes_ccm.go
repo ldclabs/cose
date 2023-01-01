@@ -22,13 +22,13 @@ import (
 func GenerateKey(alg key.Alg) (key.Key, error) {
 	keySize, _, _ := getKeySize(alg)
 	if keySize == 0 {
-		return nil, fmt.Errorf(`cose/go/key/aesccm: GenerateKey: algorithm mismatch %d`, alg)
+		return nil, fmt.Errorf(`cose/key/aesccm: GenerateKey: algorithm mismatch %d`, alg)
 	}
 
 	k := key.GetRandomBytes(uint16(keySize))
 	_, err := io.ReadFull(rand.Reader, k)
 	if err != nil {
-		return nil, fmt.Errorf("cose/go/key/aesccm: GenerateKey: %w", err)
+		return nil, fmt.Errorf("cose/key/aesccm: GenerateKey: %w", err)
 	}
 
 	return map[int]any{
@@ -43,10 +43,10 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 	keySize, _, _ := getKeySize(alg)
 	if keySize == 0 {
-		return nil, fmt.Errorf(`cose/go/key/aesccm: KeyFrom: algorithm mismatch %d`, alg)
+		return nil, fmt.Errorf(`cose/key/aesccm: KeyFrom: algorithm mismatch %d`, alg)
 	}
 	if keySize != len(k) {
-		return nil, fmt.Errorf(`cose/go/key/aesccm: KeyFrom: invalid key size, expected %d, got %d`, keySize, len(k))
+		return nil, fmt.Errorf(`cose/key/aesccm: KeyFrom: invalid key size, expected %d, got %d`, keySize, len(k))
 	}
 
 	return map[int]any{
@@ -60,7 +60,7 @@ func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 // CheckKey checks whether the given key is a valid AES-CCM key.
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeSymmetric {
-		return fmt.Errorf(`cose/go/key/aesccm: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
+		return fmt.Errorf(`cose/key/aesccm: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
 	}
 
 	for p := range k {
@@ -75,7 +75,7 @@ func CheckKey(k key.Key) error {
 				iana.AlgorithmAES_CCM_64_128_128, iana.AlgorithmAES_CCM_64_128_256:
 			// continue
 			default:
-				return fmt.Errorf(`cose/go/key/aesccm: CheckKey: algorithm mismatch %d`, k.Alg())
+				return fmt.Errorf(`cose/key/aesccm: CheckKey: algorithm mismatch %d`, k.Alg())
 			}
 
 		case iana.KeyParameterKeyOps: // optional
@@ -84,25 +84,30 @@ func CheckKey(k key.Key) error {
 				case iana.KeyOperationEncrypt, iana.KeyOperationDecrypt:
 				// continue
 				default:
-					return fmt.Errorf(`cose/go/key/aesccm: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/key/aesccm: CheckKey: invalid parameter key_ops %q`, op)
 				}
 			}
 
 		default:
-			return fmt.Errorf(`cose/go/key/aesccm: CheckKey: redundant parameter %d`, p)
+			return fmt.Errorf(`cose/key/aesccm: CheckKey: redundant parameter %d`, p)
 		}
 	}
 
 	// REQUIRED
 	kb, err := k.GetBytes(iana.SymmetricKeyParameterK)
 	if err != nil {
-		return fmt.Errorf(`cose/go/key/aesccm: CheckKey: invalid parameter k, %v`, err)
+		return fmt.Errorf(`cose/key/aesccm: CheckKey: invalid parameter k, %v`, err)
 	}
 	keySize, _, _ := getKeySize(k.Alg())
 	if len(kb) != keySize {
-		return fmt.Errorf(`cose/go/key/aesccm: CheckKey: invalid parameter k size, expected %d, got %d`, keySize, len(kb))
+		return fmt.Errorf(`cose/key/aesccm: CheckKey: invalid parameter k size, expected %d, got %d`, keySize, len(kb))
 	}
-
+	// RECOMMENDED
+	if k.Has(iana.KeyParameterKid) {
+		if kid, err := k.GetBytes(iana.KeyParameterKid); err != nil || len(kid) == 0 {
+			return fmt.Errorf(`cose/key/aesccm: CheckKey: invalid parameter kid`)
+		}
+	}
 	return nil
 }
 
@@ -132,12 +137,12 @@ func New(k key.Key) (key.Encryptor, error) {
 // It returns the ciphertext or error.
 func (h *aesCCM) Encrypt(nonce, plaintext, additionalData []byte) ([]byte, error) {
 	if !h.key.Ops().EmptyOrHas(iana.KeyOperationEncrypt) {
-		return nil, fmt.Errorf("cose/go/key/aesccm: Encrypt: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/aesccm: Encrypt: invalid key_ops")
 	}
 
 	_, tagSize, nonceSize := getKeySize(h.key.Alg())
 	if len(nonce) != nonceSize {
-		return nil, fmt.Errorf("cose/go/key/aesccm: Encrypt: invalid nonce size, expected %d, got %d",
+		return nil, fmt.Errorf("cose/key/aesccm: Encrypt: invalid nonce size, expected %d, got %d",
 			nonceSize, len(nonce))
 	}
 	aead, err := ccm.NewCCM(h.block, tagSize, nonceSize)
@@ -153,11 +158,11 @@ func (h *aesCCM) Encrypt(nonce, plaintext, additionalData []byte) ([]byte, error
 // It returns the corresponding plaintext or error.
 func (h *aesCCM) Decrypt(nonce, ciphertext, additionalData []byte) ([]byte, error) {
 	if !h.key.Ops().EmptyOrHas(iana.KeyOperationDecrypt) {
-		return nil, fmt.Errorf("cose/go/key/aesccm: Decrypt: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/aesccm: Decrypt: invalid key_ops")
 	}
 	_, tagSize, nonceSize := getKeySize(h.key.Alg())
 	if len(nonce) != nonceSize {
-		return nil, fmt.Errorf("cose/go/key/aesccm: Decrypt: invalid nonce size, expected %d, got %d",
+		return nil, fmt.Errorf("cose/key/aesccm: Decrypt: invalid nonce size, expected %d, got %d",
 			nonceSize, len(nonce))
 	}
 

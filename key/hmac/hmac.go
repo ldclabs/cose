@@ -102,6 +102,12 @@ func CheckKey(k key.Key) error {
 			keySize, len(kb))
 	}
 
+	// RECOMMENDED
+	if k.Has(iana.KeyParameterKid) {
+		if x, err := k.GetBytes(iana.KeyParameterKid); err != nil || len(x) == 0 {
+			return fmt.Errorf(`cose/key/hmac: CheckKey: invalid parameter kid`)
+		}
+	}
 	return nil
 }
 

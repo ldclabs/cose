@@ -10,8 +10,8 @@ import (
 	"io"
 )
 
-// NewAES returns a Reader, from which keys can be read, using the given cipher.Block as AES-CBC-MAC PRF,
-// and context info. Context info can be nil.
+// NewAES returns a Reader, from which keys can be read, using the given cipher.Block (as
+// AES-CBC-MAC PRF) and context info. Context info can be nil.
 func NewAES(block cipher.Block, info []byte) io.Reader {
 	return &aesHKDF{block: block, info: info, counter: 1}
 }
@@ -34,7 +34,7 @@ func (f *aesHKDF) Read(p []byte) (int, error) {
 	need := len(p)
 	remains := len(f.output) + int(255-f.counter+1)*aes.BlockSize
 	if remains < need {
-		return 0, errors.New("cose/go/key/hkdf: HKDF-AES: entropy limit reached")
+		return 0, errors.New("cose/key/hkdf: entropy limit reached")
 	}
 
 	// Read any leftover from the buffer

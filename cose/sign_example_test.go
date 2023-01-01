@@ -82,10 +82,10 @@ func ExampleSignMessage() {
 		panic("should be nil")
 	}
 	fmt.Println(err)
-	// cose/go/key/ecdsa: Verify: invalid signature
+	// cose/key/ecdsa: Verify: invalid signature
 
 	// Output:
 	// COSE(277 bytes): d8628440a054546869732069732074686520636f6e74656e742e828343a10126...
 	// Payload: This is the content.
-	// cose/go/key/ecdsa: Verify: invalid signature
+	// cose/key/ecdsa: Verify: invalid signature
 }

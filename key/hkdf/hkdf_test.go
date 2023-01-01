@@ -15,6 +15,7 @@ import (
 func TestHKDF256(t *testing.T) {
 	assert := assert.New(t)
 
+	// https://github.com/cose-wg/Examples/tree/master/hkdf-hmac-sha-examples
 	for i, tc := range []struct {
 		secret  []byte
 		salt    []byte
@@ -51,16 +52,20 @@ func TestHKDF256(t *testing.T) {
 			key.HexBytesify("0A9E2D1F080FDF6686C7DDE0DA3F113C"),
 		},
 	} {
-
+		testmsg := fmt.Sprintf("test case %d", i)
 		k, err := HKDF256(tc.secret, tc.salt, tc.context, tc.keySize)
-		require.NoError(t, err, fmt.Sprintf("test case %d", i))
-		assert.Equal(tc.key, k, fmt.Sprintf("test case %d key: %X", i, k))
+		require.NoError(t, err, testmsg)
+		assert.Equal(tc.key, k, testmsg)
 	}
+
+	_, err := HKDF256(key.HexBytesify("4B31712E096E5F20B4ECF9790FD8CC7C8B7E2C8AD90BDA81CB224F62C0E7B9A6"), nil, nil, 256*32)
+	assert.ErrorContains(err, "entropy limit reached")
 }
 
 func TestHKDF512(t *testing.T) {
 	assert := assert.New(t)
 
+	// https://github.com/cose-wg/Examples/tree/master/hkdf-hmac-sha-examples
 	for i, tc := range []struct {
 		secret  []byte
 		salt    []byte
@@ -97,16 +102,20 @@ func TestHKDF512(t *testing.T) {
 			key.HexBytesify("C42FFE41AA6D378EB0BEFE47841D2E28"),
 		},
 	} {
-
+		testmsg := fmt.Sprintf("test case %d", i)
 		k, err := HKDF512(tc.secret, tc.salt, tc.context, tc.keySize)
-		require.NoError(t, err, fmt.Sprintf("test case %d", i))
-		assert.Equal(tc.key, k, fmt.Sprintf("test case %d key: %X", i, k))
+		require.NoError(t, err, testmsg)
+		assert.Equal(tc.key, k, testmsg)
 	}
+
+	_, err := HKDF512(key.HexBytesify("4B31712E096E5F20B4ECF9790FD8CC7C8B7E2C8AD90BDA81CB224F62C0E7B9A6"), nil, nil, 256*64)
+	assert.ErrorContains(err, "entropy limit reached")
 }
 
 func TestHKDFAES(t *testing.T) {
 	assert := assert.New(t)
 
+	// https://github.com/cose-wg/Examples/tree/master/hkdf-aes-examples
 	for i, tc := range []struct {
 		secret  []byte
 		context []byte
@@ -156,9 +165,15 @@ func TestHKDFAES(t *testing.T) {
 			key.HexBytesify("E76D66F01225020639F8DBD2EF3990AA"),
 		},
 	} {
-
+		testmsg := fmt.Sprintf("test case %d", i)
 		k, err := HKDFAES(tc.secret, tc.context, tc.keySize)
-		require.NoError(t, err, fmt.Sprintf("test case %d", i))
-		assert.Equal(tc.key, k, fmt.Sprintf("test case %d key: %X", i, k))
+		require.NoError(t, err, testmsg)
+		assert.Equal(tc.key, k, testmsg)
 	}
+
+	_, err := HKDFAES([]byte{1, 2, 3, 4}, nil, 256*16)
+	assert.ErrorContains(err, "crypto/aes: invalid key size 4")
+
+	_, err = HKDFAES(key.Base64Bytesify("hJtXIZ2uSN5kbQfbtTNWbg"), nil, 256*16)
+	assert.ErrorContains(err, "entropy limit reached")
 }

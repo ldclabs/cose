@@ -130,6 +130,22 @@ func TestCheckKey(t *testing.T) {
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_64,
 		iana.SymmetricKeyParameterK: key.GetRandomBytes(32),
+		iana.KeyParameterKid:        "cose-kid",
+	}
+	assert.ErrorContains(CheckKey(k), `invalid parameter kid`)
+
+	k = key.Key{
+		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+		iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_64,
+		iana.SymmetricKeyParameterK: key.GetRandomBytes(32),
+		iana.KeyParameterKid:        []byte{},
+	}
+	assert.ErrorContains(CheckKey(k), `invalid parameter kid`)
+
+	k = key.Key{
+		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
+		iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_64,
+		iana.SymmetricKeyParameterK: key.GetRandomBytes(32),
 	}
 	assert.NoError(CheckKey(k))
 }

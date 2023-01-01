@@ -21,13 +21,13 @@ import (
 func GenerateKey(alg key.Alg) (key.Key, error) {
 	keySize, _ := getKeySize(alg)
 	if keySize == 0 {
-		return nil, fmt.Errorf(`cose/go/key/aesmac: GenerateKey: algorithm mismatch %d`, alg)
+		return nil, fmt.Errorf(`cose/key/aesmac: GenerateKey: algorithm mismatch %d`, alg)
 	}
 
 	k := key.GetRandomBytes(uint16(keySize))
 	_, err := io.ReadFull(rand.Reader, k)
 	if err != nil {
-		return nil, fmt.Errorf("cose/go/key/aesmac: GenerateKey: %w", err)
+		return nil, fmt.Errorf("cose/key/aesmac: GenerateKey: %w", err)
 	}
 
 	return map[int]any{
@@ -42,10 +42,10 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 	keySize, _ := getKeySize(alg)
 	if keySize == 0 {
-		return nil, fmt.Errorf(`cose/go/key/aesmac: KeyFrom: algorithm mismatch %d`, alg)
+		return nil, fmt.Errorf(`cose/key/aesmac: KeyFrom: algorithm mismatch %d`, alg)
 	}
 	if keySize != len(k) {
-		return nil, fmt.Errorf(`cose/go/key/aesmac: KeyFrom: invalid key size, expected %d, got %d`, keySize, len(k))
+		return nil, fmt.Errorf(`cose/key/aesmac: KeyFrom: invalid key size, expected %d, got %d`, keySize, len(k))
 	}
 
 	return map[int]any{
@@ -59,7 +59,7 @@ func KeyFrom(alg key.Alg, k []byte) (key.Key, error) {
 // CheckKey checks whether the given key is a valid AES-CBC-MAC key.
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeSymmetric {
-		return fmt.Errorf(`cose/go/key/aesmac: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
+		return fmt.Errorf(`cose/key/aesmac: CheckKey: invalid key type, expected "Symmetric", got %d`, k.Kty())
 	}
 
 	for p := range k {
@@ -73,7 +73,7 @@ func CheckKey(k key.Key) error {
 				iana.AlgorithmAES_MAC_128_128, iana.AlgorithmAES_MAC_256_128:
 			// continue
 			default:
-				return fmt.Errorf(`cose/go/key/aesmac: CheckKey: algorithm mismatch %d`, k.Alg())
+				return fmt.Errorf(`cose/key/aesmac: CheckKey: algorithm mismatch %d`, k.Alg())
 			}
 
 		case iana.KeyParameterKeyOps: // optional
@@ -82,25 +82,30 @@ func CheckKey(k key.Key) error {
 				case iana.KeyOperationMacCreate, iana.KeyOperationMacVerify:
 				// continue
 				default:
-					return fmt.Errorf(`cose/go/key/aesmac: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/key/aesmac: CheckKey: invalid parameter key_ops %q`, op)
 				}
 			}
 
 		default:
-			return fmt.Errorf(`cose/go/key/aesmac: CheckKey: redundant parameter %d`, p)
+			return fmt.Errorf(`cose/key/aesmac: CheckKey: redundant parameter %d`, p)
 		}
 	}
 
 	// REQUIRED
 	kb, err := k.GetBytes(iana.SymmetricKeyParameterK)
 	if err != nil {
-		return fmt.Errorf(`cose/go/key/aesmac: CheckKey: invalid parameter k, %v`, err)
+		return fmt.Errorf(`cose/key/aesmac: CheckKey: invalid parameter k, %v`, err)
 	}
 	keySize, _ := getKeySize(k.Alg())
 	if len(kb) != keySize {
-		return fmt.Errorf(`cose/go/key/aesmac: CheckKey: invalid parameter k`)
+		return fmt.Errorf(`cose/key/aesmac: CheckKey: invalid parameter k`)
 	}
-
+	// RECOMMENDED
+	if k.Has(iana.KeyParameterKid) {
+		if kid, err := k.GetBytes(iana.KeyParameterKid); err != nil || len(kid) == 0 {
+			return fmt.Errorf(`cose/key/aesmac: CheckKey: invalid parameter kid`)
+		}
+	}
 	return nil
 }
 
@@ -129,7 +134,7 @@ func New(k key.Key) (key.MACer, error) {
 // MACCreate computes message authentication code (MAC) for the given data.
 func (h *aesMAC) MACCreate(data []byte) ([]byte, error) {
 	if !h.key.Ops().EmptyOrHas(iana.KeyOperationMacCreate) {
-		return nil, fmt.Errorf("cose/go/key/aesmac: MACCreate: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/aesmac: MACCreate: invalid key_ops")
 	}
 
 	return h.create(data)
@@ -139,7 +144,7 @@ func (h *aesMAC) MACCreate(data []byte) ([]byte, error) {
 // MACVerify verifies whether the given MAC is a correct message authentication code (MAC) the given data.
 func (h *aesMAC) MACVerify(data, mac []byte) error {
 	if !h.key.Ops().EmptyOrHas(iana.KeyOperationMacVerify) {
-		return fmt.Errorf("cose/go/key/aesmac: MACVerify: invalid key_ops")
+		return fmt.Errorf("cose/key/aesmac: MACVerify: invalid key_ops")
 	}
 
 	expectedMAC, err := h.create(data)
@@ -149,7 +154,7 @@ func (h *aesMAC) MACVerify(data, mac []byte) error {
 	if subtle.ConstantTimeCompare(expectedMAC, mac) == 1 {
 		return nil
 	}
-	return fmt.Errorf("cose/go/key/aesmac: VerifyMAC: invalid MAC")
+	return fmt.Errorf("cose/key/aesmac: VerifyMAC: invalid MAC")
 }
 
 // the IV is fixed to all zeros

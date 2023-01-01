@@ -22,12 +22,12 @@ import (
 func GenerateKey(alg key.Alg) (key.Key, error) {
 	crv, c := getCurve(alg)
 	if crv == nil {
-		return nil, fmt.Errorf(`cose/go/key/ecdsa: GenerateKey: algorithm mismatch %d`, alg)
+		return nil, fmt.Errorf(`cose/key/ecdsa: GenerateKey: algorithm mismatch %d`, alg)
 	}
 
 	pk, err := ecdsa.GenerateKey(crv, rand.Reader)
 	if err != nil {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: GenerateKey: %w", err)
+		return nil, fmt.Errorf("cose/key/ecdsa: GenerateKey: %w", err)
 	}
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
@@ -54,7 +54,7 @@ func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
 		alg = iana.AlgorithmES512
 		crv = iana.EllipticCurveP_521
 	default:
-		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
 	}
 
 	return map[int]any{
@@ -73,7 +73,7 @@ func KeyToPrivate(k key.Key) (*ecdsa.PrivateKey, error) {
 	}
 
 	if !k.Has(iana.EC2KeyParameterD) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPrivate: invalid parameter d")
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid parameter d")
 	}
 
 	d, _ := k.GetBytes(iana.EC2KeyParameterD)
@@ -84,10 +84,10 @@ func KeyToPrivate(k key.Key) (*ecdsa.PrivateKey, error) {
 	privKey.PublicKey.X, privKey.PublicKey.Y = crv.ScalarBaseMult(d)
 
 	if x, _ := k.GetBytes(iana.EC2KeyParameterX); x != nil && !bytes.Equal(privKey.PublicKey.X.Bytes(), x) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPrivate: invalid parameters x for %q", k.Kid())
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid parameters x for %q", k.Kid())
 	}
 	if y, _ := k.GetBytes(iana.EC2KeyParameterY); y != nil && !bytes.Equal(privKey.PublicKey.Y.Bytes(), y) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPrivate: invalid parameters y for %q", k.Kid())
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid parameters y for %q", k.Kid())
 	}
 	return privKey, nil
 }
@@ -106,7 +106,7 @@ func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
 		alg = iana.AlgorithmES512
 		crv = iana.EllipticCurveP_521
 	default:
-		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
 	}
 
 	return map[int]any{
@@ -158,7 +158,7 @@ func keyToPublic(pk key.Key) (*ecdsa.PublicKey, error) {
 		Y:     iy,
 	}
 	if !pubKey.Curve.IsOnCurve(pubKey.X, pubKey.Y) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: KeyToPublic: invalid public key")
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPublic: invalid public key")
 	}
 	return pubKey, nil
 }
@@ -166,7 +166,7 @@ func keyToPublic(pk key.Key) (*ecdsa.PublicKey, error) {
 // CheckKey checks whether the given key is a valid ECDSA key.
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeEC2 {
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid key type, expected "EC2", got %d`, k.Kty())
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid key type, expected "EC2", got %d`, k.Kty())
 	}
 
 	for p := range k {
@@ -179,7 +179,7 @@ func CheckKey(k key.Key) error {
 			case iana.AlgorithmES256, iana.AlgorithmES384, iana.AlgorithmES512:
 			// continue
 			default:
-				return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: algorithm mismatch %d`, k.Alg())
+				return fmt.Errorf(`cose/key/ecdsa: CheckKey: algorithm mismatch %d`, k.Alg())
 			}
 
 		case iana.KeyParameterKeyOps: // optional
@@ -188,19 +188,12 @@ func CheckKey(k key.Key) error {
 				case iana.KeyOperationSign, iana.KeyOperationVerify:
 				// continue
 				default:
-					return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter key_ops %q`, op)
 				}
 			}
 
 		default:
-			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: redundant parameter %d`, p)
-		}
-	}
-
-	// RECOMMENDED
-	if k.Has(iana.KeyParameterKid) {
-		if kid, err := k.GetBytes(iana.KeyParameterKid); err != nil || len(kid) == 0 {
-			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter kid`)
+			return fmt.Errorf(`cose/key/ecdsa: CheckKey: redundant parameter %d`, p)
 		}
 	}
 
@@ -208,17 +201,17 @@ func CheckKey(k key.Key) error {
 	// REQUIRED
 	crv, err := k.GetInt(iana.EC2KeyParameterCrv)
 	if err != nil {
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter crv, %v`, err)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv, %v`, err)
 	}
 	if crv != int(c) {
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter crv %d`, crv)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv %d`, crv)
 	}
 
 	// REQUIRED for private key
 	hasD := k.Has(iana.EC2KeyParameterD)
 	d, _ := k.GetBytes(iana.EC2KeyParameterD)
 	if hasD && (len(d) == 0 || len(d) > 66) {
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter d`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter d`)
 	}
 
 	// REQUIRED for public key
@@ -229,17 +222,17 @@ func CheckKey(k key.Key) error {
 	hasY := k.Has(iana.EC2KeyParameterY)
 	if hasX || hasY {
 		if len(x) == 0 || len(x) > 66 {
-			return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter x`)
+			return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter x`)
 		}
 
 		if _, err := k.GetBool(iana.EC2KeyParameterY); err != nil { // not a bool
 			y, err := k.GetBytes(iana.EC2KeyParameterY)
 			if err != nil {
-				return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter y, %v`, err)
+				return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter y, %v`, err)
 			}
 
 			if len(y) == 0 || len(y) > 66 {
-				return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: invalid parameter y`)
+				return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter y`)
 			}
 		}
 	}
@@ -247,15 +240,21 @@ func CheckKey(k key.Key) error {
 	ops := k.Ops()
 	switch {
 	case !hasD && !hasX:
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: missing parameter x or d`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: missing parameter x or d`)
 
 	case hasD && !ops.EmptyOrHas(iana.KeyOperationSign):
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: don't include "sign"`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: don't include "sign"`)
 
 	case !hasD && !ops.EmptyOrHas(iana.KeyOperationVerify):
-		return fmt.Errorf(`cose/go/key/ecdsa: CheckKey: don't include "verify"`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: don't include "verify"`)
 	}
 
+	// RECOMMENDED
+	if k.Has(iana.KeyParameterKid) {
+		if kid, err := k.GetBytes(iana.KeyParameterKid); err != nil || len(kid) == 0 {
+			return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter kid`)
+		}
+	}
 	return nil
 }
 
@@ -268,7 +267,7 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 
 	if !k.Has(iana.EC2KeyParameterD) {
 		if !k.Has(iana.EC2KeyParameterX) {
-			return nil, errors.New(`cose/go/key/ecdsa: ToPublicKey: missing parameter x`)
+			return nil, errors.New(`cose/key/ecdsa: ToPublicKey: missing parameter x`)
 		}
 		return k, nil
 	}
@@ -343,7 +342,7 @@ func NewSigner(k key.Key) (key.Signer, error) {
 // Sign computes the digital signature for data.
 func (e *ecdsaSigner) Sign(data []byte) ([]byte, error) {
 	if !e.key.Ops().EmptyOrHas(iana.KeyOperationSign) {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: Sign: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/ecdsa: Sign: invalid key_ops")
 	}
 
 	hashed, err := key.ComputeHash(e.key.Alg().HashFunc(), data)
@@ -352,7 +351,7 @@ func (e *ecdsaSigner) Sign(data []byte) ([]byte, error) {
 	}
 	r, s, err := ecdsa.Sign(rand.Reader, e.privKey, hashed)
 	if err != nil {
-		return nil, fmt.Errorf("cose/go/key/ecdsa: Sign: %w", err)
+		return nil, fmt.Errorf("cose/key/ecdsa: Sign: %w", err)
 	}
 
 	return EncodeSignature(e.privKey.Curve, r, s)
@@ -387,21 +386,21 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 // Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ecdsaVerifier) Verify(data, sig []byte) error {
 	if !e.key.Ops().EmptyOrHas(iana.KeyOperationVerify) {
-		return fmt.Errorf("cose/go/key/ecdsa: Verify: invalid key_ops")
+		return fmt.Errorf("cose/key/ecdsa: Verify: invalid key_ops")
 	}
 
 	hashed, err := key.ComputeHash(e.key.Alg().HashFunc(), data)
 	if err != nil {
-		return fmt.Errorf("cose/go/key/ecdsa: Verify: %w", err)
+		return fmt.Errorf("cose/key/ecdsa: Verify: %w", err)
 	}
 
 	r, s, err := DecodeSignature(e.pubKey.Curve, sig)
 	if err != nil {
-		return fmt.Errorf("cose/go/key/ecdsa: Verify: %w", err)
+		return fmt.Errorf("cose/key/ecdsa: Verify: %w", err)
 	}
 
 	if !ecdsa.Verify(e.pubKey, hashed, r, s) {
-		return fmt.Errorf("cose/go/key/ecdsa: Verify: invalid signature")
+		return fmt.Errorf("cose/key/ecdsa: Verify: invalid signature")
 	}
 
 	return nil
@@ -436,7 +435,7 @@ func EncodeSignature(curve elliptic.Curve, r, s *big.Int) ([]byte, error) {
 func DecodeSignature(curve elliptic.Curve, sig []byte) (r, s *big.Int, err error) {
 	n := (curve.Params().N.BitLen() + 7) / 8
 	if len(sig) != n*2 {
-		return nil, nil, fmt.Errorf("cose/go/key/ecdsa: DecodeSignature: invalid signature length: %d", len(sig))
+		return nil, nil, fmt.Errorf("cose/key/ecdsa: DecodeSignature: invalid signature length: %d", len(sig))
 	}
 
 	return os2ip(sig[:n]), os2ip(sig[n:]), nil
