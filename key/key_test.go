@@ -67,7 +67,7 @@ func TestKey(t *testing.T) {
 		assert.False(k.Ops().Has(iana.KeyOperationSign))
 		assert.True(k.Ops().EmptyOrHas(iana.KeyOperationSign))
 
-		k.SetOps(Ops{iana.KeyOperationSign})
+		k.SetOps(iana.KeyOperationSign)
 		assert.NotNil(k.Ops())
 		assert.True(k.Ops().Has(iana.KeyOperationSign))
 		assert.False(k.Ops().Has(iana.KeyOperationVerify))
@@ -82,6 +82,9 @@ func TestKey(t *testing.T) {
 		assert.True(k2.Ops().Has(iana.KeyOperationSign))
 		assert.False(k2.Ops().Has(iana.KeyOperationVerify))
 		assert.False(k2.Ops().EmptyOrHas(iana.KeyOperationVerify))
+
+		k2.SetOps()
+		assert.False(k2.Has(iana.KeyParameterKeyOps))
 	})
 
 	t.Run("Key.BaseIV", func(t *testing.T) {

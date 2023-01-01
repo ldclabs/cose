@@ -67,6 +67,11 @@ func (k Key) Ops() Ops {
 		case Ops:
 			return x
 
+		case []int:
+			ops := make(Ops, len(x))
+			copy(ops, x)
+			return ops
+
 		case []any:
 			ops := make(Ops, len(x))
 			for i, v := range x {
@@ -85,8 +90,13 @@ func (k Key) Ops() Ops {
 }
 
 // SetOps sets the key operations.
-func (k Key) SetOps(os Ops) {
-	k[iana.KeyParameterKeyOps] = os
+// If operations is empty, it will remove the key_ops field.
+func (k Key) SetOps(os ...int) {
+	if len(os) > 0 {
+		k[iana.KeyParameterKeyOps] = os
+	} else {
+		delete(k, iana.KeyParameterKeyOps)
+	}
 }
 
 // BaseIV returns the base IV to be XORed with Partial IVs.

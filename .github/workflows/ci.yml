@@ -1,4 +1,4 @@
-name: COSE CI Cover
+name: COSE CI
 on:
   push:
     branches:
