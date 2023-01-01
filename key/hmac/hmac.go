@@ -41,7 +41,7 @@ func KeyFrom(alg int, k []byte) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/key/hmac: KeyFrom: algorithm mismatch %d`, alg)
 	}
 	if keySize != len(k) {
-		return nil, fmt.Errorf(`cose/key/hmac: KeyFrom: key length mismatch, expected %d, got %d`,
+		return nil, fmt.Errorf(`cose/key/hmac: KeyFrom: invalid key size, expected %d, got %d`,
 			keySize, len(k))
 	}
 
@@ -98,7 +98,7 @@ func CheckKey(k key.Key) error {
 	}
 
 	if len(kb) != keySize {
-		return fmt.Errorf(`cose/key/hmac: CheckKey: key length mismatch, expected %d, got %d`,
+		return fmt.Errorf(`cose/key/hmac: CheckKey: invalid key size, expected %d, got %d`,
 			keySize, len(kb))
 	}
 
