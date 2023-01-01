@@ -68,9 +68,9 @@ func TestKeyToPrivate(t *testing.T) {
 	assert.ErrorContains(err, `invalid private key`)
 	assert.Nil(pk)
 
-	k1[iana.OKPKeyParameterX] = []byte{1, 2, 3, 4}
+	k1[iana.OKPKeyParameterX] = key.GetRandomBytes(32)
 	pk, err = KeyToPrivate(k1)
-	assert.ErrorContains(err, `invalid parameter x`)
+	assert.ErrorContains(err, `parameter x mismatch`)
 	assert.Nil(pk)
 
 	delete(k1, iana.OKPKeyParameterX)
@@ -199,7 +199,7 @@ func TestCheckKey(t *testing.T) {
 		iana.KeyParameterKty:    iana.KeyTypeOKP,
 		iana.OKPKeyParameterCrv: iana.EllipticCurveEd25519,
 	}
-	assert.ErrorContains(CheckKey(k), `missing parameter x or d`)
+	assert.ErrorContains(CheckKey(k), `missing parameter d or x`)
 
 	k = key.Key{
 		iana.KeyParameterKty:    iana.KeyTypeOKP,

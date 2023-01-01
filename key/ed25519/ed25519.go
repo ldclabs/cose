@@ -43,7 +43,7 @@ func KeyFromSeed(seed []byte) (key.Key, error) {
 	return KeyFromPrivate(goed25519.NewKeyFromSeed(seed))
 }
 
-// KeyToPrivate returns the ed25519.PrivateKey from the given key.
+// KeyToPrivate returns a ed25519.PrivateKey from the given key.
 func KeyToPrivate(k key.Key) (goed25519.PrivateKey, error) {
 	if err := CheckKey(k); err != nil {
 		return nil, err
@@ -58,8 +58,8 @@ func KeyToPrivate(k key.Key) (goed25519.PrivateKey, error) {
 
 	if k.Has(iana.OKPKeyParameterX) {
 		x, _ := k.GetBytes(iana.OKPKeyParameterX)
-		if !bytes.Equal(privKey.Public().([]byte), x) {
-			return nil, fmt.Errorf("cose/key/ed25519: KeyToPrivate: invalid parameters x")
+		if !bytes.Equal(privKey.Public().(goed25519.PublicKey), x) {
+			return nil, fmt.Errorf("cose/key/ed25519: KeyToPrivate: parameter x mismatch")
 		}
 	}
 	return privKey, nil
@@ -83,7 +83,7 @@ func KeyFromPrivate(pk goed25519.PrivateKey) (key.Key, error) {
 	}, nil
 }
 
-// KeyToPublic returns the ed25519.PublicKey from the given key.
+// KeyToPublic returns a ed25519.PublicKey from the given key.
 func KeyToPublic(k key.Key) (goed25519.PublicKey, error) {
 	pk, err := ToPublicKey(k)
 	if err != nil {
@@ -171,7 +171,7 @@ func CheckKey(k key.Key) error {
 	ops := k.Ops()
 	switch {
 	case !hasD && !hasX:
-		return fmt.Errorf(`cose/key/ed25519: CheckKey: missing parameter x or d`)
+		return fmt.Errorf(`cose/key/ed25519: CheckKey: missing parameter d or x`)
 
 	case hasD && !ops.EmptyOrHas(iana.KeyOperationSign):
 		return fmt.Errorf(`cose/key/ed25519: CheckKey: invalid parameter key_ops, missing "sign":1`)
@@ -250,7 +250,7 @@ func NewSigner(k key.Key) (key.Signer, error) {
 // Sign computes the digital signature for data.
 func (e *ed25519Signer) Sign(data []byte) ([]byte, error) {
 	if !e.key.Ops().EmptyOrHas(iana.KeyOperationSign) {
-		return nil, fmt.Errorf("cose/key/ed25519: Sign: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/ed25519: Signer.Sign: invalid key_ops")
 	}
 
 	return goed25519.Sign(e.privKey, data), nil
@@ -282,11 +282,11 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 // Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ed25519Verifier) Verify(data, sig []byte) error {
 	if !e.key.Ops().EmptyOrHas(iana.KeyOperationVerify) {
-		return fmt.Errorf("cose/key/ed25519: Verify: invalid key_ops")
+		return fmt.Errorf("cose/key/ed25519: Verifier.Verify: invalid key_ops")
 	}
 
 	if !goed25519.Verify(e.pubKey, data, sig) {
-		return fmt.Errorf("cose/key/ed25519: Verify: invalid signature")
+		return fmt.Errorf("cose/key/ed25519: Verifier.Verify: invalid signature")
 	}
 
 	return nil

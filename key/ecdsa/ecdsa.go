@@ -7,7 +7,7 @@ package ecdsa
 
 import (
 	"bytes"
-	"crypto/ecdsa"
+	goecdsa "crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
@@ -18,14 +18,18 @@ import (
 	"github.com/ldclabs/cose/key"
 )
 
-// GenerateKey generates a new key.Key with given algorithm for ECDSA.
-func GenerateKey(alg key.Alg) (key.Key, error) {
-	crv, c := getCurve(alg)
-	if crv == nil {
+// GenerateKey generates a new Key with given algorithm for ECDSA.
+func GenerateKey(alg int) (key.Key, error) {
+	if alg == iana.AlgorithmReserved {
+		alg = iana.AlgorithmES256
+	}
+
+	curve, crv := getCurve(key.Alg(alg))
+	if curve == nil {
 		return nil, fmt.Errorf(`cose/key/ecdsa: GenerateKey: algorithm mismatch %d`, alg)
 	}
 
-	pk, err := ecdsa.GenerateKey(crv, rand.Reader)
+	pk, err := goecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("cose/key/ecdsa: GenerateKey: %w", err)
 	}
@@ -35,13 +39,39 @@ func GenerateKey(alg key.Alg) (key.Key, error) {
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    alg,
-		iana.EC2KeyParameterCrv: c,            // REQUIRED
+		iana.EC2KeyParameterCrv: crv,          // REQUIRED
 		iana.EC2KeyParameterD:   pk.D.Bytes(), // REQUIRED
 	}, nil
 }
 
+// KeyToPrivate returns a ecdsa.PrivateKey for the given Key.
+func KeyToPrivate(k key.Key) (*goecdsa.PrivateKey, error) {
+	if err := CheckKey(k); err != nil {
+		return nil, err
+	}
+
+	if !k.Has(iana.EC2KeyParameterD) {
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid private key")
+	}
+
+	d, _ := k.GetBytes(iana.EC2KeyParameterD)
+	curve, _ := getCurve(k.Alg())
+	privKey := new(goecdsa.PrivateKey)
+	privKey.PublicKey.Curve = curve
+	privKey.D = new(big.Int).SetBytes(d)
+	privKey.PublicKey.X, privKey.PublicKey.Y = curve.ScalarBaseMult(d)
+
+	if x, _ := k.GetBytes(iana.EC2KeyParameterX); x != nil && !bytes.Equal(privKey.PublicKey.X.Bytes(), x) {
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: parameter x mismatch")
+	}
+	if y, _ := k.GetBytes(iana.EC2KeyParameterY); y != nil && !bytes.Equal(privKey.PublicKey.Y.Bytes(), y) {
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: parameter y mismatch")
+	}
+	return privKey, nil
+}
+
 // KeyFromPrivate returns a private Key with given ecdsa.PrivateKey.
-func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
+func KeyFromPrivate(pk *goecdsa.PrivateKey) (key.Key, error) {
 	var alg, crv int
 	switch curve := pk.Curve.Params().Name; curve {
 	case "P-256":
@@ -66,34 +96,17 @@ func KeyFromPrivate(pk *ecdsa.PrivateKey) (key.Key, error) {
 	}, nil
 }
 
-// KeyToPrivate returns the ecdsa.PrivateKey for the given key.Key.
-func KeyToPrivate(k key.Key) (*ecdsa.PrivateKey, error) {
-	if err := CheckKey(k); err != nil {
+// KeyToPublic returns a ecdsa.PublicKey for the given key.Key.
+func KeyToPublic(k key.Key) (*goecdsa.PublicKey, error) {
+	pk, err := ToPublicKey(k)
+	if err != nil {
 		return nil, err
 	}
-
-	if !k.Has(iana.EC2KeyParameterD) {
-		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid parameter d")
-	}
-
-	d, _ := k.GetBytes(iana.EC2KeyParameterD)
-	crv, _ := getCurve(k.Alg())
-	privKey := new(ecdsa.PrivateKey)
-	privKey.PublicKey.Curve = crv
-	privKey.D = new(big.Int).SetBytes(d)
-	privKey.PublicKey.X, privKey.PublicKey.Y = crv.ScalarBaseMult(d)
-
-	if x, _ := k.GetBytes(iana.EC2KeyParameterX); x != nil && !bytes.Equal(privKey.PublicKey.X.Bytes(), x) {
-		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid parameters x for %q", k.Kid())
-	}
-	if y, _ := k.GetBytes(iana.EC2KeyParameterY); y != nil && !bytes.Equal(privKey.PublicKey.Y.Bytes(), y) {
-		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid parameters y for %q", k.Kid())
-	}
-	return privKey, nil
+	return keyToPublic(pk)
 }
 
 // KeyFromPublic returns a public Key with given ecdsa.PublicKey.
-func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
+func KeyFromPublic(pk *goecdsa.PublicKey) (key.Key, error) {
 	var alg, crv int
 	switch curve := pk.Curve.Params().Name; curve {
 	case "P-256":
@@ -119,17 +132,8 @@ func KeyFromPublic(pk *ecdsa.PublicKey) (key.Key, error) {
 	}, nil
 }
 
-// KeyToPublic returns the ecdsa.PublicKey for the given key.Key.
-func KeyToPublic(k key.Key) (*ecdsa.PublicKey, error) {
-	pk, err := ToPublicKey(k)
-	if err != nil {
-		return nil, err
-	}
-	return keyToPublic(pk)
-}
-
-func keyToPublic(pk key.Key) (*ecdsa.PublicKey, error) {
-	crv, _ := getCurve(pk.Alg())
+func keyToPublic(pk key.Key) (*goecdsa.PublicKey, error) {
+	curve, _ := getCurve(pk.Alg())
 
 	x, _ := pk.GetBytes(iana.EC2KeyParameterX)
 	ix := new(big.Int).SetBytes(x)
@@ -149,24 +153,24 @@ func keyToPublic(pk key.Key) (*ecdsa.PublicKey, error) {
 			compressed[0] = 0x02
 		}
 		copy(compressed[1:], x)
-		ix, iy = elliptic.UnmarshalCompressed(crv, compressed)
+		ix, iy = elliptic.UnmarshalCompressed(curve, compressed)
 	}
 
-	pubKey := &ecdsa.PublicKey{
-		Curve: crv,
+	if !curve.IsOnCurve(ix, iy) {
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPublic: (x, y) not on the curve")
+	}
+
+	return &goecdsa.PublicKey{
+		Curve: curve,
 		X:     ix,
 		Y:     iy,
-	}
-	if !pubKey.Curve.IsOnCurve(pubKey.X, pubKey.Y) {
-		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPublic: invalid public key")
-	}
-	return pubKey, nil
+	}, nil
 }
 
 // CheckKey checks whether the given key is a valid ECDSA key.
 func CheckKey(k key.Key) error {
 	if k.Kty() != iana.KeyTypeEC2 {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid key type, expected "EC2", got %d`, k.Kty())
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid key type, expected "EC2":2, got %d`, k.Kty())
 	}
 
 	for p := range k {
@@ -188,7 +192,7 @@ func CheckKey(k key.Key) error {
 				case iana.KeyOperationSign, iana.KeyOperationVerify:
 				// continue
 				default:
-					return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter key_ops %q`, op)
+					return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter key_ops %d`, op)
 				}
 			}
 
@@ -197,14 +201,15 @@ func CheckKey(k key.Key) error {
 		}
 	}
 
-	_, c := getCurve(k.Alg())
 	// REQUIRED
-	crv, err := k.GetInt(iana.EC2KeyParameterCrv)
+	c, err := k.GetInt(iana.EC2KeyParameterCrv)
 	if err != nil {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv, %v`, err)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv, %w`, err)
 	}
-	if crv != int(c) {
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv %d`, crv)
+
+	curve, crv := getCurve(k.Alg())
+	if curve == nil || c != crv {
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter crv %d`, c)
 	}
 
 	// REQUIRED for private key
@@ -225,10 +230,14 @@ func CheckKey(k key.Key) error {
 			return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter x`)
 		}
 
+		if !hasY {
+			return fmt.Errorf(`cose/key/ecdsa: CheckKey: missing parameter y`)
+		}
+
 		if _, err := k.GetBool(iana.EC2KeyParameterY); err != nil { // not a bool
 			y, err := k.GetBytes(iana.EC2KeyParameterY)
 			if err != nil {
-				return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter y, %v`, err)
+				return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter y, %w`, err)
 			}
 
 			if len(y) == 0 || len(y) > 66 {
@@ -240,13 +249,13 @@ func CheckKey(k key.Key) error {
 	ops := k.Ops()
 	switch {
 	case !hasD && !hasX:
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: missing parameter x or d`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: missing parameter d or x`)
 
 	case hasD && !ops.EmptyOrHas(iana.KeyOperationSign):
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: don't include "sign"`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter key_ops, missing "sign":1`)
 
 	case !hasD && !ops.EmptyOrHas(iana.KeyOperationVerify):
-		return fmt.Errorf(`cose/key/ecdsa: CheckKey: don't include "verify"`)
+		return fmt.Errorf(`cose/key/ecdsa: CheckKey: invalid parameter key_ops, missing "verify":2`)
 	}
 
 	// RECOMMENDED
@@ -266,15 +275,12 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 	}
 
 	if !k.Has(iana.EC2KeyParameterD) {
-		if !k.Has(iana.EC2KeyParameterX) {
-			return nil, errors.New(`cose/key/ecdsa: ToPublicKey: missing parameter x`)
-		}
 		return k, nil
 	}
 
 	d, _ := k.GetBytes(iana.EC2KeyParameterD)
-	pk := map[int]any{
-		iana.KeyParameterKty:    k.Kty(),
+	pk := key.Key{
+		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.EC2KeyParameterCrv: k[iana.EC2KeyParameterCrv],
 	}
 
@@ -290,14 +296,29 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 		pk[iana.KeyParameterKeyOps] = key.Ops{iana.KeyOperationVerify}
 	}
 
-	crv, _ := getCurve(k.Alg())
-	x, y := crv.ScalarBaseMult(d)
-	pk[iana.EC2KeyParameterX] = x.Bytes()
-	pk[iana.EC2KeyParameterY] = y.Bytes()
+	curve, _ := getCurve(k.Alg())
+	ix, iy := curve.ScalarBaseMult(d)
+	x := ix.Bytes()
+	y := iy.Bytes()
+
+	if k.Has(iana.EC2KeyParameterX) {
+		x2, _ := k.GetBytes(iana.EC2KeyParameterX)
+		if !bytes.Equal(x, x2) {
+			return nil, fmt.Errorf(`cose/key/ecdsa: ToPublicKey: parameter x mismatch`)
+		}
+
+		y2, err := k.GetBytes(iana.EC2KeyParameterY)
+		if err == nil && !bytes.Equal(y, y2) {
+			return nil, fmt.Errorf(`cose/key/ecdsa: ToPublicKey: parameter y mismatch`)
+		}
+	}
+
+	pk[iana.EC2KeyParameterX] = x
+	pk[iana.EC2KeyParameterY] = y
 	return pk, nil
 }
 
-// ToCompressedKey converts the given key to a compressed key.
+// ToCompressedKey converts the given key to a compressed Key.
 // It can be used in Recipient.
 func ToCompressedKey(k key.Key) (key.Key, error) {
 	if err := CheckKey(k); err != nil {
@@ -305,7 +326,7 @@ func ToCompressedKey(k key.Key) (key.Key, error) {
 	}
 
 	ck := key.Key{
-		iana.KeyParameterKty:    k[iana.KeyParameterKty],
+		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.EC2KeyParameterCrv: k[iana.EC2KeyParameterCrv],
 	}
 
@@ -315,18 +336,21 @@ func ToCompressedKey(k key.Key) (key.Key, error) {
 	}
 
 	ck[iana.EC2KeyParameterX] = k[iana.EC2KeyParameterX]
-	y, _ := k.GetBytes(iana.EC2KeyParameterY)
-	boolY := false
-	if b0 := y[0] >> 7; b0 == 1 { // sign bit
-		boolY = true
+
+	boolY, err := k.GetBool(iana.EC2KeyParameterY)
+	if err == nil {
+		ck[iana.EC2KeyParameterY] = boolY
+		return ck, nil
 	}
-	ck[iana.EC2KeyParameterY] = boolY
+
+	y, _ := k.GetBytes(iana.EC2KeyParameterY)
+	ck[iana.EC2KeyParameterY] = new(big.Int).SetBytes(y).Bit(0) == 1 // sign bit
 	return ck, nil
 }
 
 type ecdsaSigner struct {
 	key     key.Key
-	privKey *ecdsa.PrivateKey
+	privKey *goecdsa.PrivateKey
 }
 
 // NewSigner creates a key.Signer for the given private key.
@@ -342,16 +366,16 @@ func NewSigner(k key.Key) (key.Signer, error) {
 // Sign computes the digital signature for data.
 func (e *ecdsaSigner) Sign(data []byte) ([]byte, error) {
 	if !e.key.Ops().EmptyOrHas(iana.KeyOperationSign) {
-		return nil, fmt.Errorf("cose/key/ecdsa: Sign: invalid key_ops")
+		return nil, fmt.Errorf("cose/key/ecdsa: Signer.Sign: invalid key_ops")
 	}
 
 	hashed, err := key.ComputeHash(e.key.Alg().HashFunc(), data)
 	if err != nil {
 		return nil, err
 	}
-	r, s, err := ecdsa.Sign(rand.Reader, e.privKey, hashed)
+	r, s, err := goecdsa.Sign(rand.Reader, e.privKey, hashed)
 	if err != nil {
-		return nil, fmt.Errorf("cose/key/ecdsa: Sign: %w", err)
+		return nil, fmt.Errorf("cose/key/ecdsa: Signer.Sign: %w", err)
 	}
 
 	return EncodeSignature(e.privKey.Curve, r, s)
@@ -365,7 +389,7 @@ func (e *ecdsaSigner) Key() key.Key {
 
 type ecdsaVerifier struct {
 	key    key.Key
-	pubKey *ecdsa.PublicKey
+	pubKey *goecdsa.PublicKey
 }
 
 // NewVerifier creates a key.Verifier for the given public key.
@@ -386,21 +410,21 @@ func NewVerifier(k key.Key) (key.Verifier, error) {
 // Verifies returns nil if signature is a valid signature for data; otherwise returns an error.
 func (e *ecdsaVerifier) Verify(data, sig []byte) error {
 	if !e.key.Ops().EmptyOrHas(iana.KeyOperationVerify) {
-		return fmt.Errorf("cose/key/ecdsa: Verify: invalid key_ops")
+		return fmt.Errorf("cose/key/ecdsa: Verifier.Verify: invalid key_ops")
 	}
 
 	hashed, err := key.ComputeHash(e.key.Alg().HashFunc(), data)
 	if err != nil {
-		return fmt.Errorf("cose/key/ecdsa: Verify: %w", err)
+		return fmt.Errorf("cose/key/ecdsa: Verifier.Verify: %w", err)
 	}
 
 	r, s, err := DecodeSignature(e.pubKey.Curve, sig)
 	if err != nil {
-		return fmt.Errorf("cose/key/ecdsa: Verify: %w", err)
+		return fmt.Errorf("cose/key/ecdsa: Verifier.Verify: %w", err)
 	}
 
-	if !ecdsa.Verify(e.pubKey, hashed, r, s) {
-		return fmt.Errorf("cose/key/ecdsa: Verify: invalid signature")
+	if !goecdsa.Verify(e.pubKey, hashed, r, s) {
+		return fmt.Errorf("cose/key/ecdsa: Verifier.Verify: invalid signature")
 	}
 
 	return nil
@@ -412,10 +436,8 @@ func (e *ecdsaVerifier) Key() key.Key {
 	return e.key
 }
 
-// EncodeSignature encodes (r, s) into a signature binary string using the
+// EncodeSignature encodes (r, s) into a signature bytes using the
 // method specified by RFC 8152 section 8.1.
-//
-// Reference: https://datatracker.ietf.org/doc/html/rfc9052#section-8.1
 func EncodeSignature(curve elliptic.Curve, r, s *big.Int) ([]byte, error) {
 	n := (curve.Params().N.BitLen() + 7) / 8
 	sig := make([]byte, n*2)
@@ -428,14 +450,13 @@ func EncodeSignature(curve elliptic.Curve, r, s *big.Int) ([]byte, error) {
 	return sig, nil
 }
 
-// DecodeSignature decodes (r, s) from a signature binary string using the
+// DecodeSignature decodes (r, s) from a signature bytes using the
 // method specified by RFC 8152 section 8.1.
-//
-// Reference: https://datatracker.ietf.org/doc/html/rfc9052#section-8.1
 func DecodeSignature(curve elliptic.Curve, sig []byte) (r, s *big.Int, err error) {
 	n := (curve.Params().N.BitLen() + 7) / 8
 	if len(sig) != n*2 {
-		return nil, nil, fmt.Errorf("cose/key/ecdsa: DecodeSignature: invalid signature length: %d", len(sig))
+		return nil, nil, fmt.Errorf("cose/key/ecdsa: DecodeSignature: invalid signature size, expected %d, got %d",
+			n*2, len(sig))
 	}
 
 	return os2ip(sig[:n]), os2ip(sig[n:]), nil
@@ -466,7 +487,7 @@ var (
 
 func getCurve(alg key.Alg) (elliptic.Curve, int) {
 	switch alg {
-	case iana.AlgorithmES256, iana.AlgorithmReserved:
+	case iana.AlgorithmES256:
 		return p256, iana.EllipticCurveP_256
 	case iana.AlgorithmES384:
 		return p384, iana.EllipticCurveP_384
