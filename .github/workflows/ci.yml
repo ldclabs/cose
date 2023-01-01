@@ -1,8 +1,8 @@
 name: COSE CI Cover
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - 'main'
 jobs:
   # Test on various OS with default Go version.
   tests:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         go-version: ['1.19.x']
 
     steps:
@@ -31,13 +31,4 @@ jobs:
       run: go get -v -t -d ./...
 
     - name: Run tests
-      run: go test -v -failfast -tags=test -timeout="3m" -coverprofile="./coverage.out" -covermode="atomic" ./...
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
-        verbose: true
+      run: go test -v -failfast -tags=test -timeout="3m" -race ./...

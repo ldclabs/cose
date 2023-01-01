@@ -17,3 +17,8 @@ require (
 	golang.org/x/sys v0.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+retract (
+	v0.0.0
+	[v0.1.0, v0.6.0]
+)

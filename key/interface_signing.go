@@ -36,12 +36,31 @@ type Verifier interface {
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-or-more-si.
 type Signers []Signer
 
+// Lookup returns the Signer for the given key ID.
+func (ss Signers) Lookup(kid []byte) Signer {
+	for _, s := range ss {
+		if bytes.Equal(s.Key().Kid(), kid) {
+			return s
+		}
+	}
+	return nil
+}
+
+// KeySet returns a set of private keys from the Signers.
+func (ss Signers) KeySet() KeySet {
+	ks := make(KeySet, len(ss))
+	for i, v := range ss {
+		ks[i] = v.Key()
+	}
+	return ks
+}
+
 // Verifiers is a list of verifiers to be used for verifying with one or more verifiers.
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-or-more-si.
 type Verifiers []Verifier
 
-// Lookup returns the verifier for the given key ID.
+// Lookup returns the Verifier for the given key ID.
 func (vs Verifiers) Lookup(kid []byte) Verifier {
 	for _, v := range vs {
 		if bytes.Equal(v.Key().Kid(), kid) {

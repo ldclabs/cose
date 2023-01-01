@@ -5,7 +5,7 @@ package key
 
 import (
 	"crypto"
-	"errors"
+	"fmt"
 
 	"github.com/ldclabs/cose/iana"
 )
@@ -32,7 +32,7 @@ func (a Alg) HashFunc() crypto.Hash {
 // ComputeHash computes a hash of the given data using the given hash.
 func ComputeHash(h crypto.Hash, data []byte) ([]byte, error) {
 	if !h.Available() {
-		return nil, errors.New("cose/key: ComputeHash: hash function is not available")
+		return nil, fmt.Errorf("cose/key: ComputeHash: hash function %d is not available", h)
 	}
 
 	hh := h.New()
