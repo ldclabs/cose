@@ -47,9 +47,18 @@ func (cm ClaimsMap) GetString(claim int) (string, error) {
 	return key.IntMap(cm).GetString(claim)
 }
 
+// MarshalCBOR implements the CBOR Marshaler interface for ClaimsMap.
+func (cm ClaimsMap) MarshalCBOR() ([]byte, error) {
+	return key.IntMap(cm).MarshalCBOR()
+}
+
+// UnmarshalCBOR implements the CBOR Unmarshaler interface for ClaimsMap.
+func (cm *ClaimsMap) UnmarshalCBOR(data []byte) error {
+	return (*key.IntMap)(cm).UnmarshalCBOR(data)
+}
+
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (cm ClaimsMap) Bytesify() []byte {
-	b, _ := key.MarshalCBOR(cm)
-	return b
+	return key.IntMap(cm).Bytesify()
 }

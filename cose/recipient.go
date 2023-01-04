@@ -25,11 +25,11 @@ type Recipient struct {
 
 func (m *Recipient) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
-		return errors.New("cose/go/cose: Recipient.AddRecipient: recipient is nil")
+		return errors.New("cose/cose: Recipient.AddRecipient: recipient is nil")
 	}
 
 	if len(recipient.recipients) > 0 {
-		return errors.New("cose/go/cose: Recipient.AddRecipient: should not have nested recipients")
+		return errors.New("cose/cose: Recipient.AddRecipient: should not have nested recipients")
 	}
 
 	if err := recipient.init(); err != nil {
@@ -101,7 +101,7 @@ func (m *Recipient) Encrypt(encryptor key.Encryptor, externalData []byte) error 
 // `externalData` should be the same as the one used in Encrypt0Message.Encrypt.
 func (m *Recipient) Decrypt(encryptor key.Encryptor, externalData []byte) error {
 	if m.mm == nil || m.mm.Ciphertext == nil {
-		return errors.New("cose/go/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
+		return errors.New("cose/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
 	}
 
 	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
@@ -145,10 +145,10 @@ func (m *Recipient) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Mac0Message.
 func (m *Recipient) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: Encrypt0Message.UnmarshalCBOR: nil Encrypt0Message")
+		return errors.New("cose/cose: Encrypt0Message.UnmarshalCBOR: nil Encrypt0Message")
 	}
 	if len(data) == 0 {
-		return errors.New("cose/go/cose: Encrypt0Message.UnmarshalCBOR: empty data")
+		return errors.New("cose/cose: Encrypt0Message.UnmarshalCBOR: empty data")
 	}
 
 	switch data[0] {
@@ -205,7 +205,7 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 		}
 
 	default:
-		return errors.New("cose/go/cose: Encrypt0Message.UnmarshalCBOR: invalid data")
+		return errors.New("cose/cose: Encrypt0Message.UnmarshalCBOR: invalid data")
 	}
 
 	return nil

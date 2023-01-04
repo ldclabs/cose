@@ -59,10 +59,10 @@ func (m KDFContext) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for KDFContext.
 func (m *KDFContext) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: KDFContext.UnmarshalCBOR: nil KDFContext")
+		return errors.New("cose/cose: KDFContext.UnmarshalCBOR: nil KDFContext")
 	}
 	if len(data) == 0 {
-		return errors.New("cose/go/cose: KDFContext.UnmarshalCBOR: empty data")
+		return errors.New("cose/cose: KDFContext.UnmarshalCBOR: empty data")
 	}
 
 	switch data[0] {
@@ -88,7 +88,7 @@ func (m *KDFContext) UnmarshalCBOR(data []byte) error {
 		m.SuppPrivInfo = v.SuppPrivInfo
 
 	default:
-		return errors.New("cose/go/cose: KDFContext.UnmarshalCBOR: invalid data")
+		return errors.New("cose/cose: KDFContext.UnmarshalCBOR: invalid data")
 	}
 
 	return nil
@@ -142,10 +142,10 @@ func (m SuppPubInfo) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for SuppPubInfo.
 func (m *SuppPubInfo) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: SuppPubInfo.UnmarshalCBOR: nil SuppPubInfo")
+		return errors.New("cose/cose: SuppPubInfo.UnmarshalCBOR: nil SuppPubInfo")
 	}
 	if len(data) == 0 {
-		return errors.New("cose/go/cose: SuppPubInfo.UnmarshalCBOR: empty data")
+		return errors.New("cose/cose: SuppPubInfo.UnmarshalCBOR: empty data")
 	}
 
 	switch data[0] {
@@ -175,7 +175,7 @@ func (m *SuppPubInfo) UnmarshalCBOR(data []byte) error {
 		}
 
 	default:
-		return errors.New("cose/go/cose: SuppPubInfo.UnmarshalCBOR: invalid data")
+		return errors.New("cose/cose: SuppPubInfo.UnmarshalCBOR: invalid data")
 	}
 
 	return nil

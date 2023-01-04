@@ -60,7 +60,7 @@ type Signature struct {
 // `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
 func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) error {
 	if len(signers) == 0 {
-		return errors.New("cose/go/cose: SignMessage.WithSign: no signers")
+		return errors.New("cose/cose: SignMessage.WithSign: no signers")
 	}
 
 	if m.Protected == nil {
@@ -142,15 +142,15 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 // `externalData` should be the same as the one used when signing.
 func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) error {
 	if len(verifiers) == 0 {
-		return errors.New("cose/go/cose: SignMessage.Verify: no verifiers")
+		return errors.New("cose/cose: SignMessage.Verify: no verifiers")
 	}
 
 	if m.mm == nil || m.mm.Signatures == nil {
-		return errors.New("cose/go/cose: SignMessage.Verify: should call SignMessage.UnmarshalCBOR")
+		return errors.New("cose/cose: SignMessage.Verify: should call SignMessage.UnmarshalCBOR")
 	}
 
 	if len(m.mm.Signatures) == 0 {
-		return errors.New("cose/go/cose: SignMessage.Verify: no signatures")
+		return errors.New("cose/cose: SignMessage.Verify: no signatures")
 	}
 
 	var err error
@@ -158,7 +158,7 @@ func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) er
 		kid := sig.Kid()
 		verifier := verifiers.Lookup(kid)
 		if verifier == nil {
-			return fmt.Errorf("cose/go/cose: SignMessage.Verify: no verifier for kid h'%s'", kid.String())
+			return fmt.Errorf("cose/cose: SignMessage.Verify: no verifier for kid h'%s'", kid.String())
 		}
 
 		sig.toSign, err = m.mm.toSign(sig.sm.Protected, externalData)
@@ -200,7 +200,7 @@ func (mm *signMessage) toSign(sign_protected, external_aad []byte) ([]byte, erro
 // It should call `SignMessage.WithSign` before calling this method.
 func (m *SignMessage[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Signatures == nil {
-		return nil, errors.New("cose/go/cose: SignMessage.MarshalCBOR: should call SignMessage.WithSign")
+		return nil, errors.New("cose/cose: SignMessage.MarshalCBOR: should call SignMessage.WithSign")
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
@@ -212,7 +212,7 @@ func (m *SignMessage[T]) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for SignMessage.
 func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: SignMessage.UnmarshalCBOR: nil SignMessage")
+		return errors.New("cose/cose: SignMessage.UnmarshalCBOR: nil SignMessage")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {
@@ -220,7 +220,7 @@ func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	if !bytes.HasPrefix(data, signMessagePrefix) {
-		return errors.New("cose/go/cose: SignMessage.UnmarshalCBOR: invalid COSE_Sign_Tagged object")
+		return errors.New("cose/cose: SignMessage.UnmarshalCBOR: invalid COSE_Sign_Tagged object")
 	}
 
 	mm := &signMessage{}
@@ -265,7 +265,7 @@ type signatureMessage struct {
 // MarshalCBOR implements the CBOR Marshaler interface for Signature.
 func (s *Signature) MarshalCBOR() ([]byte, error) {
 	if s.sm == nil || s.sm.Signature == nil {
-		return nil, errors.New("cose/go/cose: Signature.MarshalCBOR: should call SignMessage.WithSign")
+		return nil, errors.New("cose/cose: Signature.MarshalCBOR: should call SignMessage.WithSign")
 	}
 
 	return key.MarshalCBOR(s.sm)
@@ -274,7 +274,7 @@ func (s *Signature) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Signature.
 func (s *Signature) UnmarshalCBOR(data []byte) error {
 	if s == nil {
-		return errors.New("cose/go/cose: Signature.UnmarshalCBOR: nil Signature")
+		return errors.New("cose/cose: Signature.UnmarshalCBOR: nil Signature")
 	}
 
 	sm := &signatureMessage{}

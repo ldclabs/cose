@@ -7,8 +7,6 @@
 package key
 
 import (
-	"errors"
-
 	"github.com/ldclabs/cose/iana"
 )
 
@@ -142,22 +140,18 @@ func (k Key) GetString(p int) (string, error) {
 	return IntMap(k).GetString(p)
 }
 
-// Bytesify returns a CBOR-encoded byte slice.
-// It returns nil if MarshalCBOR failed.
-func (k Key) Bytesify() []byte {
-	b, _ := k.MarshalCBOR()
-	return b
-}
-
 // MarshalCBOR implements the CBOR Marshaler interface for Key.
 func (k Key) MarshalCBOR() ([]byte, error) {
-	return MarshalCBOR(IntMap(k))
+	return IntMap(k).MarshalCBOR()
 }
 
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Key.
 func (k *Key) UnmarshalCBOR(data []byte) error {
-	if k == nil {
-		return errors.New("cose/key: Key.UnmarshalCBOR: nil Key")
-	}
-	return UnmarshalCBOR(data, (*IntMap)(k))
+	return (*IntMap)(k).UnmarshalCBOR(data)
+}
+
+// Bytesify returns a CBOR-encoded byte slice.
+// It returns nil if MarshalCBOR failed.
+func (k Key) Bytesify() []byte {
+	return IntMap(k).Bytesify()
 }

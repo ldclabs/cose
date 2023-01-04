@@ -50,7 +50,7 @@ func (m *MacMessage[T]) ComputeAndEncode(macer key.MACer, externalData []byte) (
 // AddRecipient add a Recipient to the COSE_Mac message.
 func (m *MacMessage[T]) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
-		return errors.New("cose/go/cose: MacMessage.AddRecipient: nil recipient")
+		return errors.New("cose/cose: MacMessage.AddRecipient: nil recipient")
 	}
 
 	if err := recipient.init(); err != nil {
@@ -127,7 +127,7 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 // `externalData` should be the same as the one used when computing.
 func (m *MacMessage[T]) Verify(macer key.MACer, externalData []byte) error {
 	if m.mm == nil || m.mm.Tag == nil {
-		return errors.New("cose/go/cose: MacMessage.Verify: should call MacMessage.UnmarshalCBOR")
+		return errors.New("cose/cose: MacMessage.Verify: should call MacMessage.UnmarshalCBOR")
 	}
 
 	var err error
@@ -166,7 +166,7 @@ func (mm *macMessage) toMac(external_aad []byte) ([]byte, error) {
 // It should call `MacMessage.WithSign` before calling this method.
 func (m *MacMessage[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Tag == nil {
-		return nil, errors.New("cose/go/cose: MacMessage.MarshalCBOR: should call MacMessage.Compute")
+		return nil, errors.New("cose/cose: MacMessage.MarshalCBOR: should call MacMessage.Compute")
 	}
 
 	m.mm.Recipients = m.recipients
@@ -179,7 +179,7 @@ func (m *MacMessage[T]) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for MacMessage.
 func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: MacMessage.UnmarshalCBOR: nil MacMessage")
+		return errors.New("cose/cose: MacMessage.UnmarshalCBOR: nil MacMessage")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {

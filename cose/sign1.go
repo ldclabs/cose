@@ -105,7 +105,7 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 // `externalData` should be the same as the one used when signing.
 func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) error {
 	if m.mm == nil || m.mm.Signature == nil {
-		return errors.New("cose/go/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
+		return errors.New("cose/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
 	}
 
 	toSign, err := m.mm.toSign(externalData)
@@ -142,7 +142,7 @@ func (mm *sign1Message) toSign(external_aad []byte) ([]byte, error) {
 // It should call `Sign1Message.WithSign` before calling this method.
 func (m *Sign1Message[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Signature == nil {
-		return nil, errors.New("cose/go/cose: Sign1Message.MarshalCBOR: should call Sign1Message.WithSign")
+		return nil, errors.New("cose/cose: Sign1Message.MarshalCBOR: should call Sign1Message.WithSign")
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
@@ -154,7 +154,7 @@ func (m *Sign1Message[T]) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Sign1Message.
 func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: Sign1Message.UnmarshalCBOR: nil Sign1Message")
+		return errors.New("cose/cose: Sign1Message.UnmarshalCBOR: nil Sign1Message")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {
@@ -162,7 +162,7 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	if !bytes.HasPrefix(data, sign1MessagePrefix) {
-		return errors.New("cose/go/cose: Sign1Message.UnmarshalCBOR: invalid COSE_Sign1_Tagged object")
+		return errors.New("cose/cose: Sign1Message.UnmarshalCBOR: invalid COSE_Sign1_Tagged object")
 	}
 
 	mm := &sign1Message{}

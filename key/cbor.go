@@ -24,7 +24,11 @@ var decMode, _ = decOpts.DecMode()
 
 // MarshalCBOR marshals value with the special cbor.EncOptions.
 func MarshalCBOR(v any) ([]byte, error) {
-	return encMode.Marshal(v)
+	data, err := encMode.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 // MustMarshalCBOR marshals value with the special cbor.EncOptions.

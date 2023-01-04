@@ -4,6 +4,7 @@
 package key
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -165,4 +166,24 @@ func (m IntMap) GetString(k int) (string, error) {
 	}
 
 	return "", nil
+}
+
+// MarshalCBOR implements the CBOR Marshaler interface for IntMap.
+func (m IntMap) MarshalCBOR() ([]byte, error) {
+	return MarshalCBOR(map[int]any(m))
+}
+
+// UnmarshalCBOR implements the CBOR Unmarshaler interface for IntMap.
+func (m *IntMap) UnmarshalCBOR(data []byte) error {
+	if m == nil {
+		return errors.New("cose/key: IntMap.UnmarshalCBOR: nil IntMap")
+	}
+	return UnmarshalCBOR(data, (*map[int]any)(m))
+}
+
+// Bytesify returns a CBOR-encoded byte slice.
+// It returns nil if MarshalCBOR failed.
+func (m IntMap) Bytesify() []byte {
+	b, _ := m.MarshalCBOR()
+	return b
 }

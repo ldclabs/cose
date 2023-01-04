@@ -161,4 +161,7 @@ func TestIntMap(t *testing.T) {
 		// {0: 9223372036854775807, 1: 1, 2: 2, 3: 3, 10: h'01020304', 11: h'01020304', 12: h'01020304', 13: "hello", 14: ["hello"], 15: "hello", -1: -1, -2: -2, -3: -3}
 		assert.Equal(`ad001b7fffffffffffffff0101020203030a44010203040b44010203040c44010203040d6568656c6c6f0e816568656c6c6f0f6568656c6c6f202021212222`, ByteStr(data).String())
 	}
+
+	var im *IntMap
+	assert.ErrorContains(im.UnmarshalCBOR([]byte{0xa0}), "nil IntMap")
 }

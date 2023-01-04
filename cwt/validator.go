@@ -15,7 +15,7 @@ const (
 	cwtMaxClockSkewMinutes = 10
 )
 
-// ValidatorOpts define validation options for CWT validators.
+// ValidatorOpts defines validation options for CWT validators.
 type ValidatorOpts struct {
 	ExpectedIssuer   string
 	ExpectedAudience string
@@ -35,11 +35,12 @@ type Validator struct {
 // NewValidator creates a new CWT Validator.
 func NewValidator(opts *ValidatorOpts) (*Validator, error) {
 	if opts == nil {
-		return nil, fmt.Errorf("cose/go/cwt: NewValidator: ValidatorOpts can't be nil")
+		return nil, fmt.Errorf("cose/cwt: NewValidator: nil ValidatorOpts")
 	}
 
 	if opts.ClockSkew.Minutes() > cwtMaxClockSkewMinutes {
-		return nil, fmt.Errorf("cose/go/cwt: NewValidator: clock skew too large, max is %d minutes", cwtMaxClockSkewMinutes)
+		return nil, fmt.Errorf("cose/cwt: NewValidator: clock skew too large, expected <= %d minutes, got %f",
+			cwtMaxClockSkewMinutes, opts.ClockSkew.Minutes())
 	}
 	return &Validator{
 		opts: *opts,
@@ -49,7 +50,7 @@ func NewValidator(opts *ValidatorOpts) (*Validator, error) {
 // Validate validates a *Claims according to the options provided.
 func (v *Validator) Validate(claims *Claims) error {
 	if claims == nil {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: claims can't be nil")
+		return fmt.Errorf("cose/cwt: Validator.Validate: nil Claims")
 	}
 
 	now := time.Now()
@@ -58,33 +59,35 @@ func (v *Validator) Validate(claims *Claims) error {
 	}
 
 	if claims.Expiration == 0 && !v.opts.AllowMissingExpiration {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: token doesn't have an expiration set")
+		return fmt.Errorf("cose/cwt: Validator.Validate: token doesn't have an expiration set")
 	}
 
 	if claims.Expiration > 0 {
 		if !toTime(claims.Expiration).After(now.Add(-v.opts.ClockSkew)) {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has expired")
+			return fmt.Errorf("cose/cwt: Validator.Validate: token has expired")
 		}
 	}
 
 	if claims.NotBefore > 0 {
 		if t := toTime(claims.NotBefore); t.IsZero() || t.After(now.Add(v.opts.ClockSkew)) {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token cannot be used yet")
+			return fmt.Errorf("cose/cwt: Validator.Validate: token cannot be used yet")
 		}
 	}
 
 	if claims.IssuedAt > 0 && v.opts.ExpectIssuedInThePast {
 		if t := toTime(claims.IssuedAt); t.IsZero() || t.After(now.Add(v.opts.ClockSkew)) {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid iat claim in the future")
+			return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid iat claim in the future")
 		}
 	}
 
 	if v.opts.ExpectedIssuer != "" && v.opts.ExpectedIssuer != claims.Issuer {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: validating issuer claim: got %s, want %s", claims.Issuer, v.opts.ExpectedIssuer)
+		return fmt.Errorf("cose/cwt: Validator.Validate: issuer mismatch, expected %q, got %q",
+			v.opts.ExpectedIssuer, claims.Issuer)
 	}
 
 	if v.opts.ExpectedAudience != "" && v.opts.ExpectedAudience != claims.Audience {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: validating audience claim: got %s, want %s", claims.Audience, v.opts.ExpectedAudience)
+		return fmt.Errorf("cose/cwt: Validator.Validate: audience mismatch, expected %q, got %q",
+			v.opts.ExpectedAudience, claims.Audience)
 	}
 	return nil
 }
@@ -92,7 +95,7 @@ func (v *Validator) Validate(claims *Claims) error {
 // ValidateMap validates a ClaimsMap according to the options provided.
 func (v *Validator) ValidateMap(claims ClaimsMap) error {
 	if claims == nil {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: claims can't be nil")
+		return fmt.Errorf("cose/cwt: Validator.Validate: nil ClaimsMap")
 	}
 
 	now := time.Now()
@@ -101,56 +104,58 @@ func (v *Validator) ValidateMap(claims ClaimsMap) error {
 	}
 
 	if !claims.Has(iana.CWTClaimExp) && !v.opts.AllowMissingExpiration {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: token doesn't have an expiration set")
+		return fmt.Errorf("cose/cwt: Validator.Validate: token doesn't have an expiration set")
 	}
 
 	if claims.Has(iana.CWTClaimExp) {
 		exp, err := claims.GetUint64(iana.CWTClaimExp)
 		if err != nil {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid exp claim, %v", err)
+			return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid exp claim, %w", err)
 		}
 
 		if !toTime(exp).After(now.Add(-v.opts.ClockSkew)) {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has expired")
+			return fmt.Errorf("cose/cwt: Validator.Validate: token has expired")
 		}
 	}
 
 	if claims.Has(iana.CWTClaimNbf) {
 		nbf, err := claims.GetUint64(iana.CWTClaimNbf)
 		if err != nil {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid nbf claim, %v", err)
+			return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid nbf claim, %w", err)
 		}
 		if t := toTime(nbf); t.IsZero() || t.After(now.Add(v.opts.ClockSkew)) {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token cannot be used yet")
+			return fmt.Errorf("cose/cwt: Validator.Validate: token cannot be used yet")
 		}
 	}
 
 	if claims.Has(iana.CWTClaimIat) {
 		iat, err := claims.GetUint64(iana.CWTClaimIat)
 		if err != nil {
-			return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid iat claim, %v", err)
+			return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid iat claim, %w", err)
 		}
 		if iat > 0 && v.opts.ExpectIssuedInThePast {
 			if t := toTime(iat); t.IsZero() || t.After(now.Add(v.opts.ClockSkew)) {
-				return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid iat claim in the future")
+				return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid iat claim in the future")
 			}
 		}
 	}
 
 	iss, err := claims.GetString(iana.CWTClaimIss)
 	if err != nil {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid iss claim, %v", err)
+		return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid iss claim, %w", err)
 	}
 	if v.opts.ExpectedIssuer != "" && v.opts.ExpectedIssuer != iss {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: validating issuer claim: got %s, want %s", iss, v.opts.ExpectedIssuer)
+		return fmt.Errorf("cose/cwt: Validator.Validate: issuer mismatch, expected %q, got %q",
+			v.opts.ExpectedIssuer, iss)
 	}
 
 	aud, err := claims.GetString(iana.CWTClaimAud)
 	if err != nil {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: token has an invalid aud claim, %v", err)
+		return fmt.Errorf("cose/cwt: Validator.Validate: token has an invalid aud claim, %w", err)
 	}
 	if v.opts.ExpectedAudience != "" && v.opts.ExpectedAudience != aud {
-		return fmt.Errorf("cose/go/cwt: Validator.Validate: validating issuer claim: got %s, want %s", iss, v.opts.ExpectedAudience)
+		return fmt.Errorf("cose/cwt: Validator.Validate: audience mismatch, expected %q, got %q",
+			v.opts.ExpectedAudience, aud)
 	}
 
 	return nil

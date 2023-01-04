@@ -106,7 +106,7 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 // `externalData` should be the same as the one used when computing.
 func (m *Mac0Message[T]) Verify(macer key.MACer, externalData []byte) error {
 	if m.mm == nil || m.mm.Tag == nil {
-		return errors.New("cose/go/cose: Mac0Message.Verify: should call Mac0Message.UnmarshalCBOR")
+		return errors.New("cose/cose: Mac0Message.Verify: should call Mac0Message.UnmarshalCBOR")
 	}
 
 	var err error
@@ -144,7 +144,7 @@ func (mm *mac0Message) toMac(external_aad []byte) ([]byte, error) {
 // It should call `Mac0Message.WithSign` before calling this method.
 func (m *Mac0Message[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Tag == nil {
-		return nil, errors.New("cose/go/cose: Mac0Message.MarshalCBOR: should call Mac0Message.Compute")
+		return nil, errors.New("cose/cose: Mac0Message.MarshalCBOR: should call Mac0Message.Compute")
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
@@ -156,7 +156,7 @@ func (m *Mac0Message[T]) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Mac0Message.
 func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: Mac0Message.UnmarshalCBOR: nil Mac0Message")
+		return errors.New("cose/cose: Mac0Message.UnmarshalCBOR: nil Mac0Message")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {

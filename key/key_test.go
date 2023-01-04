@@ -318,6 +318,9 @@ func TestKey(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal("hello", v)
 	})
+
+	var k *Key
+	assert.ErrorContains(t, k.UnmarshalCBOR([]byte{0xa0}), "nil IntMap")
 }
 
 func TestKeyExamples(t *testing.T) {

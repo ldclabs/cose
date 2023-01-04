@@ -118,7 +118,7 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 // `externalData` should be the same as the one used when encrypting.
 func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byte) error {
 	if m.mm == nil || m.mm.Ciphertext == nil {
-		return errors.New("cose/go/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
+		return errors.New("cose/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
 	}
 
 	var err error
@@ -176,7 +176,7 @@ func (mm *encrypt0Message) toEnc(external_aad []byte) ([]byte, error) {
 // It should call `Encrypt0Message.Encrypt` before calling this method.
 func (m *Encrypt0Message[T]) MarshalCBOR() ([]byte, error) {
 	if m.mm == nil || m.mm.Ciphertext == nil {
-		return nil, errors.New("cose/go/cose: Encrypt0Message.MarshalCBOR: should call Encrypt0Message.Encrypt")
+		return nil, errors.New("cose/cose: Encrypt0Message.MarshalCBOR: should call Encrypt0Message.Encrypt")
 	}
 
 	return key.MarshalCBOR(cbor.Tag{
@@ -188,7 +188,7 @@ func (m *Encrypt0Message[T]) MarshalCBOR() ([]byte, error) {
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Mac0Message.
 func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
-		return errors.New("cose/go/cose: Encrypt0Message.UnmarshalCBOR: nil Encrypt0Message")
+		return errors.New("cose/cose: Encrypt0Message.UnmarshalCBOR: nil Encrypt0Message")
 	}
 
 	if bytes.HasPrefix(data, cwtPrefix) {

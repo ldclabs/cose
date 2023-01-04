@@ -1,4 +1,4 @@
-COSE, CWT, Keys and Algorithms
+Keys, Algorithms, COSE and CWT
 -------------------------
 [![CI](https://github.com/ldclabs/cose/actions/workflows/ci-cover.yml/badge.svg)](https://github.com/ldclabs/cose/actions?query=workflow%3Aci-cover)
 [![Codecov](https://codecov.io/gh/ldclabs/cose/branch/main/graph/badge.svg)](https://codecov.io/gh/ldclabs/cose)
@@ -8,7 +8,7 @@ COSE, CWT, Keys and Algorithms
 
 ## Index
 
-- [COSE, CWT, Keys and Algorithms](#cose-cwt-keys-and-algorithms)
+- [Keys, Algorithms, COSE and CWT](#keys-algorithms-cose-and-cwt)
 - [Index](#index)
 - [Introduction](#introduction)
 - [Features](#features)
@@ -145,7 +145,7 @@ func main() {
 
 	err = validator.Validate(&obj2.Payload)
 	fmt.Printf("Validate Claims: %v\n", err)
-	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
+	// Validate Claims: cose/cwt: Validator.Validate: token has expired
 
 	cborData, err := key.MarshalCBOR(obj2.Payload)
 	// cborData, err := cbor.Marshal(myClaims)
@@ -231,7 +231,7 @@ func main() {
 
 	err = validator.ValidateMap(obj2.Payload)
 	fmt.Printf("Validate Claims: %v\n", err)
-	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
+	// Validate Claims: cose/cwt: Validator.Validate: token has expired
 
 	cborData, err := key.MarshalCBOR(obj2.Payload)
 	// cborData, err := cbor.Marshal(myClaims)

@@ -9,7 +9,7 @@ import (
 	"github.com/ldclabs/cose/key"
 )
 
-// Claims is a set of common claims for CWT.
+// Claims represents a set of common claims for CWT.
 type Claims struct {
 	Issuer     string      `cbor:"1,keyasint,omitempty" json:"iss,omitempty"`
 	Subject    string      `cbor:"2,keyasint,omitempty" json:"sub,omitempty"`

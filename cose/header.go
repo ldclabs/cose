@@ -45,9 +45,18 @@ func (h Headers) GetString(p int) (string, error) {
 	return key.IntMap(h).GetString(p)
 }
 
+// MarshalCBOR implements the CBOR Marshaler interface for Headers.
+func (h Headers) MarshalCBOR() ([]byte, error) {
+	return key.IntMap(h).MarshalCBOR()
+}
+
+// UnmarshalCBOR implements the CBOR Unmarshaler interface for Headers.
+func (h *Headers) UnmarshalCBOR(data []byte) error {
+	return (*key.IntMap)(h).UnmarshalCBOR(data)
+}
+
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (h Headers) Bytesify() []byte {
-	b, _ := key.MarshalCBOR(h)
-	return b
+	return key.IntMap(h).Bytesify()
 }

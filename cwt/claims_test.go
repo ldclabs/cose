@@ -41,18 +41,22 @@ func TestClaims(t *testing.T) {
 			key.HexBytesify("a70175636f61703a2f2f61732e6578616d706c652e636f6d02656572696b77037818636f61703a2f2f6c696768742e6578616d706c652e636f6d041a5612aeb0051a5610d9f0061a5610d9f007420b71"),
 		},
 	} {
-		res, err := key.MarshalCBOR(tc.claims)
+		data, err := key.MarshalCBOR(tc.claims)
 		require.NoError(err, tc.title)
-		assert.Equal(tc.res, res, tc.title)
+		assert.Equal(tc.res, data, tc.title)
 
-		data, err := json.Marshal(tc.claims)
+		jsondata, err := json.Marshal(tc.claims)
 		require.NoError(err, tc.title)
 		// fmt.Println(string(data))
-		assert.Equal(tc.json, string(data), tc.title)
+		assert.Equal(tc.json, string(jsondata), tc.title)
 
 		var claims2 Claims
-		require.NoError(key.UnmarshalCBOR(res, &claims2), tc.title)
+		require.NoError(key.UnmarshalCBOR(data, &claims2), tc.title)
 		assert.Equal(tc.res, claims2.Bytesify(), tc.title)
+
+		var cm ClaimsMap
+		require.NoError(key.UnmarshalCBOR(data, &cm), tc.title)
+		assert.Equal(tc.res, cm.Bytesify(), tc.title)
 	}
 }
 
@@ -106,6 +110,7 @@ func TestClaimsSign1AndVerify(t *testing.T) {
 
 		s2, err := cose.VerifySign1Message[Claims](verifier, coseData, nil)
 		require.NoError(err, tc.title)
+		assert.Equal(tc.claims.Issuer, s2.Payload.Issuer)
 		assert.Equal(tc.claims.Bytesify(), s2.Payload.Bytesify(), tc.title)
 		assert.NotEqual(tc.sig, s2.Signature(), tc.title)
 		assert.NotEqual(tc.output, s2.Bytesify(), tc.title)
@@ -118,8 +123,19 @@ func TestClaimsSign1AndVerify(t *testing.T) {
 
 		s3, err := cose.VerifySign1Message[Claims](verifier, tc.output, nil)
 		require.NoError(err, tc.title)
+		assert.Equal(tc.claims.Issuer, s3.Payload.Issuer)
 		assert.Equal(tc.claims.Bytesify(), s3.Payload.Bytesify(), tc.title)
 		assert.Equal(tc.sig, s3.Signature(), tc.title)
 		assert.Equal(tc.output, s3.Bytesify(), tc.title)
+
+		s4, err := cose.VerifySign1Message[ClaimsMap](verifier, tc.output, nil)
+		require.NoError(err, tc.title)
+
+		issuer, err := s4.Payload.GetString(iana.CWTClaimIss)
+		require.NoError(err, tc.title)
+		assert.Equal(tc.claims.Issuer, issuer)
+		assert.Equal(tc.claims.Bytesify(), s4.Payload.Bytesify(), tc.title)
+		assert.Equal(tc.sig, s4.Signature(), tc.title)
+		assert.Equal(tc.output, s4.Bytesify(), tc.title)
 	}
 }

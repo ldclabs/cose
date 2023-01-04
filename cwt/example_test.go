@@ -70,7 +70,7 @@ func ExampleClaims() {
 
 	err = validator.Validate(&obj2.Payload)
 	fmt.Printf("Validate Claims: %v\n", err)
-	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
+	// Validate Claims: cose/cwt: Validator.Validate: token has expired
 
 	cborData, err := key.MarshalCBOR(obj2.Payload)
 	// cborData, err := cbor.Marshal(myClaims)
@@ -81,7 +81,7 @@ func ExampleClaims() {
 	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
 
 	// Output:
-	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
+	// Validate Claims: cose/cwt: Validator.Validate: token has expired
 	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
 }
 
@@ -140,7 +140,7 @@ func ExampleClaimsMap() {
 
 	err = validator.ValidateMap(obj2.Payload)
 	fmt.Printf("Validate Claims: %v\n", err)
-	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
+	// Validate Claims: cose/cwt: Validator.Validate: token has expired
 
 	cborData, err := key.MarshalCBOR(obj2.Payload)
 	// cborData, err := cbor.Marshal(myClaims)
@@ -151,6 +151,6 @@ func ExampleClaimsMap() {
 	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
 
 	// Output:
-	// Validate Claims: cose/go/cwt: Validator.Validate: token has expired
+	// Validate Claims: cose/cwt: Validator.Validate: token has expired
 	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
 }
