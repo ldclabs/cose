@@ -1,5 +1,5 @@
-Keys, Algorithms, COSE and CWT
--------------------------
+# Keys, Algorithms, COSE and CWT
+
 [![CI](https://github.com/ldclabs/cose/actions/workflows/ci-cover.yml/badge.svg)](https://github.com/ldclabs/cose/actions?query=workflow%3Aci-cover)
 [![Codecov](https://codecov.io/gh/ldclabs/cose/branch/main/graph/badge.svg)](https://codecov.io/gh/ldclabs/cose)
 [![Go Reference](https://pkg.go.dev/badge/github.com/ldclabs/cose.svg)](https://pkg.go.dev/github.com/ldclabs/cose)
@@ -9,15 +9,15 @@ Keys, Algorithms, COSE and CWT
 ## Index
 
 - [Keys, Algorithms, COSE and CWT](#keys-algorithms-cose-and-cwt)
-- [Index](#index)
-- [Introduction](#introduction)
-- [Features](#features)
-- [Installation](#installation)
-- [Packages](#packages)
-- [Examples](#examples)
-	- [Create a simple CWT with a signer](#create-a-simple-cwt-with-a-signer)
-	- [Create a complex CWT with one more signers](#create-a-complex-cwt-with-one-more-signers)
-- [Reference](#reference)
+	- [Index](#index)
+	- [Introduction](#introduction)
+	- [Features](#features)
+	- [Installation](#installation)
+	- [Packages](#packages)
+	- [Examples](#examples)
+		- [Create a simple CWT with a signer](#create-a-simple-cwt-with-a-signer)
+		- [Create a complex CWT with one more signers](#create-a-complex-cwt-with-one-more-signers)
+	- [Reference](#reference)
 
 ## Introduction
 
@@ -25,13 +25,14 @@ COSE is a standard for signing and encrypting data in the [CBOR][cbor] data form
 
 ## Features
 
-* CWT: Full support;
-* COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1;
-* Algorithms:
-  - Signing: ECDSA, Ed25519
-  - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305
-  - MAC: AES-MAC, HMAC
-  - KDF: HKDF-SHA, HKDF-AES
+- Key: Full support.
+- Algorithms:
+  - Signing: ECDSA, Ed25519;
+  - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305;
+  - MAC: AES-MAC, HMAC;
+  - KDF: HKDF-SHA, HKDF-AES.
+- COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1.
+- CWT: Full support.
 
 ## Installation
 
