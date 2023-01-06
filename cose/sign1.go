@@ -17,11 +17,16 @@ import (
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-signer
 type Sign1Message[T any] struct {
-	Protected   Headers
+	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
+	Protected Headers
+	// Other header parameters.
 	Unprotected Headers
-	Payload     T
+	// If payload is []byte or cbor.RawMessage,
+	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
+	Payload T
 
-	mm *sign1Message
+	mm     *sign1Message
+	toSign []byte
 }
 
 // VerifySign1Message verifies and decodes a COSE_Sign1 message with a Verifier and returns a *Sign1Message.
@@ -56,6 +61,7 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 			m.Protected[iana.HeaderParameterAlg] = alg
 		}
 	}
+
 	if m.Unprotected == nil {
 		m.Unprotected = Headers{}
 
@@ -89,12 +95,12 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 		}
 	}
 
-	toSign, err := mm.toSign(externalData)
+	m.toSign, err = mm.toSign(externalData)
 	if err != nil {
 		return err
 	}
 
-	if mm.Signature, err = signer.Sign(toSign); err == nil {
+	if mm.Signature, err = signer.Sign(m.toSign); err == nil {
 		m.mm = mm
 	}
 	return err
@@ -108,12 +114,13 @@ func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) err
 		return errors.New("cose/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
 	}
 
-	toSign, err := m.mm.toSign(externalData)
+	var err error
+	m.toSign, err = m.mm.toSign(externalData)
 	if err != nil {
 		return err
 	}
 
-	return verifier.Verify(toSign, m.mm.Signature)
+	return verifier.Verify(m.toSign, m.mm.Signature)
 }
 
 // sign1Message represents a COSE_Sign1 structure to encode and decode.
@@ -161,12 +168,12 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 		data = data[2:]
 	}
 
-	if !bytes.HasPrefix(data, sign1MessagePrefix) {
-		return errors.New("cose/cose: Sign1Message.UnmarshalCBOR: invalid COSE_Sign1_Tagged object")
+	if bytes.HasPrefix(data, sign1MessagePrefix) {
+		data = data[1:]
 	}
 
 	mm := &sign1Message{}
-	if err := key.UnmarshalCBOR(data[1:], mm); err != nil {
+	if err := key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
 

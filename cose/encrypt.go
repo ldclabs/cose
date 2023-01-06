@@ -14,18 +14,22 @@ import (
 
 // EncryptMessage represents a COSE_Encrypt object.
 //
-// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-single-recipient-encrypted
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-single-recipient-encrypted.
 type EncryptMessage[T any] struct {
-	Protected   Headers
+	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
+	Protected Headers
+	// Other header parameters.
 	Unprotected Headers
-	Payload     T
+	// If payload is []byte or cbor.RawMessage,
+	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
+	Payload T
 
 	recipients []*Recipient
 	mm         *encryptMessage
 	toEnc      []byte
 }
 
-// DecryptEncryptMessage decrypts and decodes a COSE_Encrypt message with a Encryptor and returns a *EncryptMessage.
+// DecryptEncryptMessage decrypts and decodes a COSE_Encrypt object with a Encryptor and returns a *EncryptMessage.
 // `externalData` should be the same as the one used when encrypting.
 func DecryptEncryptMessage[T any](encryptor key.Encryptor, coseData, externalData []byte) (*EncryptMessage[T], error) {
 	m := &EncryptMessage[T]{}
@@ -38,8 +42,8 @@ func DecryptEncryptMessage[T any](encryptor key.Encryptor, coseData, externalDat
 	return m, nil
 }
 
-// EncryptAndEncode encrypts and encodes a COSE_Encrypt message with a Encryptor.
-// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
+// EncryptAndEncode encrypts and encodes a COSE_Encrypt object with a Encryptor.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data.
 func (m *EncryptMessage[T]) EncryptAndEncode(encryptor key.Encryptor, externalData []byte) ([]byte, error) {
 	if err := m.Encrypt(encryptor, externalData); err != nil {
 		return nil, err
@@ -47,7 +51,7 @@ func (m *EncryptMessage[T]) EncryptAndEncode(encryptor key.Encryptor, externalDa
 	return m.MarshalCBOR()
 }
 
-// AddRecipient add a COSE Recipient to the COSE_Encrypt message.
+// AddRecipient add a COSE Recipient to the COSE_Encrypt object.
 func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
 		return errors.New("cose/cose: EncryptMessage.AddRecipient: nil recipient")
@@ -62,13 +66,13 @@ func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
 	return nil
 }
 
-// Recipients returns recipients in the COSE_Encrypt message
+// Recipients returns recipients in the COSE_Encrypt object
 func (m *EncryptMessage[T]) Recipients() []*Recipient {
 	return m.recipients
 }
 
-// Encrypt encrypt a COSE_Encrypt message with a Encryptor.
-// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
+// Encrypt encrypt a COSE_Encrypt object with a Encryptor.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data.
 func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
@@ -135,7 +139,7 @@ func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte
 	return nil
 }
 
-// Decrypt decrypts a COSE_Encrypt message with a Encryptor.
+// Decrypt decrypts a COSE_Encrypt object with a Encryptor.
 // It should call `EncryptMessage.UnmarshalCBOR` before calling this method.
 // `externalData` should be the same as the one used when encrypting.
 func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte) error {
@@ -210,7 +214,7 @@ func (m *EncryptMessage[T]) MarshalCBOR() ([]byte, error) {
 	})
 }
 
-// UnmarshalCBOR implements the CBOR Unmarshaler interface for Mac0Message.
+// UnmarshalCBOR implements the CBOR Unmarshaler interface for EncryptMessage.
 func (m *EncryptMessage[T]) UnmarshalCBOR(data []byte) error {
 	if m == nil {
 		return errors.New("cose/cose: EncryptMessage.UnmarshalCBOR: nil EncryptMessage")

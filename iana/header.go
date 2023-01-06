@@ -13,10 +13,14 @@ const (
 	// Cryptographic algorithm to use
 	//
 	// Associated value of type int / tstr
+	//
+	// It is a protected header parameter https://datatracker.ietf.org/doc/html/rfc9052#name-common-cose-header-paramete
 	HeaderParameterAlg = 1
 	// Critical headers to be understood
 	//
 	// Associated value of type [+ label]
+	//
+	// It is a protected header parameter
 	HeaderParameterCrit = 2
 	// Content type of the payload
 	//

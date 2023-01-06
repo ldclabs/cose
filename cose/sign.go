@@ -17,9 +17,13 @@ import (
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-or-more-si
 type SignMessage[T any] struct {
-	Protected   Headers
+	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
+	Protected Headers
+	// Other header parameters.
 	Unprotected Headers
-	Payload     T
+	// If payload is []byte or cbor.RawMessage,
+	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
+	Payload T
 
 	mm *signMessage
 }
@@ -219,12 +223,12 @@ func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
 		data = data[2:]
 	}
 
-	if !bytes.HasPrefix(data, signMessagePrefix) {
-		return errors.New("cose/cose: SignMessage.UnmarshalCBOR: invalid COSE_Sign_Tagged object")
+	if bytes.HasPrefix(data, signMessagePrefix) {
+		data = data[2:]
 	}
 
 	mm := &signMessage{}
-	if err := key.UnmarshalCBOR(data[2:], mm); err != nil {
+	if err := key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
 

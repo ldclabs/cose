@@ -13,36 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// func TestAESGCM(t *testing.T) {
-// 	assert := assert.New(t)
-
-// 	for _, alg := range []int{
-// 		iana.AlgorithmA128GCM,
-// 		iana.AlgorithmA192GCM,
-// 		iana.AlgorithmA256GCM,
-// 	} {
-// 		k, err := GenerateKey(alg)
-// 		require.NoError(t, err)
-// 		assert.Equal(alg, int(k.Alg()))
-// 		assert.NoError(CheckKey(k))
-
-// 		encryptor, err := New(k)
-// 		require.NoError(t, err)
-// 		assert.Equal(k.Kid(), encryptor.Key().Kid())
-
-// 		iv := key.GetRandomBytes(uint16(encryptor.NonceSize()))
-
-// 		ciphertext, err := encryptor.Encrypt(iv, []byte("hello world"), []byte("aad"))
-// 		require.NoError(t, err)
-
-// 		plaintext, err := encryptor.Decrypt(iv, ciphertext, []byte("aad"))
-// 		require.NoError(t, err)
-// 		assert.Equal([]byte("hello world"), plaintext)
-// 		_, err = encryptor.Decrypt(iv, ciphertext, []byte("aae"))
-// 		assert.ErrorContains(err, "message authentication failed")
-// 	}
-// }
-
 func TestGenerateKey(t *testing.T) {
 	assert := assert.New(t)
 
@@ -205,10 +175,10 @@ func TestEncryptor(t *testing.T) {
 }
 
 func TestEncryptorExamples(t *testing.T) {
-	t.Skip("TODO: fix examples")
 	assert := assert.New(t)
 
 	// https://github.com/cose-wg/Examples/tree/master/chacha-poly-examples
+	// https://github.com/cose-wg/Examples/pull/104
 	for i, tc := range []struct {
 		key        key.Key
 		plaintext  []byte
@@ -225,7 +195,7 @@ func TestEncryptorExamples(t *testing.T) {
 			[]byte("This is the content."),
 			key.HexBytesify("26682306D4FB28CA01B43B80"),
 			key.HexBytesify("8367456E637279707444A101181840"),
-			key.HexBytesify("5F2BD5381BBB04921A8477E55C0D850069674A05E683D416583AA0CEE0E2929CDF648094"),
+			key.HexBytesify("1CD5D49DAA014CCAFFB30E765DC5CD410689AAE1C60B45648853298FF6808DB3FA8235DB"),
 		},
 	} {
 		testmsg := fmt.Sprintf("test case %d", i)

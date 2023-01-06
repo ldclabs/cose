@@ -14,17 +14,21 @@ import (
 
 // Mac0Message represents a COSE_Mac0 object.
 //
-// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-signer
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-signer.
 type Mac0Message[T any] struct {
-	Protected   Headers
+	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
+	Protected Headers
+	// Other header parameters.
 	Unprotected Headers
-	Payload     T
+	// If payload is []byte or cbor.RawMessage,
+	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
+	Payload T
 
 	mm    *mac0Message
 	toMac []byte
 }
 
-// VerifyMac0Message verifies and decodes a COSE_Mac0 message with a MACer and returns a *Mac0Message.
+// VerifyMac0Message verifies and decodes a COSE_Mac0 object with a MACer and returns a *Mac0Message.
 // `externalData` should be the same as the one used when computing.
 func VerifyMac0Message[T any](macer key.MACer, coseData, externalData []byte) (*Mac0Message[T], error) {
 	m := &Mac0Message[T]{}
@@ -37,8 +41,8 @@ func VerifyMac0Message[T any](macer key.MACer, coseData, externalData []byte) (*
 	return m, nil
 }
 
-// ComputeAndEncode computes and encodes a COSE_Mac0 message with a MACer.
-// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
+// ComputeAndEncode computes and encodes a COSE_Mac0 object with a MACer.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data.
 func (m *Mac0Message[T]) ComputeAndEncode(macer key.MACer, externalData []byte) ([]byte, error) {
 	if err := m.Compute(macer, externalData); err != nil {
 		return nil, err
@@ -46,8 +50,8 @@ func (m *Mac0Message[T]) ComputeAndEncode(macer key.MACer, externalData []byte) 
 	return m.MarshalCBOR()
 }
 
-// Compute computes a COSE_Mac0 message' MAC with a MACer.
-// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
+// Compute computes a COSE_Mac0 object' MAC with a MACer.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data.
 func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
@@ -101,7 +105,7 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 	return err
 }
 
-// Verify verifies a COSE_Mac0 message' MAC with a MACer.
+// Verify verifies a COSE_Mac0 object' MAC with a MACer.
 // It should call `Mac0Message.UnmarshalCBOR` before calling this method.
 // `externalData` should be the same as the one used when computing.
 func (m *Mac0Message[T]) Verify(macer key.MACer, externalData []byte) error {

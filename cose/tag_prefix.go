@@ -3,6 +3,29 @@
 
 package cose
 
+import "bytes"
+
+// RemoveCBORTag removes the CWT_Tag / COSE_Sign_Tag / COSE_Sign1_Tag /
+// COSE_Encrypt_Tag / COSE_Encrypt0_Tag / COSE_Mac_Tag / COSE_Mac0_Tag from the data.
+func RemoveCBORTag(data []byte) []byte {
+	if bytes.HasPrefix(data, cwtPrefix) {
+		data = data[2:]
+	}
+
+	switch {
+	case bytes.HasPrefix(data, sign1MessagePrefix) ||
+		bytes.HasPrefix(data, mac0MessagePrefix) ||
+		bytes.HasPrefix(data, encrypt0MessagePrefix):
+		data = data[1:]
+	case bytes.HasPrefix(data, signMessagePrefix) ||
+		bytes.HasPrefix(data, macMessagePrefix) ||
+		bytes.HasPrefix(data, encryptMessagePrefix):
+		data = data[2:]
+	}
+
+	return data
+}
+
 // cwtPrefix represents the fixed prefix of CWT CBOR tag.
 // https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml#tags
 var cwtPrefix = []byte{

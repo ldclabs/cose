@@ -14,18 +14,22 @@ import (
 
 // MacMessage represents a COSE_Mac object.
 //
-// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-maced-message-with-recipien
+// Reference https://datatracker.ietf.org/doc/html/rfc9052#name-maced-message-with-recipien.
 type MacMessage[T any] struct {
-	Protected   Headers
+	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
+	Protected Headers
+	// Other header parameters.
 	Unprotected Headers
-	Payload     T
+	// If payload is []byte or cbor.RawMessage,
+	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
+	Payload T
 
 	recipients []*Recipient
 	mm         *macMessage
 	toMac      []byte
 }
 
-// VerifyMacMessage verifies and decodes a COSE_Mac message with a MACer and returns a *MacMessage.
+// VerifyMacMessage verifies and decodes a COSE_Mac object with a MACer and returns a *MacMessage.
 // `externalData` should be the same as the one used when computing.
 func VerifyMacMessage[T any](macer key.MACer, coseData, externalData []byte) (*MacMessage[T], error) {
 	m := &MacMessage[T]{}
@@ -38,8 +42,8 @@ func VerifyMacMessage[T any](macer key.MACer, coseData, externalData []byte) (*M
 	return m, nil
 }
 
-// ComputeAndEncode computes and encodes a COSE_Mac message with a MACer.
-// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
+// ComputeAndEncode computes and encodes a COSE_Mac object with a MACer.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data.
 func (m *MacMessage[T]) ComputeAndEncode(macer key.MACer, externalData []byte) ([]byte, error) {
 	if err := m.Compute(macer, externalData); err != nil {
 		return nil, err
@@ -47,10 +51,10 @@ func (m *MacMessage[T]) ComputeAndEncode(macer key.MACer, externalData []byte) (
 	return m.MarshalCBOR()
 }
 
-// AddRecipient add a Recipient to the COSE_Mac message.
+// AddRecipient add a Recipient to the COSE_Mac object.
 func (m *MacMessage[T]) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
-		return errors.New("cose/cose: MacMessage.AddRecipient: nil recipient")
+		return errors.New("cose/cose: MacMessage.AddRecipient: nil Recipient")
 	}
 
 	if err := recipient.init(); err != nil {
@@ -67,8 +71,8 @@ func (m *MacMessage[T]) Recipients() []*Recipient {
 	return m.recipients
 }
 
-// Compute computes a COSE_Mac message' MAC with a MACer.
-// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data
+// Compute computes a COSE_Mac object' MAC with a MACer.
+// `externalData` can be nil. https://datatracker.ietf.org/doc/html/rfc9052#name-externally-supplied-data.
 func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 	if m.Protected == nil {
 		m.Protected = Headers{}
@@ -122,7 +126,7 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 	return err
 }
 
-// Verify verifies a COSE_Mac message' MAC with a MACer.
+// Verify verifies a COSE_Mac object' MAC with a MACer.
 // It should call `MacMessage.UnmarshalCBOR` before calling this method.
 // `externalData` should be the same as the one used when computing.
 func (m *MacMessage[T]) Verify(macer key.MACer, externalData []byte) error {
