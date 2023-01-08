@@ -129,11 +129,7 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 		}
 	}
 
-	m.toEnc, err = mm.toEnc(externalData)
-	if err != nil {
-		return err
-	}
-
+	m.toEnc = mm.toEnc(externalData)
 	mm.Ciphertext, err = encryptor.Encrypt(iv, plaintext, m.toEnc)
 	if err != nil {
 		return err
@@ -159,10 +155,7 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 	}
 
 	var err error
-	m.toEnc, err = m.mm.toEnc(externalData)
-	if err != nil {
-		return err
-	}
+	m.toEnc = m.mm.toEnc(externalData)
 
 	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
@@ -222,12 +215,12 @@ type encrypt0Message struct {
 	Ciphertext  []byte // can be nil
 }
 
-func (mm *encrypt0Message) toEnc(external_aad []byte) ([]byte, error) {
+func (mm *encrypt0Message) toEnc(external_aad []byte) []byte {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
 	// Enc_structure https://datatracker.ietf.org/doc/html/rfc9052#name-how-to-encrypt-and-decrypt-
-	return key.MarshalCBOR([]any{
+	return key.MustMarshalCBOR([]any{
 		"Encrypt0",   // context
 		mm.Protected, // body_protected
 		external_aad, // external_aad

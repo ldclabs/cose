@@ -317,6 +317,7 @@ func TestMacEdgeCase(t *testing.T) {
 		k := key.Key{
 			iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 			iana.KeyParameterAlg:        iana.AlgorithmAES_MAC_128_64,
+			iana.KeyParameterKid:        []byte("11"),
 			iana.SymmetricKeyParameterK: key.HexBytesify("DDDC08972DF9BE62855291A17A1B4CF7"),
 		}
 
@@ -345,6 +346,19 @@ func TestMacEdgeCase(t *testing.T) {
 		assert.ErrorContains(err, "invalid key_ops")
 		macer.Key().SetOps(iana.KeyOperationMacCreate)
 		assert.NoError(obj.Compute(macer, nil))
+
+		kid, err := obj.Unprotected.GetBytes(iana.HeaderParameterKid)
+		require.NoError(t, err)
+		assert.Equal(kid, []byte(k.Kid()))
+
+		obj = &MacMessage[[]byte]{
+			Unprotected: Headers{},
+			Payload:     []byte("This is the content."),
+		}
+		assert.NoError(obj.Compute(macer, nil))
+		kid, err = obj.Unprotected.GetBytes(iana.HeaderParameterKid)
+		require.NoError(t, err)
+		assert.Nil(kid)
 		tag := obj.Tag()
 
 		macer.Key().SetOps(iana.KeyOperationMacCreate)
@@ -521,6 +535,9 @@ func TestMacEdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(tag, obj1.Tag())
 		assert.Equal(data, obj1.Bytesify())
+
+		_, err = VerifyMacMessage[Headers](macer, data, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)

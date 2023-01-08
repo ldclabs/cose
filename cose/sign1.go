@@ -97,10 +97,7 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 		}
 	}
 
-	if m.toSign, err = mm.toSign(externalData); err != nil {
-		return err
-	}
-
+	m.toSign = mm.toSign(externalData)
 	if mm.Signature, err = signer.Sign(m.toSign); err == nil {
 		m.mm = mm
 	}
@@ -123,11 +120,7 @@ func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) err
 		}
 	}
 
-	var err error
-	if m.toSign, err = m.mm.toSign(externalData); err != nil {
-		return err
-	}
-
+	m.toSign = m.mm.toSign(externalData)
 	return verifier.Verify(m.toSign, m.mm.Signature)
 }
 
@@ -140,12 +133,12 @@ type sign1Message struct {
 	Signature   []byte
 }
 
-func (mm *sign1Message) toSign(external_aad []byte) ([]byte, error) {
+func (mm *sign1Message) toSign(external_aad []byte) []byte {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
 	// Sig_structure https://datatracker.ietf.org/doc/html/rfc9052#name-signing-and-verification-pr
-	return key.MarshalCBOR([]any{
+	return key.MustMarshalCBOR([]any{
 		"Signature1", // context
 		mm.Protected, // body_protected
 		external_aad, // external_aad

@@ -118,10 +118,7 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 		}
 	}
 
-	m.toMac, err = mm.toMac(externalData)
-	if err != nil {
-		return err
-	}
+	m.toMac = mm.toMac(externalData)
 
 	if mm.Tag, err = macer.MACCreate(m.toMac); err == nil {
 		m.mm = mm
@@ -145,12 +142,7 @@ func (m *MacMessage[T]) Verify(macer key.MACer, externalData []byte) error {
 		}
 	}
 
-	var err error
-	m.toMac, err = m.mm.toMac(externalData)
-	if err != nil {
-		return err
-	}
-
+	m.toMac = m.mm.toMac(externalData)
 	return macer.MACVerify(m.toMac, m.mm.Tag)
 }
 
@@ -164,12 +156,12 @@ type macMessage struct {
 	Recipients  []*Recipient
 }
 
-func (mm *macMessage) toMac(external_aad []byte) ([]byte, error) {
+func (mm *macMessage) toMac(external_aad []byte) []byte {
 	if external_aad == nil {
 		external_aad = []byte{}
 	}
 	// MAC_structure https://datatracker.ietf.org/doc/html/rfc9052#name-how-to-compute-and-verify-a
-	return key.MarshalCBOR([]any{
+	return key.MustMarshalCBOR([]any{
 		"MAC",        // context
 		mm.Protected, // body_protected
 		external_aad, // external_aad

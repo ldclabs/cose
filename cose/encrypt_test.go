@@ -565,6 +565,20 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 		require.NoError(t, obj1.Decrypt(encryptor2, nil))
 		assert.Equal(obj.Payload, obj1.Payload)
 		assert.Equal(data, obj1.Bytesify())
+
+		obj1.Unprotected[iana.HeaderParameterIV] = 123
+		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
+			`IntMap.GetBytes: invalid value type`)
+
+		delete(obj1.Unprotected, iana.HeaderParameterIV)
+		obj1.Unprotected[iana.HeaderParameterPartialIV] = 123
+		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
+			`IntMap.GetBytes: invalid value type`)
+
+		obj1.Unprotected[iana.HeaderParameterPartialIV] = partialIV
+		encryptor2.Key()[iana.KeyParameterBaseIV] = 123
+		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
+			`IntMap.GetBytes: invalid value type`)
 	})
 
 	t.Run("payload cbor.RawMessage", func(t *testing.T) {
@@ -647,6 +661,9 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(data, obj1.Bytesify())
+
+		_, err = DecryptEncryptMessage[Headers](encryptor, data, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)

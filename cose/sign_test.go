@@ -361,6 +361,9 @@ func TestSignEdgeCase(t *testing.T) {
 		assert.Equal(sigs[0].Signature, obj1.Signatures()[0].Signature)
 		assert.Equal(data, obj1.Bytesify())
 
+		_, err = VerifySignMessage[Headers](verifiers, data, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
