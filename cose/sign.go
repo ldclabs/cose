@@ -55,9 +55,10 @@ func (m *SignMessage[T]) SignAndEncode(signers key.Signers, externalData []byte)
 type Signature struct {
 	Protected   Headers
 	Unprotected Headers
+	Signature   []byte
 
-	sm     *signatureMessage
-	toSign []byte
+	protected []byte
+	toSign    []byte
 }
 
 // WithSign signs a COSE_Sign message with some Signers.
@@ -83,8 +84,7 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 
 	var err error
 	if len(m.Protected) > 0 {
-		mm.Protected, err = key.MarshalCBOR(m.Protected)
-		if err != nil {
+		if mm.Protected, err = key.MarshalCBOR(m.Protected); err != nil {
 			return err
 		}
 	}
@@ -95,8 +95,7 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 	case cbor.RawMessage:
 		mm.Payload = v
 	default:
-		mm.Payload, err = key.MarshalCBOR(m.Payload)
-		if err != nil {
+		if mm.Payload, err = key.MarshalCBOR(m.Payload); err != nil {
 			return err
 		}
 	}
@@ -105,6 +104,8 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 		sig := &Signature{
 			Protected:   Headers{},
 			Unprotected: Headers{},
+
+			protected: []byte{},
 		}
 		if alg := signer.Key().Alg(); alg != iana.AlgorithmReserved {
 			sig.Protected[iana.HeaderParameterAlg] = alg
@@ -113,27 +114,20 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 			sig.Unprotected[iana.HeaderParameterKid] = kid
 		}
 
-		sigm := &signatureMessage{
-			Protected:   []byte{},
-			Unprotected: sig.Unprotected,
-		}
 		if len(sig.Protected) > 0 {
-			sigm.Protected, err = key.MarshalCBOR(sig.Protected)
+			sig.protected, err = key.MarshalCBOR(sig.Protected)
 			if err != nil {
 				return err
 			}
 		}
 
-		sig.toSign, err = mm.toSign(sigm.Protected, externalData)
-		if err != nil {
+		if sig.toSign, err = mm.toSign(sig.protected, externalData); err != nil {
 			return err
 		}
 
-		sigm.Signature, err = signer.Sign(sig.toSign)
-		if err != nil {
+		if sig.Signature, err = signer.Sign(sig.toSign); err != nil {
 			return err
 		}
-		sig.sm = sigm
 		mm.Signatures = append(mm.Signatures, sig)
 	}
 
@@ -172,11 +166,10 @@ func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) er
 			}
 		}
 
-		sig.toSign, err = m.mm.toSign(sig.sm.Protected, externalData)
-		if err != nil {
+		if sig.toSign, err = m.mm.toSign(sig.protected, externalData); err != nil {
 			return err
 		}
-		if err = verifier.Verify(sig.toSign, sig.Signature()); err != nil {
+		if err = verifier.Verify(sig.toSign, sig.Signature); err != nil {
 			return err
 		}
 	}
@@ -275,11 +268,30 @@ type signatureMessage struct {
 
 // MarshalCBOR implements the CBOR Marshaler interface for Signature.
 func (s *Signature) MarshalCBOR() ([]byte, error) {
-	if s.sm == nil || s.sm.Signature == nil {
+	if s == nil {
+		return nil, errors.New("cose/cose: Signature.MarshalCBOR: nil Signature")
+	}
+	if s.Signature == nil {
 		return nil, errors.New("cose/cose: Signature.MarshalCBOR: should call SignMessage.WithSign")
 	}
+	sm := &signatureMessage{
+		Protected:   s.protected,
+		Unprotected: s.Unprotected,
+		Signature:   s.Signature,
+	}
 
-	return key.MarshalCBOR(s.sm)
+	if sm.Protected == nil {
+		sm.Protected = []byte{}
+		if len(s.Protected) > 0 {
+			var err error
+			sm.Protected, err = key.MarshalCBOR(s.Protected)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return key.MarshalCBOR(sm)
 }
 
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Signature.
@@ -302,23 +314,15 @@ func (s *Signature) UnmarshalCBOR(data []byte) error {
 
 	s.Protected = protected
 	s.Unprotected = sm.Unprotected
-	s.sm = sm
+	s.Signature = sm.Signature
+	s.protected = sm.Protected
 	return nil
-}
-
-// Signature returns the signature of the Signature.
-// If the SignMessage is not signed, it returns nil.
-func (s *Signature) Signature() []byte {
-	if s.sm == nil {
-		return nil
-	}
-	return s.sm.Signature
 }
 
 // Kid returns the kid of the Signature which key signed.
 // If the SignMessage is not signed, it returns nil.
 func (s *Signature) Kid() key.ByteStr {
-	if s.sm == nil {
+	if s == nil {
 		return nil
 	}
 

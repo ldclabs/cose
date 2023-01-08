@@ -65,7 +65,7 @@ func CheckKey(k key.Key) error {
 
 	for p := range k {
 		switch p {
-		case iana.KeyParameterKty, iana.KeyParameterKid, iana.SymmetricKeyParameterK:
+		case iana.KeyParameterKty, iana.KeyParameterKid, iana.SymmetricKeyParameterK, iana.KeyParameterBaseIV:
 			// continue
 
 		case iana.KeyParameterAlg: // optional

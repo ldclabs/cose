@@ -165,10 +165,10 @@ func TestCheckKey(t *testing.T) {
 	assert.ErrorContains(CheckKey(k), `invalid parameter key_ops 9`)
 
 	k = key.Key{
-		iana.KeyParameterKty:    iana.KeyTypeOKP,
-		iana.KeyParameterBaseIV: []byte{1, 2, 3, 4},
+		iana.KeyParameterKty:      iana.KeyTypeOKP,
+		iana.KeyParameterReserved: true,
 	}
-	assert.ErrorContains(CheckKey(k), `redundant parameter 5`)
+	assert.ErrorContains(CheckKey(k), `redundant parameter 0`)
 
 	k = key.Key{
 		iana.KeyParameterKty: iana.KeyTypeOKP,

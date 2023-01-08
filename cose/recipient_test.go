@@ -16,7 +16,31 @@ func TestRecipient(t *testing.T) {
 	t.Run("common case", func(t *testing.T) {
 		assert := assert.New(t)
 
-		r1 := &Recipient{
+		r1 := &Recipient{}
+		data, err := r1.MarshalCBOR()
+		require.NoError(t, err)
+		assert.Nil(r1.Protected)
+		assert.Nil(r1.Unprotected)
+
+		r2 := &Recipient{}
+		assert.NoError(r2.UnmarshalCBOR(data))
+		assert.Equal(r1.Bytesify(), r2.Bytesify())
+		assert.Equal(Headers{}, r2.Protected)
+		assert.Equal(Headers{}, r2.Unprotected)
+
+		r1 = &Recipient{}
+		data, err = key.MarshalCBOR(r1)
+		require.NoError(t, err)
+		assert.Nil(r1.Protected)
+		assert.Nil(r1.Unprotected)
+
+		r2 = &Recipient{}
+		assert.NoError(key.UnmarshalCBOR(data, r2))
+		assert.Equal(r1.Bytesify(), r2.Bytesify())
+		assert.Equal(Headers{}, r2.Protected)
+		assert.Equal(Headers{}, r2.Unprotected)
+
+		r1 = &Recipient{
 			Protected: Headers{},
 			Unprotected: Headers{
 				iana.HeaderParameterAlg: iana.AlgorithmDirect,
@@ -24,10 +48,10 @@ func TestRecipient(t *testing.T) {
 			},
 			Ciphertext: []byte{},
 		}
-		data, err := key.MarshalCBOR(r1)
+		data, err = key.MarshalCBOR(r1)
 		require.NoError(t, err)
 
-		r2 := &Recipient{}
+		r2 = &Recipient{}
 		assert.NoError(key.UnmarshalCBOR(data, r2))
 		assert.Equal(r1.Bytesify(), r2.Bytesify())
 
@@ -105,7 +129,7 @@ func TestRecipient(t *testing.T) {
 
 		data[len(data)-1] = 0x81
 		data = append(data, 0xf6)
-		assert.ErrorContains(r4.UnmarshalCBOR(data), "nil recipient")
+		assert.ErrorContains(r4.UnmarshalCBOR(data), "nil Recipient")
 
 		data = key.MustMarshalCBOR(r)
 		data[0] = 0x84

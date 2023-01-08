@@ -4,6 +4,7 @@
 package cwt
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -76,6 +77,12 @@ func TestValidator(t *testing.T) {
 		assert.NoError(va.ValidateMap(ClaimsMap{
 			iana.CWTClaimExp: uint64(fixedNow.Unix()) - 1,
 		}))
+		assert.ErrorContains(va.Validate(&Claims{
+			Expiration: math.MaxInt64,
+		}), "token has expired")
+		assert.ErrorContains(va.ValidateMap(ClaimsMap{
+			iana.CWTClaimExp: math.MaxInt64,
+		}), "token has expired")
 	})
 
 	t.Run("NotBefore", func(t *testing.T) {

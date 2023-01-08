@@ -58,10 +58,6 @@ func (m *MacMessage[T]) AddRecipient(recipient *Recipient) error {
 		return errors.New("cose/cose: MacMessage.AddRecipient: nil Recipient")
 	}
 
-	if err := recipient.init(); err != nil {
-		return err
-	}
-
 	if recipient.context != "" {
 		return fmt.Errorf("cose/cose: MacMessage.AddRecipient: should not have %q context",
 			recipient.context)
@@ -228,7 +224,7 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 	}
 	for _, r := range mm.Recipients {
 		if r == nil {
-			return errors.New("cose/cose: MacMessage.UnmarshalCBOR: nil recipient")
+			return errors.New("cose/cose: MacMessage.UnmarshalCBOR: nil Recipient")
 		}
 	}
 

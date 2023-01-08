@@ -45,6 +45,11 @@ func (h Headers) GetString(p int) (string, error) {
 	return key.IntMap(h).GetString(p)
 }
 
+// GetIntMap returns the value of the given parameter as a key.IntMap, or a error.
+func (h Headers) GetIntMap(p int) (key.IntMap, error) {
+	return key.IntMap(h).GetIntMap(p)
+}
+
 // MarshalCBOR implements the CBOR Marshaler interface for Headers.
 func (h Headers) MarshalCBOR() ([]byte, error) {
 	return key.IntMap(h).MarshalCBOR()

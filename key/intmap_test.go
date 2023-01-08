@@ -4,6 +4,7 @@
 package key
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -38,10 +39,19 @@ func TestIntMap(t *testing.T) {
 	var m2 IntMap
 	assert.NoError(UnmarshalCBOR(data, &m2))
 
-	for _, m := range []IntMap{m1, m2} {
+	mx := IntMap{}
+	assert.NoError(UnmarshalCBOR(MustMarshalCBOR(IntMap{-11: m1}), &mx))
+	mx[-12] = m2
+
+	m3, err := mx.GetIntMap(-11)
+	assert.NoError(err)
+	m4, err := mx.GetIntMap(-12)
+	assert.NoError(err)
+
+	for i, m := range []IntMap{m1, m2, m3, m4} {
 		smallInt, err := m.GetInt(1)
 		assert.NoError(err)
-		assert.Equal(1, smallInt)
+		assert.Equal(1, smallInt, fmt.Sprintf("case %d", i))
 
 		smallInt, err = m.GetInt(-1)
 		assert.NoError(err)

@@ -16,25 +16,7 @@ type IntMap map[int]any
 
 // ToInt converts the given value to int, the range is [math.MinInt32, math.MaxInt32].
 func ToInt(v any) (int, error) {
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
-		x := rv.Int()
-		if x >= math.MinInt32 && x <= math.MaxInt32 {
-			return int(x), nil
-		}
-		return 0, fmt.Errorf("cose/key: ToInt: invalid int %v", v)
-
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
-		x := rv.Uint()
-		if x <= math.MaxInt32 {
-			return int(x), nil
-		}
-		return 0, fmt.Errorf("cose/key: ToInt: invalid int %v", v)
-
-	default:
-		return 0, fmt.Errorf("cose/key: ToInt: invalid value type %T", v)
-	}
+	return toInt(reflect.ValueOf(v))
 }
 
 // Has returns true if the map contains the key.
@@ -168,6 +150,36 @@ func (m IntMap) GetString(k int) (string, error) {
 	return "", nil
 }
 
+// GetIntMap returns the value for the key as an IntMap.
+// If the key is not present, it returns (nil, nil).
+// If the underlying value is not a IntMap, it returns (nil, error).
+func (m IntMap) GetIntMap(k int) (IntMap, error) {
+	if v, ok := m[k]; ok {
+		if im, ok := v.(IntMap); ok {
+			return im, nil
+		}
+
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Map:
+			iter := rv.MapRange()
+			im := make(IntMap, rv.Len())
+			for iter.Next() {
+				k, err := toInt(iter.Key())
+				if err != nil {
+					return nil, err
+				}
+				im[k] = iter.Value().Interface()
+			}
+			return im, nil
+
+		default:
+			return nil, fmt.Errorf("cose/key: IntMap.GetIntMap: invalid value type %T", v)
+		}
+	}
+	return nil, nil
+}
+
 // MarshalCBOR implements the CBOR Marshaler interface for IntMap.
 func (m IntMap) MarshalCBOR() ([]byte, error) {
 	return MarshalCBOR(map[int]any(m))
@@ -186,4 +198,28 @@ func (m *IntMap) UnmarshalCBOR(data []byte) error {
 func (m IntMap) Bytesify() []byte {
 	b, _ := m.MarshalCBOR()
 	return b
+}
+
+func toInt(rv reflect.Value) (int, error) {
+	switch rv.Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
+		x := rv.Int()
+		if x >= math.MinInt32 && x <= math.MaxInt32 {
+			return int(x), nil
+		}
+		return 0, fmt.Errorf("cose/key: ToInt: invalid int %v", rv.Interface())
+
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
+		x := rv.Uint()
+		if x <= math.MaxInt32 {
+			return int(x), nil
+		}
+		return 0, fmt.Errorf("cose/key: ToInt: invalid int %v", rv.Interface())
+
+	case reflect.Interface:
+		return toInt(rv.Elem())
+
+	default:
+		return 0, fmt.Errorf("cose/key: ToInt: invalid value type %T", rv.Interface())
+	}
 }

@@ -20,7 +20,6 @@ type Recipient struct {
 
 	context    string // "Enc_Recipient", "Mac_Recipient", "Rec_Recipient"
 	recipients []*Recipient
-	mm         *recipientMessage0
 }
 
 // AddRecipient add a Recipient to the COSE_Recipient object.
@@ -42,10 +41,6 @@ func (m *Recipient) AddRecipient(recipient *Recipient) error {
 		return errors.New("cose/cose: Recipient.AddRecipient: should not have nested recipients")
 	}
 
-	if err := recipient.init(); err != nil {
-		return err
-	}
-
 	recipient.context = "Rec_Recipient"
 	m.recipients = append(m.recipients, recipient)
 	return nil
@@ -55,47 +50,31 @@ func (m *Recipient) Recipients() []*Recipient {
 	return m.recipients
 }
 
-func (m *Recipient) init() error {
-	if m.mm != nil {
-		return nil
-	}
-
-	if m.Protected == nil {
-		m.Protected = Headers{}
-	}
-	if m.Unprotected == nil {
-		m.Unprotected = Headers{}
-	}
-	mm := &recipientMessage0{
+// MarshalCBOR implements the CBOR Marshaler interface for Recipient.
+func (m *Recipient) MarshalCBOR() ([]byte, error) {
+	mm0 := &recipientMessage0{
 		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 		Ciphertext:  m.Ciphertext,
 	}
 	if len(m.Protected) > 0 {
-		protected, err := key.MarshalCBOR(m.Protected)
-		if err != nil {
-			return err
+		var err error
+		if mm0.Protected, err = key.MarshalCBOR(m.Protected); err != nil {
+			return nil, err
 		}
-		mm.Protected = protected
 	}
-	m.mm = mm
-	return nil
-}
-
-// MarshalCBOR implements the CBOR Marshaler interface for Recipient.
-func (m *Recipient) MarshalCBOR() ([]byte, error) {
-	if err := m.init(); err != nil {
-		return nil, err
+	if mm0.Unprotected == nil {
+		mm0.Unprotected = Headers{}
 	}
 
 	if len(m.recipients) == 0 {
-		return key.MarshalCBOR(m.mm)
+		return key.MarshalCBOR(mm0)
 	}
 
 	mm := &recipientMessage{
-		Protected:   m.mm.Protected,
-		Unprotected: m.mm.Unprotected,
-		Ciphertext:  m.mm.Ciphertext,
+		Protected:   mm0.Protected,
+		Unprotected: mm0.Unprotected,
+		Ciphertext:  mm0.Ciphertext,
 		Recipients:  m.recipients,
 	}
 
@@ -128,7 +107,6 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 		m.Protected = protected
 		m.Unprotected = mm.Unprotected
 		m.Ciphertext = mm.Ciphertext
-		m.mm = mm
 
 	case 0x84:
 		mm := &recipientMessage{}
@@ -140,7 +118,7 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 		}
 		for _, r := range mm.Recipients {
 			if r == nil {
-				return errors.New("cose/cose: Recipient.UnmarshalCBOR: nil recipient")
+				return errors.New("cose/cose: Recipient.UnmarshalCBOR: nil Recipient")
 			}
 			if len(r.recipients) > 0 {
 				return errors.New("cose/cose: Recipient.UnmarshalCBOR: should not have nested recipients")
@@ -158,11 +136,6 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 		m.Unprotected = mm.Unprotected
 		m.Ciphertext = mm.Ciphertext
 		m.recipients = mm.Recipients
-		m.mm = &recipientMessage0{
-			Protected:   mm.Protected,
-			Unprotected: mm.Unprotected,
-			Ciphertext:  mm.Ciphertext,
-		}
 
 	default:
 		return errors.New("cose/cose: Recipient.UnmarshalCBOR: invalid data")

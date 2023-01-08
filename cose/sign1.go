@@ -84,8 +84,7 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 
 	var err error
 	if len(m.Protected) > 0 {
-		mm.Protected, err = key.MarshalCBOR(m.Protected)
-		if err != nil {
+		if mm.Protected, err = key.MarshalCBOR(m.Protected); err != nil {
 			return err
 		}
 	}
@@ -96,14 +95,12 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 	case cbor.RawMessage:
 		mm.Payload = v
 	default:
-		mm.Payload, err = key.MarshalCBOR(m.Payload)
-		if err != nil {
+		if mm.Payload, err = key.MarshalCBOR(m.Payload); err != nil {
 			return err
 		}
 	}
 
-	m.toSign, err = mm.toSign(externalData)
-	if err != nil {
+	if m.toSign, err = mm.toSign(externalData); err != nil {
 		return err
 	}
 
@@ -130,8 +127,7 @@ func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) err
 	}
 
 	var err error
-	m.toSign, err = m.mm.toSign(externalData)
-	if err != nil {
+	if m.toSign, err = m.mm.toSign(externalData); err != nil {
 		return err
 	}
 

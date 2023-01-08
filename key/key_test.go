@@ -67,6 +67,9 @@ func TestKey(t *testing.T) {
 		assert.False(k.Ops().Has(iana.KeyOperationSign))
 		assert.True(k.Ops().EmptyOrHas(iana.KeyOperationSign))
 
+		k[iana.KeyParameterKeyOps] = Ops{iana.KeyOperationSign}
+		assert.Equal(Ops{iana.KeyOperationSign}, k.Ops())
+
 		k.SetOps(iana.KeyOperationSign)
 		assert.NotNil(k.Ops())
 		assert.True(k.Ops().Has(iana.KeyOperationSign))

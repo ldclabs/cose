@@ -305,9 +305,13 @@ func TestSign1EdgeCase(t *testing.T) {
 		}
 
 		obj := &Sign1Message[T]{
-			Protected:   Headers{iana.HeaderParameterAlg: iana.AlgorithmEdDSA},
-			Unprotected: Headers{iana.HeaderParameterKid: k.Kid()},
-			Payload:     T{"This is the content."},
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmEdDSA,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: T{"This is the content."},
 		}
 
 		data, err := obj.SignAndEncode(signer, nil)
@@ -319,5 +323,46 @@ func TestSign1EdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(sig, obj1.Signature())
 		assert.Equal(data, obj1.Bytesify())
+
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[4])
+		datae[4] = 0x60
+		_, err = VerifySign1Message[T](verifier, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x04), datae[7])
+		datae[7] = 0x60
+		_, err = VerifySign1Message[T](verifier, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		obj = &Sign1Message[T]{
+			Protected: Headers{
+				iana.HeaderParameterAlg:      iana.AlgorithmEdDSA,
+				iana.HeaderParameterReserved: func() {},
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: T{"This is the content."},
+		}
+
+		_, err = obj.SignAndEncode(signer, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
+
+		obje := &Sign1Message[func()]{
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmEdDSA,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: func() {},
+		}
+
+		_, err = obje.SignAndEncode(signer, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
 	})
 }

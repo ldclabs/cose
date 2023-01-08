@@ -65,5 +65,5 @@ var encrypt0MessagePrefix = []byte{
 // encryptMessagePrefix represents the fixed prefix of COSE_Encrypt_Tagged.
 var encryptMessagePrefix = []byte{
 	0xd8, 0x60, // #6.96
-	0x83, // array of length 4
+	0x84, // array of length 4
 }

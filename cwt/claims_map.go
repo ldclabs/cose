@@ -47,6 +47,11 @@ func (cm ClaimsMap) GetString(claim int) (string, error) {
 	return key.IntMap(cm).GetString(claim)
 }
 
+// GetIntMap returns the value of the given parameter as a key.IntMap, or a error.
+func (cm ClaimsMap) GetIntMap(claim int) (key.IntMap, error) {
+	return key.IntMap(cm).GetIntMap(claim)
+}
+
 // MarshalCBOR implements the CBOR Marshaler interface for ClaimsMap.
 func (cm ClaimsMap) MarshalCBOR() ([]byte, error) {
 	return key.IntMap(cm).MarshalCBOR()

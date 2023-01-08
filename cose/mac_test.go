@@ -358,6 +358,8 @@ func TestMacEdgeCase(t *testing.T) {
 		_, err = key.MarshalCBOR(obj)
 		assert.ErrorContains(err, "no recipients")
 
+		assert.ErrorContains(obj.AddRecipient(nil), "nil Recipient")
+		assert.Nil(obj.Recipients())
 		obj.AddRecipient(&Recipient{
 			Protected: Headers{},
 			Unprotected: Headers{
@@ -366,6 +368,7 @@ func TestMacEdgeCase(t *testing.T) {
 			},
 			Ciphertext: []byte{},
 		})
+		assert.Equal(1, len(obj.Recipients()))
 
 		r := &Recipient{
 			Protected: Headers{},
@@ -391,13 +394,19 @@ func TestMacEdgeCase(t *testing.T) {
 		data2, err := key.MarshalCBOR(obj)
 		require.NoError(t, err)
 		assert.Equal(data1, data2)
-		assert.Equal(key.HexBytesify("d8618543a1010ea054546869732069732074686520636f6e74656e742e4836f5afaf0bab5d43818340a20125044a6f75722d73656372657440"), data1)
+		assert.Equal(byte(0x81), data1[38])
 
 		var obj1 MacMessage[[]byte]
 		data := make([]byte, 39)
 		copy(data, data1)
-		data[38] = 0x80 // "d8618543a1010ea054546869732069732074686520636f6e74656e742e4836f5afaf0bab5d4380"
+		data[38] = 0x80
 		assert.ErrorContains(key.UnmarshalCBOR(data, &obj1), "no recipients")
+
+		data = make([]byte, 40)
+		copy(data, data1)
+		data[38] = 0x81
+		data[39] = 0xf6
+		assert.ErrorContains(key.UnmarshalCBOR(data, &obj1), "nil Recipient")
 
 		assert.NoError(key.UnmarshalCBOR(data1, &obj1))
 		assert.NoError(obj1.Verify(macer, nil))
@@ -512,5 +521,46 @@ func TestMacEdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(tag, obj1.Tag())
 		assert.Equal(data, obj1.Bytesify())
+
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[5])
+		datae[5] = 0x60
+		_, err = VerifyMacMessage[T](macer, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x04), datae[8])
+		datae[8] = 0x60
+		_, err = VerifyMacMessage[T](macer, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		obj = &MacMessage[T]{
+			Protected: Headers{
+				iana.HeaderParameterAlg:      iana.AlgorithmHMAC_512_512,
+				iana.HeaderParameterReserved: func() {},
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: T{"This is the content."},
+		}
+
+		_, err = obj.ComputeAndEncode(macer, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
+
+		obje := &MacMessage[func()]{
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmHMAC_512_512,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: func() {},
+		}
+
+		_, err = obje.ComputeAndEncode(macer, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
 	})
 }

@@ -135,7 +135,7 @@ func TestSign(t *testing.T) {
 		assert.Equal(len(tc.ks), len(obj2.Signatures()))
 		for i := range tc.ks {
 			assert.Equal(tc.toSigns[i], obj2.mm.Signatures[i].toSign, tc.title)
-			assert.Equal(obj.Signatures()[i].Signature(), obj2.Signatures()[i].Signature(), tc.title)
+			assert.Equal(obj.Signatures()[i].Signature, obj2.Signatures()[i].Signature, tc.title)
 		}
 		assert.Equal(output, obj2.Bytesify(), tc.title)
 		assert.Equal(tc.payload, obj2.Payload, tc.title)
@@ -146,7 +146,7 @@ func TestSign(t *testing.T) {
 		assert.Equal(len(tc.ks), len(obj3.Signatures()))
 		for i := range tc.ks {
 			assert.Equal(tc.toSigns[i], obj3.mm.Signatures[i].toSign, tc.title)
-			assert.NotEqual(obj.Signatures()[i].Signature(), obj3.Signatures()[i].Signature(), tc.title)
+			assert.NotEqual(obj.Signatures()[i].Signature, obj3.Signatures()[i].Signature, tc.title)
 		}
 		assert.Equal(tc.payload, obj3.Payload, tc.title)
 		if tc.removeTag {
@@ -160,7 +160,7 @@ func TestSign(t *testing.T) {
 		assert.Equal(len(tc.ks), len(obj4.Signatures()))
 		for i := range tc.ks {
 			assert.Equal(tc.toSigns[i], obj4.mm.Signatures[i].toSign, tc.title)
-			assert.NotEqual(obj.Signatures()[i].Signature(), obj4.Signatures()[i].Signature(), tc.title)
+			assert.NotEqual(obj.Signatures()[i].Signature, obj4.Signatures()[i].Signature, tc.title)
 		}
 		assert.Equal(tc.payload, obj4.Payload, tc.title)
 
@@ -175,7 +175,7 @@ func TestSign(t *testing.T) {
 		assert.Equal(len(tc.ks), len(obj4.Signatures()))
 		for i := range tc.ks {
 			assert.Equal(tc.toSigns[i], obj4.mm.Signatures[i].toSign, tc.title)
-			assert.NotEqual(obj.Signatures()[i].Signature(), obj4.Signatures()[i].Signature(), tc.title)
+			assert.NotEqual(obj.Signatures()[i].Signature, obj4.Signatures()[i].Signature, tc.title)
 		}
 
 		obj4, err = VerifySignMessage[[]byte](verifiers, output, tc.external)
@@ -183,7 +183,7 @@ func TestSign(t *testing.T) {
 		assert.Equal(len(tc.ks), len(obj4.Signatures()))
 		for i := range tc.ks {
 			assert.Equal(tc.toSigns[i], obj4.mm.Signatures[i].toSign, tc.title)
-			assert.NotEqual(obj.Signatures()[i].Signature(), obj4.Signatures()[i].Signature(), tc.title)
+			assert.NotEqual(obj.Signatures()[i].Signature, obj4.Signatures()[i].Signature, tc.title)
 		}
 		assert.Equal(tc.payload, obj4.Payload, tc.title)
 	}
@@ -206,6 +206,7 @@ func TestSignEdgeCase(t *testing.T) {
 		var obj *SignMessage[[]byte]
 		assert.ErrorContains(obj.UnmarshalCBOR([]byte{0x84}), "nil SignMessage")
 
+		assert.ErrorContains(obj.Verify(key.Verifiers{}, nil), "no verifiers")
 		obj = &SignMessage[[]byte]{
 			Payload: []byte("This is the content."),
 		}
@@ -218,6 +219,8 @@ func TestSignEdgeCase(t *testing.T) {
 
 		assert.Nil(obj.Bytesify())
 		assert.Nil(obj.Signatures())
+
+		assert.ErrorContains(obj.WithSign(key.Signers{}, nil), "no signers")
 
 		signers[0].Key().SetOps(iana.KeyOperationVerify)
 		assert.ErrorContains(obj.WithSign(signers, nil), "invalid key_ops")
@@ -244,27 +247,27 @@ func TestSignEdgeCase(t *testing.T) {
 		assert.NoError(key.UnmarshalCBOR(data1, &obj1))
 		assert.NoError(obj1.Verify(verifiers, nil))
 		assert.Equal(obj.Payload, obj1.Payload)
-		assert.Equal(sigs[0].Signature(), obj1.Signatures()[0].Signature())
+		assert.Equal(sigs[0].Signature, obj1.Signatures()[0].Signature)
 
 		_, err = VerifySignMessage[[]byte](verifiers, data2[5:], nil)
 		assert.ErrorContains(err, "cbor: cannot unmarshal")
 		obj2, err := VerifySignMessage[[]byte](verifiers, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)
-		assert.Equal(sigs[0].Signature(), obj2.Signatures()[0].Signature())
+		assert.Equal(sigs[0].Signature, obj2.Signatures()[0].Signature)
 
 		data2 = append(cwtPrefix, data2...)
 		obj2, err = VerifySignMessage[[]byte](verifiers, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)
-		assert.Equal(sigs[0].Signature(), obj2.Signatures()[0].Signature())
+		assert.Equal(sigs[0].Signature, obj2.Signatures()[0].Signature)
 		assert.NotEqual(data2, obj2.Bytesify())
 
 		data2 = RemoveCBORTag(data2)
 		obj2, err = VerifySignMessage[[]byte](verifiers, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)
-		assert.Equal(sigs[0].Signature(), obj2.Signatures()[0].Signature())
+		assert.Equal(sigs[0].Signature, obj2.Signatures()[0].Signature)
 		assert.NotEqual(data2, obj2.Bytesify())
 	})
 
@@ -309,7 +312,7 @@ func TestSignEdgeCase(t *testing.T) {
 		obj1, err := VerifySignMessage[cbor.RawMessage](verifiers, data, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj1.Payload)
-		assert.Equal(sigs[0].Signature(), obj1.Signatures()[0].Signature())
+		assert.Equal(sigs[0].Signature, obj1.Signatures()[0].Signature)
 		assert.Equal(data, obj1.Bytesify())
 	})
 
@@ -331,6 +334,12 @@ func TestSignEdgeCase(t *testing.T) {
 		}
 
 		obj := &SignMessage[T]{
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmEdDSA,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
 			Payload: T{"This is the content."},
 		}
 
@@ -342,7 +351,63 @@ func TestSignEdgeCase(t *testing.T) {
 		obj1, err := VerifySignMessage[T](verifiers, data, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
-		assert.Equal(sigs[0].Signature(), obj1.Signatures()[0].Signature())
+		assert.Equal(sigs[0].Signature, obj1.Signatures()[0].Signature)
 		assert.Equal(data, obj1.Bytesify())
+
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[5])
+		datae[5] = 0x60
+		_, err = VerifySignMessage[T](verifiers, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x04), datae[8])
+		datae[8] = 0x60
+		_, err = VerifySignMessage[T](verifiers, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		obj = &SignMessage[T]{
+			Protected: Headers{
+				iana.HeaderParameterAlg:      iana.AlgorithmEdDSA,
+				iana.HeaderParameterReserved: func() {},
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: T{"This is the content."},
+		}
+
+		_, err = obj.SignAndEncode(signers, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
+
+		obje := &SignMessage[func()]{
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmEdDSA,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: func() {},
+		}
+
+		_, err = obje.SignAndEncode(signers, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
 	})
+}
+
+func TestSignatureEdgeCase(t *testing.T) {
+	assert := assert.New(t)
+
+	var sig *Signature
+	assert.Nil(sig.Kid())
+	assert.ErrorContains(sig.UnmarshalCBOR([]byte{0xa0}), "nil Signature")
+
+	_, err := sig.MarshalCBOR()
+	assert.ErrorContains(err, "nil Signature")
+
+	sig = &Signature{}
+	_, err = sig.MarshalCBOR()
+	assert.ErrorContains(err, "should call SignMessage.WithSign")
 }

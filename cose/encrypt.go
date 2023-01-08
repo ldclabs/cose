@@ -55,11 +55,7 @@ func (m *EncryptMessage[T]) EncryptAndEncode(encryptor key.Encryptor, externalDa
 // AddRecipient add a COSE Recipient to the COSE_Encrypt object.
 func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
-		return errors.New("cose/cose: EncryptMessage.AddRecipient: nil recipient")
-	}
-
-	if err := recipient.init(); err != nil {
-		return err
+		return errors.New("cose/cose: EncryptMessage.AddRecipient: nil Recipient")
 	}
 
 	if recipient.context != "" {
@@ -105,7 +101,30 @@ func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte
 	if err != nil {
 		return err
 	}
+	partialIV, err := m.Unprotected.GetBytes(iana.HeaderParameterPartialIV)
+	if err != nil {
+		return err
+	}
+	ivSize := encryptor.NonceSize()
+	if len(partialIV) > 0 {
+		if len(iv) > 0 {
+			return errors.New("cose/cose: EncryptMessage.Encrypt: both iv and partial iv are present")
+		}
+		if len(partialIV) >= ivSize {
+			return errors.New("cose/cose: EncryptMessage.Encrypt: partial iv is too long")
+		}
 
+		baseIV, err := encryptor.Key().GetBytes(iana.KeyParameterBaseIV)
+		if err != nil {
+			return err
+		}
+
+		if len(baseIV) == 0 {
+			return errors.New("cose/cose: EncryptMessage.Encrypt: base iv is missing")
+		}
+
+		iv = xorIV(baseIV, partialIV, ivSize)
+	}
 	if len(iv) == 0 {
 		iv = key.GetRandomBytes(uint16(encryptor.NonceSize()))
 		m.Unprotected[iana.HeaderParameterIV] = iv
@@ -175,6 +194,31 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
 		return err
+	}
+	partialIV, err := m.Unprotected.GetBytes(iana.HeaderParameterPartialIV)
+	if err != nil {
+		return err
+	}
+	ivSize := encryptor.NonceSize()
+	if len(partialIV) > 0 {
+		if len(iv) > 0 {
+			return errors.New("cose/cose: Encrypt0Message.Decrypt: both iv and partial iv are present")
+		}
+
+		if len(partialIV) >= ivSize {
+			return errors.New("cose/cose: Encrypt0Message.Decrypt: partial iv is too long")
+		}
+
+		baseIV, err := encryptor.Key().GetBytes(iana.KeyParameterBaseIV)
+		if err != nil {
+			return err
+		}
+
+		if len(baseIV) == 0 {
+			return errors.New("cose/cose: Encrypt0Message.Decrypt: base iv is missing")
+		}
+
+		iv = xorIV(baseIV, partialIV, ivSize)
 	}
 
 	plaintext, err := encryptor.Decrypt(iv, m.mm.Ciphertext, m.toEnc)
@@ -249,7 +293,7 @@ func (m *EncryptMessage[T]) UnmarshalCBOR(data []byte) error {
 
 	// support untagged message
 	if bytes.HasPrefix(data, encryptMessagePrefix) {
-		data = data[1:]
+		data = data[2:]
 	}
 
 	mm := &encryptMessage{}
@@ -262,7 +306,7 @@ func (m *EncryptMessage[T]) UnmarshalCBOR(data []byte) error {
 	}
 	for _, r := range mm.Recipients {
 		if r == nil {
-			return errors.New("cose/cose: EncryptMessage.UnmarshalCBOR: nil recipient")
+			return errors.New("cose/cose: EncryptMessage.UnmarshalCBOR: nil Recipient")
 		}
 	}
 

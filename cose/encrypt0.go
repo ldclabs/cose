@@ -80,9 +80,32 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 	if err != nil {
 		return err
 	}
+	partialIV, err := m.Unprotected.GetBytes(iana.HeaderParameterPartialIV)
+	if err != nil {
+		return err
+	}
+	ivSize := encryptor.NonceSize()
+	if len(partialIV) > 0 {
+		if len(iv) > 0 {
+			return errors.New("cose/cose: Encrypt0Message.Encrypt: both iv and partial iv are present")
+		}
+		if len(partialIV) >= ivSize {
+			return errors.New("cose/cose: Encrypt0Message.Encrypt: partial iv is too long")
+		}
 
+		baseIV, err := encryptor.Key().GetBytes(iana.KeyParameterBaseIV)
+		if err != nil {
+			return err
+		}
+
+		if len(baseIV) == 0 {
+			return errors.New("cose/cose: Encrypt0Message.Encrypt: base iv is missing")
+		}
+
+		iv = xorIV(baseIV, partialIV, ivSize)
+	}
 	if len(iv) == 0 {
-		iv = key.GetRandomBytes(uint16(encryptor.NonceSize()))
+		iv = key.GetRandomBytes(uint16(ivSize))
 		m.Unprotected[iana.HeaderParameterIV] = iv
 	}
 
@@ -149,6 +172,31 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
 	if err != nil {
 		return err
+	}
+	partialIV, err := m.Unprotected.GetBytes(iana.HeaderParameterPartialIV)
+	if err != nil {
+		return err
+	}
+	ivSize := encryptor.NonceSize()
+	if len(partialIV) > 0 {
+		if len(iv) > 0 {
+			return errors.New("cose/cose: Encrypt0Message.Decrypt: both iv and partial iv are present")
+		}
+
+		if len(partialIV) >= ivSize {
+			return errors.New("cose/cose: Encrypt0Message.Decrypt: partial iv is too long")
+		}
+
+		baseIV, err := encryptor.Key().GetBytes(iana.KeyParameterBaseIV)
+		if err != nil {
+			return err
+		}
+
+		if len(baseIV) == 0 {
+			return errors.New("cose/cose: Encrypt0Message.Decrypt: base iv is missing")
+		}
+
+		iv = xorIV(baseIV, partialIV, ivSize)
 	}
 
 	plaintext, err := encryptor.Decrypt(iv, m.mm.Ciphertext, m.toEnc)
@@ -242,4 +290,17 @@ func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
 func (m *Encrypt0Message[T]) Bytesify() []byte {
 	b, _ := m.MarshalCBOR()
 	return b
+}
+
+// https://datatracker.ietf.org/doc/html/rfc9052#name-common-cose-header-paramete
+func xorIV(contextIV, partialIV []byte, size int) []byte {
+	iv := make([]byte, size)
+	copy(iv[size-len(partialIV):], partialIV)
+	for i := range iv {
+		if i >= len(contextIV) {
+			break
+		}
+		iv[i] ^= contextIV[i]
+	}
+	return iv
 }

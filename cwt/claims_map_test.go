@@ -78,9 +78,23 @@ func TestClaimsMap(t *testing.T) {
 		iana.CWTClaimExp:       1000,
 		iana.CWTClaimCti:       []byte{1, 2, 3, 4},
 		iana.CWTClaimEUPHNonce: []byte{5, 6, 7, 8},
+		iana.CWTClaimHCert: key.Key{
+			iana.KeyParameterKty:    iana.KeyTypeEC2,
+			iana.KeyParameterKid:    []byte("11"),
+			iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
+			iana.EC2KeyParameterX:   key.Base64Bytesify("usWxHK2PmfnHKwXPS54m0kTcGJ90UiglWiGahtagnv8"),
+			iana.EC2KeyParameterY:   key.Base64Bytesify("IBOL-C3BttVivg-lSreASjpkttcsz-1rb7btKLv8EX4"),
+			iana.EC2KeyParameterD:   key.Base64Bytesify("V8kgd2ZBRuh2dgyVINBUqpPDr7BOMGcF22CQMIUHtNM"),
+		},
 	}
 
-	data, err = key.MarshalCBOR(cm)
+	k, err := cm.GetIntMap(iana.CWTClaimHCert)
+	assert.NoError(err)
+	x, err := k.GetBytes(iana.EC2KeyParameterX)
+	assert.NoError(err)
+	assert.Equal(key.Base64Bytesify("usWxHK2PmfnHKwXPS54m0kTcGJ90UiglWiGahtagnv8"), x)
+
+	data, err = cm.MarshalCBOR()
 	assert.NoError(err)
 
 	var cm4 ClaimsMap
@@ -88,4 +102,10 @@ func TestClaimsMap(t *testing.T) {
 	assert.Equal(data, cm4.Bytesify())
 	nonce, _ := cm4.GetBytes(iana.CWTClaimEUPHNonce)
 	assert.Equal([]byte{5, 6, 7, 8}, nonce)
+
+	k, err = cm4.GetIntMap(iana.CWTClaimHCert)
+	assert.NoError(err)
+	x, err = k.GetBytes(iana.EC2KeyParameterX)
+	assert.NoError(err)
+	assert.Equal(key.Base64Bytesify("usWxHK2PmfnHKwXPS54m0kTcGJ90UiglWiGahtagnv8"), x)
 }

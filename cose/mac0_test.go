@@ -311,5 +311,46 @@ func TestMac0EdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(tag, obj1.Tag())
 		assert.Equal(data, obj1.Bytesify())
+
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[4])
+		datae[4] = 0x60
+		_, err = VerifyMac0Message[T](macer, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x04), datae[7])
+		datae[7] = 0x60
+		_, err = VerifyMac0Message[T](macer, datae, nil)
+		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+
+		obj = &Mac0Message[T]{
+			Protected: Headers{
+				iana.HeaderParameterAlg:      iana.AlgorithmHMAC_512_512,
+				iana.HeaderParameterReserved: func() {},
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: T{"This is the content."},
+		}
+
+		_, err = obj.ComputeAndEncode(macer, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
+
+		obje := &Mac0Message[func()]{
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmHMAC_512_512,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: k.Kid(),
+			},
+			Payload: func() {},
+		}
+
+		_, err = obje.ComputeAndEncode(macer, nil)
+		assert.ErrorContains(err, "unsupported type: func()")
 	})
 }

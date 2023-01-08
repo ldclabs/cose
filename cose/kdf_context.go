@@ -47,6 +47,7 @@ func (m KDFContext) MarshalCBOR() ([]byte, error) {
 			SuppPubInfo: m.SuppPubInfo,
 		})
 	}
+
 	return key.MarshalCBOR(kdfContext1{
 		AlgorithmID:  m.AlgorithmID,
 		PartyUInfo:   m.PartyUInfo,
@@ -67,8 +68,8 @@ func (m *KDFContext) UnmarshalCBOR(data []byte) error {
 
 	switch data[0] {
 	case 0x84:
-		var v kdfContext0
-		if err := key.UnmarshalCBOR(data, &v); err != nil {
+		v := &kdfContext0{}
+		if err := key.UnmarshalCBOR(data, v); err != nil {
 			return err
 		}
 		m.AlgorithmID = v.AlgorithmID
@@ -77,8 +78,8 @@ func (m *KDFContext) UnmarshalCBOR(data []byte) error {
 		m.SuppPubInfo = v.SuppPubInfo
 
 	case 0x85:
-		var v kdfContext1
-		if err := key.UnmarshalCBOR(data, &v); err != nil {
+		v := &kdfContext1{}
+		if err := key.UnmarshalCBOR(data, v); err != nil {
 			return err
 		}
 		m.AlgorithmID = v.AlgorithmID
@@ -126,13 +127,13 @@ func (m SuppPubInfo) MarshalCBOR() ([]byte, error) {
 	}
 
 	if m.Other == nil {
-		return key.MarshalCBOR(suppPubInfo0{
+		return key.MarshalCBOR(&suppPubInfo0{
 			KeyDataLength: m.KeyDataLength,
 			Protected:     protected,
 		})
 	}
 
-	return key.MarshalCBOR(suppPubInfo1{
+	return key.MarshalCBOR(&suppPubInfo1{
 		KeyDataLength: m.KeyDataLength,
 		Protected:     protected,
 		Other:         m.Other,
@@ -150,11 +151,12 @@ func (m *SuppPubInfo) UnmarshalCBOR(data []byte) error {
 
 	switch data[0] {
 	case 0x82:
-		var v suppPubInfo0
-		if err := key.UnmarshalCBOR(data, &v); err != nil {
+		v := &suppPubInfo0{}
+		if err := key.UnmarshalCBOR(data, v); err != nil {
 			return err
 		}
 		m.KeyDataLength = v.KeyDataLength
+		m.Protected = Headers{}
 		if len(v.Protected) > 0 {
 			if err := key.UnmarshalCBOR(v.Protected, &m.Protected); err != nil {
 				return err
@@ -167,6 +169,7 @@ func (m *SuppPubInfo) UnmarshalCBOR(data []byte) error {
 			return err
 		}
 		m.KeyDataLength = v.KeyDataLength
+		m.Protected = Headers{}
 		m.Other = v.Other
 		if len(v.Protected) > 0 {
 			if err := key.UnmarshalCBOR(v.Protected, &m.Protected); err != nil {
