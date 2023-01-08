@@ -109,11 +109,7 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 			sig.Unprotected[iana.HeaderParameterKid] = kid
 		}
 
-		var protected []byte
-		if protected, err = sig.Protected.Bytes(); err != nil {
-			return err
-		}
-
+		protected, _ := sig.Protected.Bytes()
 		sig.toSign = mm.toSign(protected, externalData)
 		if sig.Signature, err = signer.Sign(sig.toSign); err != nil {
 			return err
@@ -156,11 +152,7 @@ func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) er
 			}
 		}
 
-		var protected []byte
-		if protected, err = sig.Protected.Bytes(); err != nil {
-			return err
-		}
-
+		protected, _ := sig.Protected.Bytes()
 		sig.toSign = m.mm.toSign(protected, externalData)
 		if err = verifier.Verify(sig.toSign, sig.Signature); err != nil {
 			return err

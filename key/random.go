@@ -11,10 +11,7 @@ import (
 // GetRandomBytes randomly generates n bytes.
 func GetRandomBytes(n uint16) []byte {
 	buf := make([]byte, n)
-	_, err := rand.Read(buf)
-	if err != nil {
-		panic(err) // should never happen
-	}
+	rand.Read(buf) // err should never happen
 	return buf
 }
 

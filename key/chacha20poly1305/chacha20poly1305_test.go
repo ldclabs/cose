@@ -129,6 +129,7 @@ func TestEncryptor(t *testing.T) {
 	k[iana.SymmetricKeyParameterK] = key.GetRandomBytes(32)
 	encryptor, err = New(k)
 	require.NoError(t, err)
+	assert.Equal(iana.AlgorithmChaCha20Poly1305, int(encryptor.Key().Alg()))
 
 	iv := key.GetRandomBytes(uint16(encryptor.NonceSize()))
 
@@ -172,6 +173,14 @@ func TestEncryptor(t *testing.T) {
 	plaintext, err = encryptor.Decrypt(iv, ciphertext, nil)
 	require.NoError(t, err)
 	assert.Equal([]byte("hello world"), plaintext)
+
+	k.SetOps()
+	k[iana.SymmetricKeyParameterK] = []byte{1, 2, 3, 4}
+	_, err = encryptor.Encrypt(iv, []byte("hello world"), nil)
+	assert.ErrorContains(err, "chacha20poly1305: bad key length")
+
+	_, err = encryptor.Decrypt(iv, ciphertext, nil)
+	assert.ErrorContains(err, "chacha20poly1305: bad key length")
 }
 
 func TestEncryptorExamples(t *testing.T) {

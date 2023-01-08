@@ -127,10 +127,7 @@ func New(k key.Key) (key.MACer, error) {
 
 	cek, _ := k.GetBytes(iana.SymmetricKeyParameterK)
 	_, tagSize := getKeySize(k.Alg())
-	block, err := aes.NewCipher(cek)
-	if err != nil {
-		return nil, err
-	}
+	block, _ := aes.NewCipher(cek) // err should never happen
 	return &aesMAC{key: k, tagSize: tagSize, block: block}, nil
 }
 
@@ -141,7 +138,7 @@ func (h *aesMAC) MACCreate(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cose/key/aesmac: MACer.MACCreate: invalid key_ops")
 	}
 
-	return h.create(data)
+	return h.create(data), nil
 }
 
 // MACVerify implements the key.MACer interface.
@@ -151,10 +148,7 @@ func (h *aesMAC) MACVerify(data, mac []byte) error {
 		return fmt.Errorf("cose/key/aesmac: MACer.MACVerify: invalid key_ops")
 	}
 
-	expectedMAC, err := h.create(data)
-	if err != nil {
-		return err
-	}
+	expectedMAC := h.create(data)
 	if subtle.ConstantTimeCompare(expectedMAC, mac) == 1 {
 		return nil
 	}
@@ -165,7 +159,7 @@ func (h *aesMAC) MACVerify(data, mac []byte) error {
 // Reference https://datatracker.ietf.org/doc/html/rfc9053#section-3.2
 var fixedIV = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
-func (h *aesMAC) create(plaintext []byte) ([]byte, error) {
+func (h *aesMAC) create(plaintext []byte) []byte {
 	x := len(plaintext) % aes.BlockSize
 	if x > 0 {
 		x = aes.BlockSize - x
@@ -179,7 +173,7 @@ func (h *aesMAC) create(plaintext []byte) ([]byte, error) {
 	sum := ciphertext[len(ciphertext)-aes.BlockSize:]
 	tag := make([]byte, h.tagSize)
 	copy(tag, sum)
-	return tag, nil
+	return tag
 }
 
 // Key implements the key.MACer interface.

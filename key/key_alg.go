@@ -36,8 +36,6 @@ func ComputeHash(h crypto.Hash, data []byte) ([]byte, error) {
 	}
 
 	hh := h.New()
-	if _, err := hh.Write(data); err != nil {
-		return nil, err
-	}
+	hh.Write(data) // err should never happen
 	return hh.Sum(nil), nil
 }

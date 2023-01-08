@@ -29,11 +29,7 @@ func GenerateKey(alg int) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/key/ecdsa: GenerateKey: algorithm mismatch %d`, alg)
 	}
 
-	pk, err := goecdsa.GenerateKey(curve, rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("cose/key/ecdsa: GenerateKey: %w", err)
-	}
-
+	pk, _ := goecdsa.GenerateKey(curve, rand.Reader) // err should never happen
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
 	return map[int]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,

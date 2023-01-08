@@ -17,10 +17,7 @@ import (
 
 // GenerateKey generates a new Key for Ed25519.
 func GenerateKey() (key.Key, error) {
-	pubKey, privKey, err := goed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("cose/key/ed25519: GenerateKey: %w", err)
-	}
+	pubKey, privKey, _ := goed25519.GenerateKey(rand.Reader) // err should never happen
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair

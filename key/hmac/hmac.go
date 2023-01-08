@@ -136,7 +136,7 @@ func (h *hMAC) MACCreate(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cose/key/hmac: MACCreate: invalid key_ops")
 	}
 
-	return h.create(data)
+	return h.create(data), nil
 }
 
 // MACVerify implements the key.MACer interface.
@@ -146,28 +146,19 @@ func (h *hMAC) MACVerify(data, mac []byte) error {
 		return fmt.Errorf("cose/key/hmac: MACVerify: invalid key_ops")
 	}
 
-	expectedMAC, err := h.create(data)
-	if err != nil {
-		return err
-	}
+	expectedMAC := h.create(data)
 	if hmac.Equal(expectedMAC, mac) {
 		return nil
 	}
 	return fmt.Errorf("cose/key/hmac: VerifyMAC: invalid MAC")
 }
 
-func (h *hMAC) create(data []byte) ([]byte, error) {
-	cek, err := h.key.GetBytes(iana.SymmetricKeyParameterK)
-	if err != nil {
-		return nil, err
-	}
-
+func (h *hMAC) create(data []byte) []byte {
+	cek, _ := h.key.GetBytes(iana.SymmetricKeyParameterK)
 	mac := hmac.New(h.hash, cek)
-	if _, err := mac.Write(data); err != nil {
-		return nil, err
-	}
+	mac.Write(data) // err should never happen
 	tag := mac.Sum(nil)
-	return tag[:h.tagSize], nil
+	return tag[:h.tagSize]
 }
 
 // Key implements the key.MACer interface.

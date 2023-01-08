@@ -88,6 +88,12 @@ func TestKey(t *testing.T) {
 
 		k2.SetOps()
 		assert.False(k2.Has(iana.KeyParameterKeyOps))
+
+		k2[iana.KeyParameterKeyOps] = []any{iana.KeyOperationSign}
+		assert.True(k2.Ops().Has(iana.KeyOperationSign))
+
+		k2[iana.KeyParameterKeyOps] = []any{"1"}
+		assert.Nil(k2.Ops())
 	})
 
 	t.Run("Key.BaseIV", func(t *testing.T) {

@@ -4,6 +4,9 @@
 package ecdsa
 
 import (
+	goecdsa "crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"testing"
 
 	"github.com/ldclabs/cose/iana"
@@ -123,6 +126,10 @@ func TestKeyFromPrivate(t *testing.T) {
 		assert.Equal(k.Kid(), k2.Kid())
 		assert.Equal(key.MustMarshalCBOR(k), key.MustMarshalCBOR(k2))
 	}
+
+	pk, _ := goecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	_, err := KeyFromPrivate(pk)
+	assert.ErrorContains(err, `unsupported curve "P-224"`)
 }
 
 func TestKeyToPublic(t *testing.T) {
@@ -199,6 +206,10 @@ func TestKeyFromPublic(t *testing.T) {
 		assert.NotEqual(key.MustMarshalCBOR(k), key.MustMarshalCBOR(k2))
 		assert.Equal(key.MustMarshalCBOR(k1), key.MustMarshalCBOR(k2))
 	}
+
+	pk, _ := goecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	_, err := KeyFromPublic(&pk.PublicKey)
+	assert.ErrorContains(err, `unsupported curve "P-224"`)
 }
 
 func TestCheckKey(t *testing.T) {

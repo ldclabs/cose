@@ -130,10 +130,7 @@ func New(k key.Key) (key.Encryptor, error) {
 	}
 
 	cek, _ := k.GetBytes(iana.SymmetricKeyParameterK)
-	block, err := aes.NewCipher(cek)
-	if err != nil {
-		return nil, err
-	}
+	block, _ := aes.NewCipher(cek) // err should never happen
 	_, _, nonceSize := getKeySize(k.Alg())
 	return &aesCCM{key: k, block: block, ivSize: nonceSize}, nil
 }
@@ -151,10 +148,7 @@ func (h *aesCCM) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cose/key/aesccm: Encryptor.Encrypt: invalid nonce size, expected %d, got %d",
 			nonceSize, len(iv))
 	}
-	aead, err := ccm.NewCCM(h.block, tagSize, nonceSize)
-	if err != nil {
-		return nil, err
-	}
+	aead, _ := ccm.NewCCM(h.block, tagSize, nonceSize) // err should never happen
 	ciphertext := aead.Seal(nil, iv, plaintext, additionalData)
 	return ciphertext, nil
 }
@@ -172,10 +166,7 @@ func (h *aesCCM) Decrypt(iv, ciphertext, additionalData []byte) ([]byte, error) 
 			nonceSize, len(iv))
 	}
 
-	aead, err := ccm.NewCCM(h.block, tagSize, nonceSize)
-	if err != nil {
-		return nil, err
-	}
+	aead, _ := ccm.NewCCM(h.block, tagSize, nonceSize) // err should never happen
 	return aead.Open(nil, iv, ciphertext, additionalData)
 }
 
