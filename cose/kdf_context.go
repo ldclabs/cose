@@ -117,13 +117,9 @@ type suppPubInfo1 struct {
 
 // MarshalCBOR implements the CBOR Marshaler interface for SuppPubInfo.
 func (m SuppPubInfo) MarshalCBOR() ([]byte, error) {
-	protected := []byte{}
-	if len(m.Protected) > 0 {
-		var err error
-		protected, err = key.MarshalCBOR(m.Protected)
-		if err != nil {
-			return nil, err
-		}
+	protected, err := m.Protected.Bytes()
+	if err != nil {
+		return nil, err
 	}
 
 	if m.Other == nil {
@@ -149,32 +145,27 @@ func (m *SuppPubInfo) UnmarshalCBOR(data []byte) error {
 		return errors.New("cose/cose: SuppPubInfo.UnmarshalCBOR: empty data")
 	}
 
+	var err error
 	switch data[0] {
 	case 0x82:
 		v := &suppPubInfo0{}
-		if err := key.UnmarshalCBOR(data, v); err != nil {
+		if err = key.UnmarshalCBOR(data, v); err != nil {
 			return err
 		}
 		m.KeyDataLength = v.KeyDataLength
-		m.Protected = Headers{}
-		if len(v.Protected) > 0 {
-			if err := key.UnmarshalCBOR(v.Protected, &m.Protected); err != nil {
-				return err
-			}
+		if m.Protected, err = HeadersFromBytes(v.Protected); err != nil {
+			return err
 		}
 
 	case 0x83:
 		var v suppPubInfo1
-		if err := key.UnmarshalCBOR(data, &v); err != nil {
+		if err = key.UnmarshalCBOR(data, &v); err != nil {
 			return err
 		}
 		m.KeyDataLength = v.KeyDataLength
-		m.Protected = Headers{}
 		m.Other = v.Other
-		if len(v.Protected) > 0 {
-			if err := key.UnmarshalCBOR(v.Protected, &m.Protected); err != nil {
-				return err
-			}
+		if m.Protected, err = HeadersFromBytes(v.Protected); err != nil {
+			return err
 		}
 
 	default:

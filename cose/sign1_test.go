@@ -338,6 +338,13 @@ func TestSign1EdgeCase(t *testing.T) {
 		_, err = VerifySign1Message[T](verifier, datae, nil)
 		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
 
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x53), datae[33]) // "S"
+		datae[33] = 0xfa
+		_, err = VerifySign1Message[T](verifier, datae, nil)
+		assert.ErrorContains(err, "invalid UTF-8 string")
+
 		obj = &Sign1Message[T]{
 			Protected: Headers{
 				iana.HeaderParameterAlg:      iana.AlgorithmEdDSA,

@@ -78,15 +78,12 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 	}
 
 	mm := &sign1Message{
-		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 	}
 
 	var err error
-	if len(m.Protected) > 0 {
-		if mm.Protected, err = key.MarshalCBOR(m.Protected); err != nil {
-			return err
-		}
+	if mm.Protected, err = m.Protected.Bytes(); err != nil {
+		return err
 	}
 
 	switch v := any(m.Payload).(type) {
@@ -183,16 +180,14 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 		data = data[1:]
 	}
 
+	var err error
 	mm := &sign1Message{}
-	if err := key.UnmarshalCBOR(data, mm); err != nil {
+	if err = key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
 
-	protected := Headers{}
-	if len(mm.Protected) > 0 {
-		if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
-			return err
-		}
+	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+		return err
 	}
 
 	if len(mm.Payload) > 0 {
@@ -208,7 +203,6 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 		}
 	}
 
-	m.Protected = protected
 	m.Unprotected = mm.Unprotected
 	m.mm = mm
 	return nil

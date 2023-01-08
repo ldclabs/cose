@@ -476,6 +476,20 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 		partialIV := key.GetRandomBytes(6)
 
 		obj := &EncryptMessage[cbor.RawMessage]{
+			Unprotected: Headers{iana.HeaderParameterIV: 123},
+			Payload:     key.MustMarshalCBOR("This is the content."),
+		}
+		assert.ErrorContains(obj.Encrypt(encryptor, nil),
+			`IntMap.GetBytes: invalid value type`)
+
+		obj = &EncryptMessage[cbor.RawMessage]{
+			Unprotected: Headers{iana.HeaderParameterPartialIV: 123},
+			Payload:     key.MustMarshalCBOR("This is the content."),
+		}
+		assert.ErrorContains(obj.Encrypt(encryptor, nil),
+			`IntMap.GetBytes: invalid value type`)
+
+		obj = &EncryptMessage[cbor.RawMessage]{
 			Unprotected: Headers{iana.HeaderParameterIV: iv[2:]},
 			Payload:     key.MustMarshalCBOR("This is the content."),
 		}
@@ -522,6 +536,10 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 		_, err = obj.EncryptAndEncode(encryptor, nil)
 		assert.ErrorContains(err,
 			`base iv is missing`)
+
+		encryptor.Key()[iana.KeyParameterBaseIV] = 123
+		assert.ErrorContains(obj.Encrypt(encryptor, nil),
+			`IntMap.GetBytes: invalid value type`)
 
 		encryptor.Key()[iana.KeyParameterBaseIV] = iv[:8]
 		assert.NoError(obj.Encrypt(encryptor, nil))

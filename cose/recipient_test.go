@@ -81,6 +81,18 @@ func TestRecipient(t *testing.T) {
 		assert.NoError(key.UnmarshalCBOR(key.MustMarshalCBOR(r1), &r3))
 		assert.Equal(r1.Bytesify(), r3.Bytesify())
 		assert.Equal(r2.Bytesify(), r3.Recipients()[0].Bytesify())
+
+		r2 = &Recipient{
+			Protected: Headers{
+				iana.HeaderParameterAlg: func() {},
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: []byte("our-secret"),
+			},
+			Ciphertext: nil,
+		}
+		_, err = r2.MarshalCBOR()
+		assert.ErrorContains(err, "cbor: unsupported type")
 	})
 
 	t.Run("Recipient.UnmarshalCBOR", func(t *testing.T) {
@@ -100,7 +112,8 @@ func TestRecipient(t *testing.T) {
 			},
 			Ciphertext: []byte{1, 2, 3, 4},
 		}
-		assert.NoError(r4.UnmarshalCBOR(key.MustMarshalCBOR(r)))
+		data := key.MustMarshalCBOR(r)
+		assert.NoError(r4.UnmarshalCBOR(data))
 		assert.Equal(r.Ciphertext, r4.Ciphertext)
 		assert.Equal(r.Bytesify(), r4.Bytesify())
 
@@ -114,12 +127,24 @@ func TestRecipient(t *testing.T) {
 			},
 			Ciphertext: []byte{1, 2, 3, 4},
 		}
-		assert.NoError(r4.UnmarshalCBOR(key.MustMarshalCBOR(r)))
+		data = key.MustMarshalCBOR(r)
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[3])
+		datae[3] = 0x60
+		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x04), datae[7])
+		datae[7] = 0x60
+		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+		assert.NoError(r4.UnmarshalCBOR(data))
 		assert.Equal(r.Ciphertext, r4.Ciphertext)
 		assert.Equal(r.Bytesify(), r4.Bytesify())
 
 		r4 = &Recipient{}
-		data := key.MustMarshalCBOR(r)
+		data = key.MustMarshalCBOR(r)
 		data[0] = 0x84
 		data = append(data, 0xf6)
 		assert.ErrorContains(r4.UnmarshalCBOR(data), "no recipients")
@@ -147,5 +172,36 @@ func TestRecipient(t *testing.T) {
 
 		r4 = &Recipient{}
 		assert.ErrorContains(r4.UnmarshalCBOR(data), "should not have nested recipients")
+
+		r = &Recipient{
+			Protected: Headers{
+				iana.HeaderParameterAlg: iana.AlgorithmECDH_SS_HKDF_256,
+			},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: []byte("our-secret"),
+			},
+			Ciphertext: []byte{1, 2, 3, 4},
+		}
+		r.AddRecipient(&Recipient{
+			Protected: Headers{},
+			Unprotected: Headers{
+				iana.HeaderParameterKid: []byte("our-secret"),
+			},
+		})
+		data = key.MustMarshalCBOR(r)
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[3])
+		datae[3] = 0x60
+		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x04), datae[7])
+		datae[7] = 0x60
+		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+		assert.NoError(r4.UnmarshalCBOR(data))
+		assert.Equal(r.Ciphertext, r4.Ciphertext)
+		assert.Equal(r.Bytesify(), r4.Bytesify())
 	})
 }

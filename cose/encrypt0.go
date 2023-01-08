@@ -110,15 +110,10 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 	}
 
 	mm := &encrypt0Message{
-		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 	}
-
-	if len(m.Protected) > 0 {
-		mm.Protected, err = key.MarshalCBOR(m.Protected)
-		if err != nil {
-			return err
-		}
+	if mm.Protected, err = m.Protected.Bytes(); err != nil {
+		return err
 	}
 
 	var plaintext []byte
@@ -272,14 +267,11 @@ func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
 		return err
 	}
 
-	protected := Headers{}
-	if len(mm.Protected) > 0 {
-		if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
-			return err
-		}
+	var err error
+	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+		return err
 	}
 
-	m.Protected = protected
 	m.Unprotected = mm.Unprotected
 	m.mm = mm
 	return nil

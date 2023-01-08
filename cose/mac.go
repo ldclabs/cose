@@ -98,16 +98,12 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 	}
 
 	mm := &macMessage{
-		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 	}
 
 	var err error
-	if len(m.Protected) > 0 {
-		mm.Protected, err = key.MarshalCBOR(m.Protected)
-		if err != nil {
-			return err
-		}
+	if mm.Protected, err = m.Protected.Bytes(); err != nil {
+		return err
 	}
 
 	switch v := any(m.Payload).(type) {
@@ -214,8 +210,9 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 		data = data[2:]
 	}
 
+	var err error
 	mm := &macMessage{}
-	if err := key.UnmarshalCBOR(data, mm); err != nil {
+	if err = key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
 
@@ -228,11 +225,8 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 		}
 	}
 
-	protected := Headers{}
-	if len(mm.Protected) > 0 {
-		if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
-			return err
-		}
+	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+		return err
 	}
 
 	if len(mm.Payload) > 0 {
@@ -248,7 +242,6 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 		}
 	}
 
-	m.Protected = protected
 	m.Unprotected = mm.Unprotected
 	m.recipients = mm.Recipients
 	m.mm = mm

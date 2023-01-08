@@ -64,6 +64,12 @@ func TestKDFContext(t *testing.T) {
 		require.NoError(t, err)
 
 		k2 = &KDFContext{}
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x38), datae[1])
+		datae[1] = 0x60
+		assert.ErrorContains(k2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+
 		assert.NoError(key.UnmarshalCBOR(data, k2))
 		assert.Equal(key.MustMarshalCBOR(k1), key.MustMarshalCBOR(k2))
 		assert.Equal(k1.AlgorithmID, k2.AlgorithmID)
@@ -94,6 +100,12 @@ func TestKDFContext(t *testing.T) {
 		require.NoError(t, err)
 
 		k2 = &KDFContext{}
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x38), datae[1])
+		datae[1] = 0x60
+		assert.ErrorContains(k2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+
 		assert.NoError(key.UnmarshalCBOR(data, k2))
 		assert.Equal(key.MustMarshalCBOR(k1), key.MustMarshalCBOR(k2))
 		assert.Equal(k1.AlgorithmID, k2.AlgorithmID)
@@ -133,7 +145,16 @@ func TestKDFContext(t *testing.T) {
 		assert.ErrorContains(s.UnmarshalCBOR([]byte{}), "empty data")
 		assert.ErrorContains(s.UnmarshalCBOR([]byte{0x84}), "invalid data")
 
-		s1 := &SuppPubInfo{}
+		s1 := &SuppPubInfo{
+			KeyDataLength: 128,
+			Protected: Headers{
+				iana.HeaderParameterAlg: func() {},
+			},
+		}
+		_, err := s1.MarshalCBOR()
+		assert.ErrorContains(err, "cbor: unsupported type")
+
+		s1 = &SuppPubInfo{}
 		data, err := s1.MarshalCBOR()
 		require.NoError(t, err)
 		assert.Nil(s1.Protected)
@@ -167,6 +188,17 @@ func TestKDFContext(t *testing.T) {
 		require.NoError(t, err)
 
 		s2 = &SuppPubInfo{}
+		datae := make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x18), datae[1])
+		datae[1] = 0x22
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal negative integer")
+
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[5])
+		datae[5] = 0x60
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+
 		assert.NoError(key.UnmarshalCBOR(data, s2))
 		assert.Equal(key.MustMarshalCBOR(s1), key.MustMarshalCBOR(s2))
 		assert.Equal(s1.KeyDataLength, s2.KeyDataLength)
@@ -185,6 +217,17 @@ func TestKDFContext(t *testing.T) {
 		require.NoError(t, err)
 
 		s2 = &SuppPubInfo{}
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x18), datae[1])
+		datae[1] = 0x22
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal negative integer")
+
+		copy(datae, data)
+		assert.Equal(byte(0x01), datae[5])
+		datae[5] = 0x60
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+
 		assert.NoError(key.UnmarshalCBOR(data, s2))
 		assert.Equal(key.MustMarshalCBOR(s1), key.MustMarshalCBOR(s2))
 		assert.Equal(s1.KeyDataLength, s2.KeyDataLength)

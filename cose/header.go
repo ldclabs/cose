@@ -65,3 +65,25 @@ func (h *Headers) UnmarshalCBOR(data []byte) error {
 func (h Headers) Bytesify() []byte {
 	return key.IntMap(h).Bytesify()
 }
+
+// Bytesify returns a CBOR-encoded byte slice.
+// It returns ([]byte{}, nil) if Headers is nil or empty.
+func (h Headers) Bytes() ([]byte, error) {
+	if len(h) == 0 {
+		return []byte{}, nil
+	}
+	return h.MarshalCBOR()
+}
+
+// HeadersFromBytes decode bytes into a Headers.
+// It returns (Headers{}, nil) if data is nil or empty.
+func HeadersFromBytes(data []byte) (Headers, error) {
+	h := Headers{}
+	if len(data) > 0 {
+		if err := h.UnmarshalCBOR(data); err != nil {
+			return nil, err
+		}
+	}
+
+	return h, nil
+}

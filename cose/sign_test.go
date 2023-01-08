@@ -211,6 +211,13 @@ func TestSignEdgeCase(t *testing.T) {
 			Payload: []byte("This is the content."),
 		}
 		assert.ErrorContains(obj.Verify(verifiers, nil), "should call SignMessage.UnmarshalCBOR")
+		obj.mm = &signMessage{
+			Protected:   []byte{},
+			Unprotected: Headers{},
+			Signatures:  []*Signature{},
+		}
+		assert.ErrorContains(obj.Verify(verifiers, nil), "no signatures")
+		obj.mm = nil
 
 		_, err = obj.MarshalCBOR()
 		assert.ErrorContains(err, "should call SignMessage.WithSign")
@@ -368,6 +375,13 @@ func TestSignEdgeCase(t *testing.T) {
 		_, err = VerifySignMessage[T](verifiers, datae, nil)
 		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
 
+		datae = make([]byte, len(data))
+		copy(datae, data)
+		assert.Equal(byte(0x53), datae[34]) // "S"
+		datae[34] = 0xfa
+		_, err = VerifySignMessage[T](verifiers, datae, nil)
+		assert.ErrorContains(err, "invalid UTF-8 string")
+
 		obj = &SignMessage[T]{
 			Protected: Headers{
 				iana.HeaderParameterAlg:      iana.AlgorithmEdDSA,
@@ -410,4 +424,55 @@ func TestSignatureEdgeCase(t *testing.T) {
 	sig = &Signature{}
 	_, err = sig.MarshalCBOR()
 	assert.ErrorContains(err, "should call SignMessage.WithSign")
+
+	sig = &Signature{
+		Protected: Headers{
+			iana.HeaderParameterAlg: func() {},
+		},
+		Signature: []byte{1, 2, 3, 4},
+	}
+	_, err = sig.MarshalCBOR()
+	assert.ErrorContains(err, "cbor: unsupported type")
+
+	sig = &Signature{
+		Unprotected: Headers{
+			iana.HeaderParameterAlg: func() {},
+		},
+		Signature: []byte{1, 2, 3, 4},
+	}
+	_, err = sig.MarshalCBOR()
+	assert.ErrorContains(err, "cbor: unsupported type")
+
+	sig = &Signature{
+		Protected: Headers{
+			iana.HeaderParameterAlg: iana.AlgorithmEdDSA,
+		},
+		Unprotected: Headers{
+			iana.HeaderParameterKid: []byte{1, 2, 3, 4},
+		},
+		Signature: []byte{1, 2, 3, 4},
+	}
+	data, err := sig.MarshalCBOR()
+	require.NoError(t, err)
+
+	sig1 := &Signature{}
+	assert.NoError(sig1.UnmarshalCBOR(data))
+	assert.Equal(sig.Signature, sig1.Signature)
+	assert.Equal(key.MustMarshalCBOR(sig), key.MustMarshalCBOR(sig1))
+
+	datae := make([]byte, len(data))
+	copy(datae, data)
+	assert.Equal(byte(0x04), datae[6])
+	datae[6] = 0xf4
+
+	sig1 = &Signature{}
+	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: cannot unmarshal")
+
+	datae = make([]byte, len(data))
+	copy(datae, data)
+	assert.Equal(byte(0x01), datae[3])
+	datae[3] = 0xf4
+
+	sig1 = &Signature{}
+	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: cannot unmarshal")
 }

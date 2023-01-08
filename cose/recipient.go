@@ -53,15 +53,12 @@ func (m *Recipient) Recipients() []*Recipient {
 // MarshalCBOR implements the CBOR Marshaler interface for Recipient.
 func (m *Recipient) MarshalCBOR() ([]byte, error) {
 	mm0 := &recipientMessage0{
-		Protected:   []byte{},
 		Unprotected: m.Unprotected,
 		Ciphertext:  m.Ciphertext,
 	}
-	if len(m.Protected) > 0 {
-		var err error
-		if mm0.Protected, err = key.MarshalCBOR(m.Protected); err != nil {
-			return nil, err
-		}
+	var err error
+	if mm0.Protected, err = m.Protected.Bytes(); err != nil {
+		return nil, err
 	}
 	if mm0.Unprotected == nil {
 		mm0.Unprotected = Headers{}
@@ -90,27 +87,24 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 		return errors.New("cose/cose: Recipient.UnmarshalCBOR: empty data")
 	}
 
+	var err error
 	switch data[0] {
 	case 0x83: // array(3)
 		mm := &recipientMessage0{}
-		if err := key.UnmarshalCBOR(data, mm); err != nil {
+		if err = key.UnmarshalCBOR(data, mm); err != nil {
 			return err
 		}
 
-		protected := Headers{}
-		if len(mm.Protected) > 0 {
-			if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
-				return err
-			}
+		if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+			return err
 		}
 
-		m.Protected = protected
 		m.Unprotected = mm.Unprotected
 		m.Ciphertext = mm.Ciphertext
 
 	case 0x84:
 		mm := &recipientMessage{}
-		if err := key.UnmarshalCBOR(data, mm); err != nil {
+		if err = key.UnmarshalCBOR(data, mm); err != nil {
 			return err
 		}
 		if len(mm.Recipients) == 0 {
@@ -125,14 +119,10 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 			}
 		}
 
-		protected := Headers{}
-		if len(mm.Protected) > 0 {
-			if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
-				return err
-			}
+		if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+			return err
 		}
 
-		m.Protected = protected
 		m.Unprotected = mm.Unprotected
 		m.Ciphertext = mm.Ciphertext
 		m.recipients = mm.Recipients

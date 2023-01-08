@@ -94,3 +94,43 @@ func TestHeaders(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(key.HexBytesify("0043B12669ACAC3FD27898FFBA0BCD2E6C366D53BC4DB71F909A759304ACFB5E18CDC7BA0B13FF8C7636271A6924B1AC63C02688075B55EF2D613574E7DC242F79C3"), x)
 }
+
+func TestHeaderBytes(t *testing.T) {
+	assert := assert.New(t)
+
+	var h Headers
+	data, err := h.Bytes()
+	assert.NoError(err)
+	assert.Equal([]byte{}, data)
+
+	h = Headers{}
+	data, err = h.Bytes()
+	assert.NoError(err)
+	assert.Equal([]byte{}, data)
+
+	h = Headers{iana.HeaderParameterReserved: true}
+	data, err = h.Bytes()
+	assert.NoError(err)
+	assert.Equal(data, key.MustMarshalCBOR(h))
+
+	h, err = HeadersFromBytes(nil)
+	assert.NoError(err)
+	assert.Equal(Headers{}, h)
+
+	h, err = HeadersFromBytes([]byte{})
+	assert.NoError(err)
+	assert.Equal(Headers{}, h)
+
+	h, err = HeadersFromBytes(data)
+	assert.NoError(err)
+	assert.NotEqual(Headers{}, h)
+	assert.True(h.Has(iana.HeaderParameterReserved))
+
+	data[1] = 0xf5
+	_, err = HeadersFromBytes(data)
+	assert.ErrorContains(err, "cbor: cannot unmarshal")
+
+	h = Headers{iana.HeaderParameterReserved: func() {}}
+	_, err = h.Bytes()
+	assert.ErrorContains(err, "cbor: unsupported type")
+}

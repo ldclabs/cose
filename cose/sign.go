@@ -57,8 +57,7 @@ type Signature struct {
 	Unprotected Headers
 	Signature   []byte
 
-	protected []byte
-	toSign    []byte
+	toSign []byte
 }
 
 // WithSign signs a COSE_Sign message with some Signers.
@@ -83,10 +82,8 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 	}
 
 	var err error
-	if len(m.Protected) > 0 {
-		if mm.Protected, err = key.MarshalCBOR(m.Protected); err != nil {
-			return err
-		}
+	if mm.Protected, err = m.Protected.Bytes(); err != nil {
+		return err
 	}
 
 	switch v := any(m.Payload).(type) {
@@ -104,8 +101,6 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 		sig := &Signature{
 			Protected:   Headers{},
 			Unprotected: Headers{},
-
-			protected: []byte{},
 		}
 		if alg := signer.Key().Alg(); alg != iana.AlgorithmReserved {
 			sig.Protected[iana.HeaderParameterAlg] = alg
@@ -114,14 +109,12 @@ func (m *SignMessage[T]) WithSign(signers key.Signers, externalData []byte) erro
 			sig.Unprotected[iana.HeaderParameterKid] = kid
 		}
 
-		if len(sig.Protected) > 0 {
-			sig.protected, err = key.MarshalCBOR(sig.Protected)
-			if err != nil {
-				return err
-			}
+		var protected []byte
+		if protected, err = sig.Protected.Bytes(); err != nil {
+			return err
 		}
 
-		if sig.toSign, err = mm.toSign(sig.protected, externalData); err != nil {
+		if sig.toSign, err = mm.toSign(protected, externalData); err != nil {
 			return err
 		}
 
@@ -166,7 +159,11 @@ func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) er
 			}
 		}
 
-		if sig.toSign, err = m.mm.toSign(sig.protected, externalData); err != nil {
+		var protected []byte
+		if protected, err = sig.Protected.Bytes(); err != nil {
+			return err
+		}
+		if sig.toSign, err = m.mm.toSign(protected, externalData); err != nil {
 			return err
 		}
 		if err = verifier.Verify(sig.toSign, sig.Signature); err != nil {
@@ -227,16 +224,14 @@ func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
 		data = data[2:]
 	}
 
+	var err error
 	mm := &signMessage{}
-	if err := key.UnmarshalCBOR(data, mm); err != nil {
+	if err = key.UnmarshalCBOR(data, mm); err != nil {
 		return err
 	}
 
-	protected := Headers{}
-	if len(mm.Protected) > 0 {
-		if err := key.UnmarshalCBOR(mm.Protected, &protected); err != nil {
-			return err
-		}
+	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+		return err
 	}
 
 	if len(mm.Payload) > 0 {
@@ -252,7 +247,6 @@ func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
 		}
 	}
 
-	m.Protected = protected
 	m.Unprotected = mm.Unprotected
 	m.mm = mm
 	return nil
@@ -275,20 +269,13 @@ func (s *Signature) MarshalCBOR() ([]byte, error) {
 		return nil, errors.New("cose/cose: Signature.MarshalCBOR: should call SignMessage.WithSign")
 	}
 	sm := &signatureMessage{
-		Protected:   s.protected,
 		Unprotected: s.Unprotected,
 		Signature:   s.Signature,
 	}
 
-	if sm.Protected == nil {
-		sm.Protected = []byte{}
-		if len(s.Protected) > 0 {
-			var err error
-			sm.Protected, err = key.MarshalCBOR(s.Protected)
-			if err != nil {
-				return nil, err
-			}
-		}
+	var err error
+	if sm.Protected, err = s.Protected.Bytes(); err != nil {
+		return nil, err
 	}
 
 	return key.MarshalCBOR(sm)
@@ -300,22 +287,18 @@ func (s *Signature) UnmarshalCBOR(data []byte) error {
 		return errors.New("cose/cose: Signature.UnmarshalCBOR: nil Signature")
 	}
 
+	var err error
 	sm := &signatureMessage{}
-	if err := key.UnmarshalCBOR(data, sm); err != nil {
+	if err = key.UnmarshalCBOR(data, sm); err != nil {
 		return err
 	}
 
-	protected := Headers{}
-	if len(sm.Protected) > 0 {
-		if err := key.UnmarshalCBOR(sm.Protected, &protected); err != nil {
-			return err
-		}
+	if s.Protected, err = HeadersFromBytes(sm.Protected); err != nil {
+		return err
 	}
 
-	s.Protected = protected
 	s.Unprotected = sm.Unprotected
 	s.Signature = sm.Signature
-	s.protected = sm.Protected
 	return nil
 }
 
