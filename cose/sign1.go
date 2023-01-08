@@ -6,6 +6,7 @@ package cose
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
 
@@ -60,6 +61,12 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 		if alg := signer.Key().Alg(); alg != iana.AlgorithmReserved {
 			m.Protected[iana.HeaderParameterAlg] = alg
 		}
+	} else if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(signer.Key().Alg()) {
+			return fmt.Errorf("cose/cose: Sign1Message.WithSign: signer'alg mismatch, expected %d, got %d",
+				alg, signer.Key().Alg())
+		}
 	}
 
 	if m.Unprotected == nil {
@@ -112,6 +119,14 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 func (m *Sign1Message[T]) Verify(verifier key.Verifier, externalData []byte) error {
 	if m.mm == nil || m.mm.Signature == nil {
 		return errors.New("cose/cose: Sign1Message.Verify: should call Sign1Message.UnmarshalCBOR")
+	}
+
+	if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(verifier.Key().Alg()) {
+			return fmt.Errorf("cose/cose: Sign1Message.Verify: verifier'alg mismatch, expected %d, got %d",
+				alg, verifier.Key().Alg())
+		}
 	}
 
 	var err error
@@ -189,7 +204,7 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 		case []byte:
 			m.Payload = any(mm.Payload).(T)
 		case cbor.RawMessage:
-			m.Payload = any(mm.Payload).(T)
+			m.Payload = any(cbor.RawMessage(mm.Payload)).(T)
 		default:
 			if err := key.UnmarshalCBOR(mm.Payload, &m.Payload); err != nil {
 				return err

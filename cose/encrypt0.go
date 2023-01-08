@@ -6,6 +6,7 @@ package cose
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/ldclabs/cose/iana"
@@ -58,6 +59,12 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 
 		if alg := encryptor.Key().Alg(); alg != iana.AlgorithmReserved {
 			m.Protected[iana.HeaderParameterAlg] = alg
+		}
+	} else if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(encryptor.Key().Alg()) {
+			return fmt.Errorf("cose/cose: Encrypt0Message.Encrypt: encryptor'alg mismatch, expected %d, got %d",
+				alg, encryptor.Key().Alg())
 		}
 	}
 
@@ -125,6 +132,14 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 		return errors.New("cose/cose: Encrypt0Message.Decrypt: should call Encrypt0Message.UnmarshalCBOR")
 	}
 
+	if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(encryptor.Key().Alg()) {
+			return fmt.Errorf("cose/cose: Encrypt0Message.Decrypt: encryptor'alg mismatch, expected %d, got %d",
+				alg, encryptor.Key().Alg())
+		}
+	}
+
 	var err error
 	m.toEnc, err = m.mm.toEnc(externalData)
 	if err != nil {
@@ -145,7 +160,7 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 		case []byte:
 			m.Payload = any(plaintext).(T)
 		case cbor.RawMessage:
-			m.Payload = any(plaintext).(T)
+			m.Payload = any(cbor.RawMessage(plaintext)).(T)
 		default:
 			if err := key.UnmarshalCBOR(plaintext, &m.Payload); err != nil {
 				return err

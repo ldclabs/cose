@@ -6,6 +6,7 @@ package cose
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/ldclabs/cose/iana"
@@ -59,6 +60,12 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 		if alg := macer.Key().Alg(); alg != iana.AlgorithmReserved {
 			m.Protected[iana.HeaderParameterAlg] = alg
 		}
+	} else if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(macer.Key().Alg()) {
+			return fmt.Errorf("cose/cose: Mac0Message.Compute: macer'alg mismatch, expected %d, got %d",
+				alg, macer.Key().Alg())
+		}
 	}
 
 	if m.Unprotected == nil {
@@ -111,6 +118,14 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 func (m *Mac0Message[T]) Verify(macer key.MACer, externalData []byte) error {
 	if m.mm == nil || m.mm.Tag == nil {
 		return errors.New("cose/cose: Mac0Message.Verify: should call Mac0Message.UnmarshalCBOR")
+	}
+
+	if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(macer.Key().Alg()) {
+			return fmt.Errorf("cose/cose: Mac0Message.Verify: macer'alg mismatch, expected %d, got %d",
+				alg, macer.Key().Alg())
+		}
 	}
 
 	var err error
@@ -189,7 +204,7 @@ func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
 		case []byte:
 			m.Payload = any(mm.Payload).(T)
 		case cbor.RawMessage:
-			m.Payload = any(mm.Payload).(T)
+			m.Payload = any(cbor.RawMessage(mm.Payload)).(T)
 		default:
 			if err := key.UnmarshalCBOR(mm.Payload, &m.Payload); err != nil {
 				return err

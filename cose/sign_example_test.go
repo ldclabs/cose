@@ -22,7 +22,7 @@ func ExampleSignMessage() {
 
 	// ks is:
 	// key.KeySet{
-	// 	map[int]any{
+	// 	key.Key{
 	// 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 	// 		iana.KeyParameterKid:    []byte("11"),
 	// 		iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -30,7 +30,7 @@ func ExampleSignMessage() {
 	// 		iana.EC2KeyParameterY:   key.Base64Bytesify("IBOL-C3BttVivg-lSreASjpkttcsz-1rb7btKLv8EX4"),
 	// 		iana.EC2KeyParameterD:   key.Base64Bytesify("V8kgd2ZBRuh2dgyVINBUqpPDr7BOMGcF22CQMIUHtNM"),
 	// 	},
-	// 	map[int]any{
+	// 	key.Key{
 	// 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 	// 		iana.KeyParameterKid:    []byte("bilbo.baggins@hobbiton.example"),
 	// 		iana.EC2KeyParameterCrv: iana.EllipticCurveP_521,

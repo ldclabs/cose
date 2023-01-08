@@ -6,12 +6,13 @@ package cose
 import (
 	"testing"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
-	_ "github.com/ldclabs/cose/key/ecdsa"
+	"github.com/ldclabs/cose/key/ecdsa"
 	"github.com/ldclabs/cose/key/ed25519"
 )
 
@@ -168,47 +169,155 @@ func TestSign1(t *testing.T) {
 }
 
 func TestSign1EdgeCase(t *testing.T) {
-	assert := assert.New(t)
+	t.Run("common edge case", func(t *testing.T) {
+		assert := assert.New(t)
 
-	k, err := ed25519.GenerateKey()
-	require.NoError(t, err)
+		k, err := ed25519.GenerateKey()
+		require.NoError(t, err)
 
-	signer, err := k.Signer()
-	require.NoError(t, err)
+		signer, err := k.Signer()
+		require.NoError(t, err)
 
-	verifier, err := k.Verifier()
-	require.NoError(t, err)
+		verifier, err := k.Verifier()
+		require.NoError(t, err)
 
-	var obj *Sign1Message[[]byte]
-	assert.ErrorContains(obj.UnmarshalCBOR([]byte{0x84}), "nil Sign1Message")
+		var obj *Sign1Message[[]byte]
+		assert.ErrorContains(obj.UnmarshalCBOR([]byte{0x84}), "nil Sign1Message")
 
-	obj = &Sign1Message[[]byte]{
-		Payload: []byte("This is the content."),
-	}
-	assert.ErrorContains(obj.Verify(verifier, nil), "should call Sign1Message.UnmarshalCBOR")
+		obj = &Sign1Message[[]byte]{
+			Payload: []byte("This is the content."),
+		}
+		assert.ErrorContains(obj.Verify(verifier, nil), "should call Sign1Message.UnmarshalCBOR")
 
-	_, err = obj.MarshalCBOR()
-	assert.ErrorContains(err, "should call Sign1Message.WithSign")
-	_, err = key.MarshalCBOR(obj)
-	assert.ErrorContains(err, "should call Sign1Message.WithSign")
+		_, err = obj.MarshalCBOR()
+		assert.ErrorContains(err, "should call Sign1Message.WithSign")
+		_, err = key.MarshalCBOR(obj)
+		assert.ErrorContains(err, "should call Sign1Message.WithSign")
 
-	assert.NoError(obj.WithSign(signer, nil))
-	assert.NoError(obj.Verify(verifier, nil))
+		assert.Nil(obj.Bytesify())
+		assert.Nil(obj.Signature())
 
-	data1, err := obj.MarshalCBOR()
-	require.NoError(t, err)
-	data2, err := key.MarshalCBOR(obj)
-	require.NoError(t, err)
-	assert.Equal(data1, data2)
+		signer.Key().SetOps(iana.KeyOperationVerify)
+		assert.ErrorContains(obj.WithSign(signer, nil), "invalid key_ops")
+		_, err = obj.SignAndEncode(signer, nil)
+		assert.ErrorContains(err, "invalid key_ops")
+		signer.Key().SetOps(iana.KeyOperationSign)
+		assert.NoError(obj.WithSign(signer, nil))
+		sig := obj.Signature()
 
-	var obj1 Sign1Message[[]byte]
-	assert.NoError(key.UnmarshalCBOR(data1, &obj1))
-	assert.NoError(obj1.Verify(verifier, nil))
-	assert.Equal(obj.Payload, obj1.Payload)
+		verifier.Key().SetOps(iana.KeyOperationSign)
+		assert.ErrorContains(obj.Verify(verifier, nil), "invalid key_ops")
 
-	_, err = VerifySign1Message[[]byte](verifier, data2[5:], nil)
-	assert.ErrorContains(err, "cbor: cannot unmarshal")
-	obj2, err := VerifySign1Message[[]byte](verifier, data2, nil)
-	require.NoError(t, err)
-	assert.Equal(obj.Payload, obj2.Payload)
+		verifier.Key().SetOps(iana.KeyOperationVerify)
+		assert.NoError(obj.Verify(verifier, nil))
+
+		data1, err := obj.MarshalCBOR()
+		require.NoError(t, err)
+		data2, err := key.MarshalCBOR(obj)
+		require.NoError(t, err)
+		assert.Equal(data1, data2)
+
+		var obj1 Sign1Message[[]byte]
+		assert.NoError(key.UnmarshalCBOR(data1, &obj1))
+		assert.NoError(obj1.Verify(verifier, nil))
+		assert.Equal(obj.Payload, obj1.Payload)
+		assert.Equal(sig, obj1.Signature())
+
+		_, err = VerifySign1Message[[]byte](verifier, data2[5:], nil)
+		assert.ErrorContains(err, "cbor: cannot unmarshal")
+		obj2, err := VerifySign1Message[[]byte](verifier, data2, nil)
+		require.NoError(t, err)
+		assert.Equal(obj.Payload, obj2.Payload)
+		assert.Equal(sig, obj2.Signature())
+
+		data2 = append(cwtPrefix, data2...)
+		obj2, err = VerifySign1Message[[]byte](verifier, data2, nil)
+		require.NoError(t, err)
+		assert.Equal(obj.Payload, obj2.Payload)
+		assert.Equal(sig, obj2.Signature())
+		assert.NotEqual(data2, obj2.Bytesify())
+
+		data2 = RemoveCBORTag(data2)
+		obj2, err = VerifySign1Message[[]byte](verifier, data2, nil)
+		require.NoError(t, err)
+		assert.Equal(obj.Payload, obj2.Payload)
+		assert.Equal(sig, obj2.Signature())
+		assert.NotEqual(data2, obj2.Bytesify())
+	})
+
+	t.Run("payload cbor.RawMessage", func(t *testing.T) {
+		assert := assert.New(t)
+
+		k, err := ecdsa.GenerateKey(iana.AlgorithmES256)
+		require.NoError(t, err)
+
+		signer, err := k.Signer()
+		require.NoError(t, err)
+
+		verifier, err := k.Verifier()
+		require.NoError(t, err)
+
+		obj := &Sign1Message[cbor.RawMessage]{
+			Protected:   Headers{iana.HeaderParameterAlg: iana.AlgorithmEdDSA},
+			Unprotected: Headers{iana.HeaderParameterKid: k.Kid()},
+			Payload:     key.MustMarshalCBOR("This is the content."),
+		}
+		assert.ErrorContains(obj.WithSign(signer, nil),
+			`signer'alg mismatch, expected -8, got -7`)
+		_, err = obj.SignAndEncode(signer, nil)
+		assert.ErrorContains(err,
+			`signer'alg mismatch, expected -8, got -7`)
+
+		obj.Protected[iana.HeaderParameterAlg] = iana.AlgorithmES256
+		data, err := obj.SignAndEncode(signer, nil)
+		require.NoError(t, err)
+		sig := obj.Signature()
+
+		k1, err := ecdsa.GenerateKey(iana.AlgorithmES384)
+		require.NoError(t, err)
+		verifier1, err := k1.Verifier()
+		require.NoError(t, err)
+		_, err = VerifySign1Message[cbor.RawMessage](verifier1, data, nil)
+		assert.ErrorContains(err,
+			`verifier'alg mismatch, expected -7, got -35`)
+
+		obj1, err := VerifySign1Message[cbor.RawMessage](verifier, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj.Payload, obj1.Payload)
+		assert.Equal(sig, obj1.Signature())
+		assert.Equal(data, obj1.Bytesify())
+	})
+
+	t.Run("payload T", func(t *testing.T) {
+		assert := assert.New(t)
+
+		k, err := ed25519.GenerateKey()
+		require.NoError(t, err)
+
+		signer, err := k.Signer()
+		require.NoError(t, err)
+
+		verifier, err := k.Verifier()
+		require.NoError(t, err)
+
+		type T struct {
+			Str string
+		}
+
+		obj := &Sign1Message[T]{
+			Protected:   Headers{iana.HeaderParameterAlg: iana.AlgorithmEdDSA},
+			Unprotected: Headers{iana.HeaderParameterKid: k.Kid()},
+			Payload:     T{"This is the content."},
+		}
+
+		data, err := obj.SignAndEncode(signer, nil)
+		require.NoError(t, err)
+		sig := obj.Signature()
+
+		obj1, err := VerifySign1Message[T](verifier, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
+		assert.Equal(sig, obj1.Signature())
+		assert.Equal(data, obj1.Bytesify())
+	})
 }

@@ -36,7 +36,7 @@ func ExampleSign1Message() {
 			iana.HeaderParameterAlg: iana.AlgorithmES256,
 		},
 		Unprotected: cose.Headers{
-			iana.HeaderParameterKid: []byte("11"),
+			iana.HeaderParameterKid: k.Kid(),
 		},
 		Payload: []byte("This is the content."),
 	}

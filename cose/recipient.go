@@ -5,6 +5,7 @@ package cose
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ldclabs/cose/key"
 )
@@ -13,9 +14,7 @@ import (
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-enveloped-cose-structure.
 type Recipient struct {
-	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
-	Protected Headers
-	// Other header parameters.
+	Protected   Headers
 	Unprotected Headers
 	Ciphertext  []byte
 
@@ -30,6 +29,13 @@ type Recipient struct {
 func (m *Recipient) AddRecipient(recipient *Recipient) error {
 	if recipient == nil {
 		return errors.New("cose/cose: Recipient.AddRecipient: nil Recipient")
+	}
+	if recipient == m {
+		return errors.New("cose/cose: Recipient.AddRecipient: should not add itself")
+	}
+	if recipient.context != "" {
+		return fmt.Errorf("cose/cose: Recipient.AddRecipient: should not have %q context",
+			recipient.context)
 	}
 
 	if len(recipient.recipients) > 0 {
@@ -90,10 +96,7 @@ func (m *Recipient) MarshalCBOR() ([]byte, error) {
 		Protected:   m.mm.Protected,
 		Unprotected: m.mm.Unprotected,
 		Ciphertext:  m.mm.Ciphertext,
-		Recipients:  make([]*recipientMessage0, len(m.recipients)),
-	}
-	for i := range m.recipients {
-		mm.Recipients[i] = m.recipients[i].mm
+		Recipients:  m.recipients,
 	}
 
 	return key.MarshalCBOR(mm)
@@ -124,12 +127,24 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 
 		m.Protected = protected
 		m.Unprotected = mm.Unprotected
+		m.Ciphertext = mm.Ciphertext
 		m.mm = mm
 
 	case 0x84:
 		mm := &recipientMessage{}
 		if err := key.UnmarshalCBOR(data, mm); err != nil {
 			return err
+		}
+		if len(mm.Recipients) == 0 {
+			return errors.New("cose/cose: Recipient.UnmarshalCBOR: no recipients")
+		}
+		for _, r := range mm.Recipients {
+			if r == nil {
+				return errors.New("cose/cose: Recipient.UnmarshalCBOR: nil recipient")
+			}
+			if len(r.recipients) > 0 {
+				return errors.New("cose/cose: Recipient.UnmarshalCBOR: should not have nested recipients")
+			}
 		}
 
 		protected := Headers{}
@@ -141,24 +156,12 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 
 		m.Protected = protected
 		m.Unprotected = mm.Unprotected
+		m.Ciphertext = mm.Ciphertext
+		m.recipients = mm.Recipients
 		m.mm = &recipientMessage0{
 			Protected:   mm.Protected,
 			Unprotected: mm.Unprotected,
 			Ciphertext:  mm.Ciphertext,
-		}
-
-		m.recipients = make([]*Recipient, len(mm.Recipients))
-		for i := range mm.Recipients {
-			m.recipients[i] = &Recipient{
-				Protected:   Headers{},
-				Unprotected: mm.Recipients[i].Unprotected,
-				mm:          mm.Recipients[i],
-			}
-			if len(mm.Recipients[i].Protected) > 0 {
-				if err := key.UnmarshalCBOR(mm.Recipients[i].Protected, &m.recipients[i].Protected); err != nil {
-					return err
-				}
-			}
 		}
 
 	default:
@@ -168,13 +171,20 @@ func (m *Recipient) UnmarshalCBOR(data []byte) error {
 	return nil
 }
 
+// Bytesify returns a CBOR-encoded byte slice.
+// It returns nil if MarshalCBOR failed.
+func (m *Recipient) Bytesify() []byte {
+	b, _ := m.MarshalCBOR()
+	return b
+}
+
 // recipientMessage represents a COSE_recipient structure to encode and decode.
 type recipientMessage struct {
 	_           struct{} `cbor:",toarray"`
 	Protected   []byte
 	Unprotected Headers
 	Ciphertext  []byte // can be nil
-	Recipients  []*recipientMessage0
+	Recipients  []*Recipient
 }
 
 // recipientMessage0 represents a COSE_recipient structure without sub recipients to encode and decode.

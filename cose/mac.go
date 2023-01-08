@@ -6,6 +6,7 @@ package cose
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/ldclabs/cose/iana"
@@ -61,6 +62,10 @@ func (m *MacMessage[T]) AddRecipient(recipient *Recipient) error {
 		return err
 	}
 
+	if recipient.context != "" {
+		return fmt.Errorf("cose/cose: MacMessage.AddRecipient: should not have %q context",
+			recipient.context)
+	}
 	recipient.context = "Mac_Recipient"
 	m.recipients = append(m.recipients, recipient)
 	return nil
@@ -79,6 +84,12 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 
 		if alg := macer.Key().Alg(); alg != iana.AlgorithmReserved {
 			m.Protected[iana.HeaderParameterAlg] = alg
+		}
+	} else if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(macer.Key().Alg()) {
+			return fmt.Errorf("cose/cose: MacMessage.Compute: macer'alg mismatch, expected %d, got %d",
+				alg, macer.Key().Alg())
 		}
 	}
 
@@ -134,6 +145,14 @@ func (m *MacMessage[T]) Verify(macer key.MACer, externalData []byte) error {
 		return errors.New("cose/cose: MacMessage.Verify: should call MacMessage.UnmarshalCBOR")
 	}
 
+	if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(macer.Key().Alg()) {
+			return fmt.Errorf("cose/cose: MacMessage.Verify: macer'alg mismatch, expected %d, got %d",
+				alg, macer.Key().Alg())
+		}
+	}
+
 	var err error
 	m.toMac, err = m.mm.toMac(externalData)
 	if err != nil {
@@ -173,6 +192,10 @@ func (m *MacMessage[T]) MarshalCBOR() ([]byte, error) {
 		return nil, errors.New("cose/cose: MacMessage.MarshalCBOR: should call MacMessage.Compute")
 	}
 
+	if len(m.recipients) == 0 {
+		return nil, errors.New("cose/cose: MacMessage.MarshalCBOR: no recipients")
+	}
+
 	m.mm.Recipients = m.recipients
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  iana.CBORTagCOSEMac,
@@ -192,12 +215,21 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 
 	// support untagged message
 	if bytes.HasPrefix(data, macMessagePrefix) {
-		data = data[1:]
+		data = data[2:]
 	}
 
 	mm := &macMessage{}
 	if err := key.UnmarshalCBOR(data, mm); err != nil {
 		return err
+	}
+
+	if len(mm.Recipients) == 0 {
+		return errors.New("cose/cose: MacMessage.UnmarshalCBOR: no recipients")
+	}
+	for _, r := range mm.Recipients {
+		if r == nil {
+			return errors.New("cose/cose: MacMessage.UnmarshalCBOR: nil recipient")
+		}
 	}
 
 	protected := Headers{}
@@ -212,7 +244,7 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 		case []byte:
 			m.Payload = any(mm.Payload).(T)
 		case cbor.RawMessage:
-			m.Payload = any(mm.Payload).(T)
+			m.Payload = any(cbor.RawMessage(mm.Payload)).(T)
 		default:
 			if err := key.UnmarshalCBOR(mm.Payload, &m.Payload); err != nil {
 				return err

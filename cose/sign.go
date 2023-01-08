@@ -17,7 +17,7 @@ import (
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-signing-with-one-or-more-si
 type SignMessage[T any] struct {
-	// protected header parameters: iana.HeaderParameterAlg, iana.HeaderParameterCrit.
+	// protected header parameters: iana.HeaderParameterCrit.
 	Protected Headers
 	// Other header parameters.
 	Unprotected Headers
@@ -164,6 +164,13 @@ func (m *SignMessage[T]) Verify(verifiers key.Verifiers, externalData []byte) er
 		if verifier == nil {
 			return fmt.Errorf("cose/cose: SignMessage.Verify: no verifier for kid h'%s'", kid.String())
 		}
+		if sig.Protected.Has(iana.HeaderParameterAlg) {
+			alg, _ := sig.Protected.GetInt(iana.HeaderParameterAlg)
+			if alg != int(verifier.Key().Alg()) {
+				return fmt.Errorf("cose/cose: SignMessage.Verify: verifier'alg mismatch, expected %d, got %d",
+					alg, verifier.Key().Alg())
+			}
+		}
 
 		sig.toSign, err = m.mm.toSign(sig.sm.Protected, externalData)
 		if err != nil {
@@ -244,7 +251,7 @@ func (m *SignMessage[T]) UnmarshalCBOR(data []byte) error {
 		case []byte:
 			m.Payload = any(mm.Payload).(T)
 		case cbor.RawMessage:
-			m.Payload = any(mm.Payload).(T)
+			m.Payload = any(cbor.RawMessage(mm.Payload)).(T)
 		default:
 			if err := key.UnmarshalCBOR(mm.Payload, &m.Payload); err != nil {
 				return err

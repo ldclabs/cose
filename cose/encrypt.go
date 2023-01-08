@@ -6,6 +6,7 @@ package cose
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/ldclabs/cose/iana"
@@ -61,6 +62,10 @@ func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
 		return err
 	}
 
+	if recipient.context != "" {
+		return fmt.Errorf("cose/cose: MacMessage.AddRecipient: should not have %q context",
+			recipient.context)
+	}
 	recipient.context = "Enc_Recipient"
 	m.recipients = append(m.recipients, recipient)
 	return nil
@@ -79,6 +84,12 @@ func (m *EncryptMessage[T]) Encrypt(encryptor key.Encryptor, externalData []byte
 
 		if alg := encryptor.Key().Alg(); alg != iana.AlgorithmReserved {
 			m.Protected[iana.HeaderParameterAlg] = alg
+		}
+	} else if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(encryptor.Key().Alg()) {
+			return fmt.Errorf("cose/cose: EncryptMessage.Encrypt: encryptor'alg mismatch, expected %d, got %d",
+				alg, encryptor.Key().Alg())
 		}
 	}
 
@@ -147,6 +158,14 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 		return errors.New("cose/cose: EncryptMessage.Decrypt: should call EncryptMessage.UnmarshalCBOR")
 	}
 
+	if m.Protected.Has(iana.HeaderParameterAlg) {
+		alg, _ := m.Protected.GetInt(iana.HeaderParameterAlg)
+		if alg != int(encryptor.Key().Alg()) {
+			return fmt.Errorf("cose/cose: EncryptMessage.Decrypt: encryptor'alg mismatch, expected %d, got %d",
+				alg, encryptor.Key().Alg())
+		}
+	}
+
 	var err error
 	m.toEnc, err = m.mm.toEnc(externalData)
 	if err != nil {
@@ -167,7 +186,7 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 		case []byte:
 			m.Payload = any(plaintext).(T)
 		case cbor.RawMessage:
-			m.Payload = any(plaintext).(T)
+			m.Payload = any(cbor.RawMessage(plaintext)).(T)
 		default:
 			if err := key.UnmarshalCBOR(plaintext, &m.Payload); err != nil {
 				return err
@@ -207,6 +226,10 @@ func (m *EncryptMessage[T]) MarshalCBOR() ([]byte, error) {
 		return nil, errors.New("cose/cose: EncryptMessage.MarshalCBOR: should call EncryptMessage.Encrypt")
 	}
 
+	if len(m.recipients) == 0 {
+		return nil, errors.New("cose/cose: EncryptMessage.MarshalCBOR: no recipients")
+	}
+
 	m.mm.Recipients = m.recipients
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  iana.CBORTagCOSEEncrypt,
@@ -232,6 +255,15 @@ func (m *EncryptMessage[T]) UnmarshalCBOR(data []byte) error {
 	mm := &encryptMessage{}
 	if err := key.UnmarshalCBOR(data, mm); err != nil {
 		return err
+	}
+
+	if len(mm.Recipients) == 0 {
+		return errors.New("cose/cose: EncryptMessage.UnmarshalCBOR: no recipients")
+	}
+	for _, r := range mm.Recipients {
+		if r == nil {
+			return errors.New("cose/cose: EncryptMessage.UnmarshalCBOR: nil recipient")
+		}
 	}
 
 	protected := Headers{}

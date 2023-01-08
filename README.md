@@ -31,7 +31,7 @@ COSE is a standard for signing and encrypting data in the [CBOR][cbor] data form
   - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305;
   - MAC: AES-MAC, HMAC;
   - KDF: HKDF-SHA, HKDF-AES.
-- COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1.
+- COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1, COSE_recipient, COSE_KDF_Context.
 - CWT: Full support.
 
 ## Installation
