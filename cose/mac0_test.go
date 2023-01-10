@@ -222,7 +222,7 @@ func TestMac0EdgeCase(t *testing.T) {
 		assert.Equal(tag, obj1.Tag())
 
 		_, err = VerifyMac0Message[[]byte](macer, data2[5:], nil)
-		assert.ErrorContains(err, "cbor: cannot unmarshal")
+		assert.ErrorContains(err, "cbor: ")
 		obj2, err := VerifyMac0Message[[]byte](macer, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)

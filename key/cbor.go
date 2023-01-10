@@ -8,17 +8,14 @@ import (
 )
 
 var encOpts = cbor.EncOptions{
-	Sort:          cbor.SortBytewiseLexical,
-	IndefLength:   cbor.IndefLengthForbidden,
-	BigIntConvert: cbor.BigIntConvertNone,
+	Sort:        cbor.SortBytewiseLexical,
+	IndefLength: cbor.IndefLengthForbidden,
 }
 var encMode, _ = encOpts.EncMode()
 
 var decOpts = cbor.DecOptions{
-	DupMapKey:        cbor.DupMapKeyEnforcedAPF,
-	IndefLength:      cbor.IndefLengthForbidden,
-	MaxArrayElements: 1000,
-	MaxMapPairs:      1000,
+	DupMapKey:   cbor.DupMapKeyEnforcedAPF,
+	IndefLength: cbor.IndefLengthForbidden,
 }
 var decMode, _ = decOpts.DecMode()
 

@@ -1,14 +1,15 @@
-# Keys, Algorithms, COSE and CWT
+# Keys, Algorithms, COSE and CWT in Go
 
 [![CI](https://github.com/ldclabs/cose/actions/workflows/ci-cover.yml/badge.svg)](https://github.com/ldclabs/cose/actions?query=workflow%3Aci-cover)
 [![Codecov](https://codecov.io/gh/ldclabs/cose/branch/main/graph/badge.svg)](https://codecov.io/gh/ldclabs/cose)
 [![Go Reference](https://pkg.go.dev/badge/github.com/ldclabs/cose.svg)](https://pkg.go.dev/github.com/ldclabs/cose)
+[![](https://img.shields.io/badge/go-%3E%3D%201.19-blue)](#installation)
 
 *A golang library for the [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBOR Web Token (CWT)][cwt-spec].*
 
 ## Index
 
-- [Keys, Algorithms, COSE and CWT](#keys-algorithms-cose-and-cwt)
+- [Keys, Algorithms, COSE and CWT in Go](#keys-algorithms-cose-and-cwt-in-go)
 	- [Index](#index)
 	- [Introduction](#introduction)
 	- [Features](#features)
@@ -17,7 +18,9 @@
 	- [Examples](#examples)
 		- [Create a simple CWT with a signer](#create-a-simple-cwt-with-a-signer)
 		- [Create a complex CWT with one more signers](#create-a-complex-cwt-with-one-more-signers)
+	- [Security Reviews](#security-reviews)
 	- [Reference](#reference)
+	- [License](#license)
 
 ## Introduction
 
@@ -39,7 +42,7 @@ COSE is a standard for signing and encrypting data in the [CBOR][cbor] data form
 To install COSE locally run:
 
 ```sh
-go get github.com/ldclabs/cose/...
+go get github.com/ldclabs/cose
 ```
 
 To import in the cwt package:
@@ -244,6 +247,10 @@ func main() {
 }
 ```
 
+## Security Reviews
+
+Todo.
+
 ## Reference
 
 1. [RFC9052: CBOR Object Signing and Encryption (COSE)][cose-spec]
@@ -261,3 +268,8 @@ func main() {
 [iana-cose]: https://www.iana.org/assignments/cose/cose.xhtml
 [iana-cwt]: https://www.iana.org/assignments/cwt/cwt.xhtml
 [iana-cbor-tags]: https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml
+
+## License
+Copyright © 2022-2023 [LDC Labs](https://github.com/ldclabs).
+
+ldclabs/cose is licensed under the MIT License.  See [LICENSE](LICENSE) for the full license text.

@@ -68,7 +68,7 @@ func TestKDFContext(t *testing.T) {
 		copy(datae, data)
 		assert.Equal(byte(0x38), datae[1])
 		datae[1] = 0x60
-		assert.ErrorContains(k2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+		assert.ErrorContains(k2.UnmarshalCBOR(datae), "cbor: ")
 
 		assert.NoError(key.UnmarshalCBOR(data, k2))
 		assert.Equal(key.MustMarshalCBOR(k1), key.MustMarshalCBOR(k2))
@@ -104,7 +104,7 @@ func TestKDFContext(t *testing.T) {
 		copy(datae, data)
 		assert.Equal(byte(0x38), datae[1])
 		datae[1] = 0x60
-		assert.ErrorContains(k2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+		assert.ErrorContains(k2.UnmarshalCBOR(datae), "cbor: ")
 
 		assert.NoError(key.UnmarshalCBOR(data, k2))
 		assert.Equal(key.MustMarshalCBOR(k1), key.MustMarshalCBOR(k2))
@@ -192,12 +192,12 @@ func TestKDFContext(t *testing.T) {
 		copy(datae, data)
 		assert.Equal(byte(0x18), datae[1])
 		datae[1] = 0x22
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal negative integer")
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
 
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
 		datae[5] = 0x60
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
 
 		assert.NoError(key.UnmarshalCBOR(data, s2))
 		assert.Equal(key.MustMarshalCBOR(s1), key.MustMarshalCBOR(s2))
@@ -221,12 +221,12 @@ func TestKDFContext(t *testing.T) {
 		copy(datae, data)
 		assert.Equal(byte(0x18), datae[1])
 		datae[1] = 0x22
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal negative integer")
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
 
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
 		datae[5] = 0x60
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: cannot unmarshal UTF-8 text string")
+		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
 
 		assert.NoError(key.UnmarshalCBOR(data, s2))
 		assert.Equal(key.MustMarshalCBOR(s1), key.MustMarshalCBOR(s2))

@@ -128,9 +128,9 @@ func TestHeaderBytes(t *testing.T) {
 
 	data[1] = 0xf5
 	_, err = HeadersFromBytes(data)
-	assert.ErrorContains(err, "cbor: cannot unmarshal")
+	assert.ErrorContains(err, "cbor: ")
 
 	h = Headers{iana.HeaderParameterReserved: func() {}}
 	_, err = h.Bytes()
-	assert.ErrorContains(err, "cbor: unsupported type")
+	assert.ErrorContains(err, "cbor: ")
 }

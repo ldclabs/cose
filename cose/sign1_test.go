@@ -224,7 +224,7 @@ func TestSign1EdgeCase(t *testing.T) {
 		assert.Equal(sig, obj1.Signature())
 
 		_, err = VerifySign1Message[[]byte](verifier, data2[5:], nil)
-		assert.ErrorContains(err, "cbor: cannot unmarshal")
+		assert.ErrorContains(err, "cbor: ")
 		obj2, err := VerifySign1Message[[]byte](verifier, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)

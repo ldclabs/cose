@@ -220,7 +220,7 @@ func TestEncrypt0MessageEdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload, obj1.Payload)
 
 		_, err = DecryptEncrypt0Message[[]byte](encryptor, data2[5:], nil)
-		assert.ErrorContains(err, "cbor: cannot unmarshal")
+		assert.ErrorContains(err, "cbor: ")
 		obj2, err := DecryptEncrypt0Message[[]byte](encryptor, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)

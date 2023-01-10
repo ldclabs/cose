@@ -257,7 +257,7 @@ func TestSignEdgeCase(t *testing.T) {
 		assert.Equal(sigs[0].Signature, obj1.Signatures()[0].Signature)
 
 		_, err = VerifySignMessage[[]byte](verifiers, data2[5:], nil)
-		assert.ErrorContains(err, "cbor: cannot unmarshal")
+		assert.ErrorContains(err, "cbor: ")
 		obj2, err := VerifySignMessage[[]byte](verifiers, data2, nil)
 		require.NoError(t, err)
 		assert.Equal(obj.Payload, obj2.Payload)
@@ -469,7 +469,7 @@ func TestSignatureEdgeCase(t *testing.T) {
 	datae[6] = 0xf4
 
 	sig1 = &Signature{}
-	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: cannot unmarshal")
+	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: ")
 
 	datae = make([]byte, len(data))
 	copy(datae, data)
@@ -477,5 +477,5 @@ func TestSignatureEdgeCase(t *testing.T) {
 	datae[3] = 0xf4
 
 	sig1 = &Signature{}
-	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: cannot unmarshal")
+	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: ")
 }
