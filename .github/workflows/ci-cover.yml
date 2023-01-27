@@ -1,4 +1,4 @@
-name: COSE CI Cover
+name: CI Cover
 on:
   push:
     tags:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go-version: ['1.18.x', '1.19.x']
+        go-version: ['1.19.x']
 
     steps:
     - name: Install Go
