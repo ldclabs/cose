@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/aead/ecdh v0.2.0
-	github.com/fxamacker/cbor/v2 v2.5.0-beta
+	github.com/fxamacker/cbor/v2 v2.5.0-beta2
 	github.com/pion/dtls/v2 v2.2.6
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/crypto v0.5.0
