@@ -1,4 +1,4 @@
-// (c) 2022-2022, LDC Labs, Inc. All rights reserved.
+// (c) 2022-present, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Package chacha20poly1305 implements content encryption algorithm ChaCha20/Poly1305 for COSE as defined in RFC9053.

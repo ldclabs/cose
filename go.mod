@@ -1,9 +1,8 @@
 module github.com/ldclabs/cose
 
-go 1.19
+go 1.20
 
 require (
-	github.com/aead/ecdh v0.2.0
 	github.com/fxamacker/cbor/v2 v2.5.0-beta2
 	github.com/pion/dtls/v2 v2.2.6
 	github.com/stretchr/testify v1.8.2

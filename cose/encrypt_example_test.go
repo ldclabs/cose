@@ -1,18 +1,16 @@
-// (c) 2022-2022, LDC Labs, Inc. All rights reserved.
+// (c) 2022-present, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package cose_test
 
 import (
-	"crypto/elliptic"
 	"fmt"
-
-	"github.com/aead/ecdh"
 
 	"github.com/ldclabs/cose/cose"
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 	"github.com/ldclabs/cose/key/aesgcm"
+	"github.com/ldclabs/cose/key/ecdh"
 	"github.com/ldclabs/cose/key/ecdsa"
 	"github.com/ldclabs/cose/key/hkdf"
 )
@@ -21,7 +19,6 @@ func ExampleEncryptMessage() {
 	keyR := key.Key{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    []byte("meriadoc.brandybuck@buckland.example"),
-		iana.KeyParameterAlg:    iana.AlgorithmES256,
 		iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
 		iana.EC2KeyParameterX:   key.Base64Bytesify("Ze2loSV3wrroKUN_4zhwGhCqo3Xhu1td4QjeQ5wIVR0"),
 		iana.EC2KeyParameterY:   key.Base64Bytesify("HlLtdXARY_f55A3fnzQbPcm6hgr34Mp8p-nuzQCE0Zw"),
@@ -31,23 +28,21 @@ func ExampleEncryptMessage() {
 	keyS := key.Key{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    []byte("meriadoc.brandybuck@buckland.example"),
-		iana.KeyParameterAlg:    iana.AlgorithmES256,
 		iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
 		iana.EC2KeyParameterX:   key.Base64Bytesify("mPUKT_bAWGHIhg0TpjjqVsP1rXWQu_vwVOHHtNkdYoA"),
 		iana.EC2KeyParameterY:   key.Base64Bytesify("8BQAsImGeAS46fyWw5MhYfGTT0IjBpFw2SS34Dv4Irs"),
 	}
 
+	ecdher, err := ecdh.NewECDHer(keyR)
+	if err != nil {
+		panic(err)
+	}
+
 	// shared secret by ECDH-ES
-	p256 := ecdh.Generic(elliptic.P256())
-	privK, err := keyR.GetBytes(iana.EC2KeyParameterD)
+	secret, err := ecdher.ECDH(keyS)
 	if err != nil {
 		panic(err)
 	}
-	pubK, err := ecdsa.KeyToPublic(keyS)
-	if err != nil {
-		panic(err)
-	}
-	secret := p256.ComputeSecret(privK, ecdh.Point{X: pubK.X, Y: pubK.Y})
 
 	// derive the key from the shared secret
 	kdfContext := cose.KDFContext{

@@ -1,4 +1,4 @@
-// (c) 2022-2022, LDC Labs, Inc. All rights reserved.
+// (c) 2022-present, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package ecdsa
@@ -66,7 +66,7 @@ func TestGenerateKey(t *testing.T) {
 func TestKeyToPrivate(t *testing.T) {
 	assert := assert.New(t)
 
-	k := key.Key{}
+	k := key.Key{iana.EC2KeyParameterD: []byte{}}
 	pk, err := KeyToPrivate(k)
 	assert.ErrorContains(err, `invalid key type, expected "EC2":2, got 0`)
 	assert.Nil(pk)
@@ -129,7 +129,7 @@ func TestKeyFromPrivate(t *testing.T) {
 
 	pk, _ := goecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	_, err := KeyFromPrivate(pk)
-	assert.ErrorContains(err, `unsupported curve "P-224"`)
+	assert.ErrorContains(err, `unsupported curve P-224`)
 }
 
 func TestKeyToPublic(t *testing.T) {
@@ -209,7 +209,7 @@ func TestKeyFromPublic(t *testing.T) {
 
 	pk, _ := goecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	_, err := KeyFromPublic(&pk.PublicKey)
-	assert.ErrorContains(err, `unsupported curve "P-224"`)
+	assert.ErrorContains(err, `unsupported curve P-224`)
 }
 
 func TestCheckKey(t *testing.T) {
@@ -482,7 +482,7 @@ func TestToCompressedKey(t *testing.T) {
 func TestNewSigner(t *testing.T) {
 	assert := assert.New(t)
 
-	k := key.Key{}
+	k := key.Key{iana.EC2KeyParameterD: []byte{}}
 	signer, err := NewSigner(k)
 	assert.ErrorContains(err, `invalid key type, expected "EC2":2, got 0`)
 	assert.Nil(signer)

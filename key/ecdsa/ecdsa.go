@@ -1,4 +1,4 @@
-// (c) 2022-2022, LDC Labs, Inc. All rights reserved.
+// (c) 2022-present, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Package ecdsa implements signature algorithm ECDSA for COSE as defined in RFC9053.
@@ -19,6 +19,7 @@ import (
 )
 
 // GenerateKey generates a new Key with given algorithm for ECDSA.
+// alg is one of the iana.AlgorithmES* constants.
 func GenerateKey(alg int) (key.Key, error) {
 	if alg == iana.AlgorithmReserved {
 		alg = iana.AlgorithmES256
@@ -42,12 +43,11 @@ func GenerateKey(alg int) (key.Key, error) {
 
 // KeyToPrivate returns a ecdsa.PrivateKey for the given Key.
 func KeyToPrivate(k key.Key) (*goecdsa.PrivateKey, error) {
-	if err := CheckKey(k); err != nil {
-		return nil, err
-	}
-
 	if !k.Has(iana.EC2KeyParameterD) {
 		return nil, fmt.Errorf("cose/key/ecdsa: KeyToPrivate: invalid private key")
+	}
+	if err := CheckKey(k); err != nil {
+		return nil, err
 	}
 
 	d, _ := k.GetBytes(iana.EC2KeyParameterD)
@@ -68,19 +68,9 @@ func KeyToPrivate(k key.Key) (*goecdsa.PrivateKey, error) {
 
 // KeyFromPrivate returns a private Key with given ecdsa.PrivateKey.
 func KeyFromPrivate(pk *goecdsa.PrivateKey) (key.Key, error) {
-	var alg, crv int
-	switch curve := pk.Curve.Params().Name; curve {
-	case "P-256":
-		alg = iana.AlgorithmES256
-		crv = iana.EllipticCurveP_256
-	case "P-384":
-		alg = iana.AlgorithmES384
-		crv = iana.EllipticCurveP_384
-	case "P-521":
-		alg = iana.AlgorithmES512
-		crv = iana.EllipticCurveP_521
-	default:
-		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPrivate: unsupported curve %q", curve)
+	alg, crv := getAlgCrv(pk.Curve)
+	if alg == 0 {
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPrivate: unsupported curve %v", pk.Curve.Params().Name)
 	}
 
 	return map[int]any{
@@ -103,19 +93,9 @@ func KeyToPublic(k key.Key) (*goecdsa.PublicKey, error) {
 
 // KeyFromPublic returns a public Key with given ecdsa.PublicKey.
 func KeyFromPublic(pk *goecdsa.PublicKey) (key.Key, error) {
-	var alg, crv int
-	switch curve := pk.Curve.Params().Name; curve {
-	case "P-256":
-		alg = iana.AlgorithmES256
-		crv = iana.EllipticCurveP_256
-	case "P-384":
-		alg = iana.AlgorithmES384
-		crv = iana.EllipticCurveP_384
-	case "P-521":
-		alg = iana.AlgorithmES512
-		crv = iana.EllipticCurveP_521
-	default:
-		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPublic: unsupported curve %q", curve)
+	alg, crv := getAlgCrv(pk.Curve)
+	if alg == 0 {
+		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPublic: unsupported curve %v", pk.Curve.Params().Name)
 	}
 
 	return map[int]any{
@@ -475,21 +455,28 @@ func os2ip(x []byte) *big.Int {
 	return new(big.Int).SetBytes(x)
 }
 
-var (
-	p256 = elliptic.P256()
-	p384 = elliptic.P384()
-	p521 = elliptic.P521()
-)
-
 func getCurve(alg key.Alg) (elliptic.Curve, int) {
 	switch alg {
 	case iana.AlgorithmES256:
-		return p256, iana.EllipticCurveP_256
+		return elliptic.P256(), iana.EllipticCurveP_256
 	case iana.AlgorithmES384:
-		return p384, iana.EllipticCurveP_384
+		return elliptic.P384(), iana.EllipticCurveP_384
 	case iana.AlgorithmES512:
-		return p521, iana.EllipticCurveP_521
+		return elliptic.P521(), iana.EllipticCurveP_521
 	default:
 		return nil, 0
+	}
+}
+
+func getAlgCrv(curve elliptic.Curve) (alg, crv int) {
+	switch curve {
+	case elliptic.P256():
+		return iana.AlgorithmES256, iana.EllipticCurveP_256
+	case elliptic.P384():
+		return iana.AlgorithmES384, iana.EllipticCurveP_384
+	case elliptic.P521():
+		return iana.AlgorithmES512, iana.EllipticCurveP_521
+	default:
+		return 0, 0
 	}
 }

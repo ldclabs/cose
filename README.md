@@ -36,6 +36,7 @@ COSE is a standard for signing and encrypting data in the [CBOR][cbor] data form
   - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305;
   - MAC: AES-MAC, HMAC;
   - KDF: HKDF-SHA, HKDF-AES.
+  - ECDH: P256, P384, P521, X25519.
 - COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1, COSE_recipient, COSE_KDF_Context.
 - CWT: Full support.
 
@@ -72,6 +73,7 @@ import (
 | [key](https://pkg.go.dev/github.com/ldclabs/cose/key) | github.com/ldclabs/cose/key | [RFC9053: Algorithms and Key Objects][algorithms-spec] |
 | [ed25519](https://pkg.go.dev/github.com/ldclabs/cose/key/ed25519) | github.com/ldclabs/cose/key/ed25519 | Signature Algorithm: [Ed25519](https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa) |
 | [ecdsa](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdsa) | github.com/ldclabs/cose/key/ecdsa | Signature Algorithm: [ECDSA](https://datatracker.ietf.org/doc/html/rfc9053#name-ecdsa) |
+| [ecdh](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdh) | github.com/ldclabs/cose/key/ecdh | Elliptic Curve Diffie-Hellman Algorithm: [ECDH](https://datatracker.ietf.org/doc/html/rfc9053#name-direct-key-agreement) |
 | [hmac](https://pkg.go.dev/github.com/ldclabs/cose/key/hmac) | github.com/ldclabs/cose/key/hmac | Message Authentication Code (MAC) Algorithm: [HMAC](https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti) |
 | [aesmac](https://pkg.go.dev/github.com/ldclabs/cose/key/aesmac) | github.com/ldclabs/cose/key/aesmac | Message Authentication Code (MAC) Algorithm: [AES-CBC-MAC](https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti) |
 | [aesgcm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesgcm) | github.com/ldclabs/cose/key/aesgcm | Content Encryption Algorithm: [AES-GCM](https://datatracker.ietf.org/doc/html/rfc9053#name-aes-gcm) |

@@ -1,13 +1,11 @@
-// (c) 2022-2022, LDC Labs, Inc. All rights reserved.
+// (c) 2022-present, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package cose
 
 import (
-	"crypto/elliptic"
 	"testing"
 
-	"github.com/aead/ecdh"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,6 +14,7 @@ import (
 	"github.com/ldclabs/cose/key"
 	"github.com/ldclabs/cose/key/aesccm"
 	"github.com/ldclabs/cose/key/aesgcm"
+	"github.com/ldclabs/cose/key/ecdh"
 	"github.com/ldclabs/cose/key/ecdsa"
 	"github.com/ldclabs/cose/key/hkdf"
 )
@@ -736,7 +735,6 @@ func TestEncryptMessageECDH(t *testing.T) {
 			map[int]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("meriadoc.brandybuck@buckland.example"),
-				iana.KeyParameterAlg:    iana.AlgorithmES256,
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
 				iana.EC2KeyParameterX:   key.Base64Bytesify("mPUKT_bAWGHIhg0TpjjqVsP1rXWQu_vwVOHHtNkdYoA"),
 				iana.EC2KeyParameterY:   key.Base64Bytesify("8BQAsImGeAS46fyWw5MhYfGTT0IjBpFw2SS34Dv4Irs"),
@@ -744,7 +742,6 @@ func TestEncryptMessageECDH(t *testing.T) {
 			map[int]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("meriadoc.brandybuck@buckland.example"),
-				iana.KeyParameterAlg:    iana.AlgorithmES256,
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
 				iana.EC2KeyParameterX:   key.Base64Bytesify("Ze2loSV3wrroKUN_4zhwGhCqo3Xhu1td4QjeQ5wIVR0"),
 				iana.EC2KeyParameterY:   key.Base64Bytesify("HlLtdXARY_f55A3fnzQbPcm6hgr34Mp8p-nuzQCE0Zw"),
@@ -771,13 +768,10 @@ func TestEncryptMessageECDH(t *testing.T) {
 		require.NoError(t, err, tc.title)
 		assert.Equal(tc.context, ctxData, tc.title)
 
-		p256 := ecdh.Generic(elliptic.P256())
-
-		privK, err := tc.keyR.GetBytes(iana.EC2KeyParameterD)
+		ecdher, err := ecdh.NewECDHer(tc.keyR)
 		require.NoError(t, err, tc.title)
-		pubK, err := ecdsa.KeyToPublic(tc.keyS)
+		secret, err := ecdher.ECDH(tc.keyS)
 		require.NoError(t, err, tc.title)
-		secret := p256.ComputeSecret(privK, ecdh.Point{X: pubK.X, Y: pubK.Y})
 
 		cek, err := hkdf.HKDF256(secret, nil, ctxData, 128/8)
 		require.NoError(t, err, tc.title)

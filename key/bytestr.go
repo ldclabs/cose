@@ -1,4 +1,4 @@
-// (c) 2022-2022, LDC Labs, Inc. All rights reserved.
+// (c) 2022-present, LDC Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package key
@@ -65,4 +65,12 @@ func SumKid(data []byte) ByteStr {
 	id := make([]byte, 20)
 	copy(id, sum[:])
 	return id
+}
+
+// UnwrapBytes returns the data if err is nil, otherwise it panics.
+func UnwrapBytes(data []byte, err error) []byte {
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
