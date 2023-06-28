@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/fxamacker/cbor/v2 v2.5.0-beta2
 	github.com/pion/dtls/v2 v2.2.7
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v0.8.0
 )
 
