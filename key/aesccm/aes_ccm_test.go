@@ -44,7 +44,7 @@ func TestAESCCM(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal([]byte("hello world"), plaintext)
 		_, err = encryptor.Decrypt(iv, ciphertext, []byte("aae"))
-		assert.ErrorContains(err, "message authentication failed")
+		assert.ErrorContains(err, "ccm:")
 	}
 }
 
@@ -184,7 +184,7 @@ func TestEncryptor(t *testing.T) {
 	assert.Equal([]byte("hello world"), plaintext)
 
 	_, err = encryptor.Decrypt(iv, ciphertext, []byte("aad"))
-	assert.ErrorContains(err, "message authentication failed")
+	assert.ErrorContains(err, "ccm:")
 
 	ciphertext, err = encryptor.Encrypt(iv, []byte("hello world"), []byte("aad"))
 	require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestEncryptor(t *testing.T) {
 
 	iv[0] += 1
 	_, err = encryptor.Decrypt(iv, ciphertext, []byte("aad"))
-	assert.ErrorContains(err, "message authentication failed")
+	assert.ErrorContains(err, "ccm:")
 
 	k.SetOps(iana.KeyOperationDecrypt)
 	_, err = encryptor.Encrypt(iv, []byte("hello world"), nil)

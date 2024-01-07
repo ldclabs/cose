@@ -14,30 +14,30 @@ jobs:
         go-version: ['1.21.x']
 
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ matrix.go-version }}
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
 
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-    - name: Print Go version
-      run: go version
+      - name: Print Go version
+        run: go version
 
-    - name: Get dependencies
-      run: go get -v -t -d ./...
+      - name: Get dependencies
+        run: go get -v -t -d ./...
 
-    - name: Run tests
-      run: go test -v -failfast -tags=test -timeout="3m" -coverprofile="./coverage.out" -covermode="atomic" ./...
+      - name: Run tests
+        run: go test -v -failfast -tags=test -timeout="3m" -coverprofile="./coverage.out" -covermode="atomic" ./...
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
-        verbose: true
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true

@@ -120,10 +120,6 @@ func keyToPublic(pk key.Key) (*goecdh.PublicKey, error) {
 		ix, iy = elliptic.UnmarshalCompressed(ecdsaCurve, compressed)
 	}
 
-	if !ecdsaCurve.IsOnCurve(ix, iy) {
-		return nil, fmt.Errorf("cose/key/ecdh: KeyToPublic: (x, y) not on the curve")
-	}
-
 	return curve.NewPublicKey(elliptic.Marshal(ecdsaCurve, ix, iy))
 }
 

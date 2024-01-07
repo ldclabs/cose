@@ -10,8 +10,6 @@ import (
 	"crypto/cipher"
 	"fmt"
 
-	"github.com/pion/dtls/v2/pkg/crypto/ccm"
-
 	"github.com/ldclabs/cose/iana"
 	"github.com/ldclabs/cose/key"
 )
@@ -148,7 +146,7 @@ func (h *aesCCM) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cose/key/aesccm: Encryptor.Encrypt: invalid nonce size, expected %d, got %d",
 			nonceSize, len(iv))
 	}
-	aead, _ := ccm.NewCCM(h.block, tagSize, nonceSize) // err should never happen
+	aead, _ := NewCCM(h.block, tagSize, nonceSize) // err should never happen
 	ciphertext := aead.Seal(nil, iv, plaintext, additionalData)
 	return ciphertext, nil
 }
@@ -166,7 +164,7 @@ func (h *aesCCM) Decrypt(iv, ciphertext, additionalData []byte) ([]byte, error) 
 			nonceSize, len(iv))
 	}
 
-	aead, _ := ccm.NewCCM(h.block, tagSize, nonceSize) // err should never happen
+	aead, _ := NewCCM(h.block, tagSize, nonceSize) // err should never happen
 	return aead.Open(nil, iv, ciphertext, additionalData)
 }
 

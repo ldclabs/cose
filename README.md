@@ -274,6 +274,6 @@ Todo.
 [iana-cbor-tags]: https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml
 
 ## License
-Copyright © 2022-2023 [LDC Labs](https://github.com/ldclabs).
+Copyright © 2022-2024 [LDC Labs](https://github.com/ldclabs).
 
 ldclabs/cose is licensed under the MIT License. See [LICENSE](LICENSE) for the full license text.
