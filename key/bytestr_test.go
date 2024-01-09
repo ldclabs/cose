@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,16 +24,34 @@ func TestByteStr(t *testing.T) {
 	text, err := bstr.MarshalText()
 	require.NoError(t, err)
 	assert.Equal(str, string(text))
+	{
+		var bstr2 ByteStr
+		require.NoError(t, bstr2.UnmarshalText(text))
+		assert.Equal([]byte(bstr), []byte(bstr2))
+	}
 
 	jsonstr, err := json.Marshal(bstr)
 	require.NoError(t, err)
 	assert.Equal(`"`+str+`"`, string(jsonstr))
+	{
+		var bstr2 ByteStr
+		require.NoError(t, json.Unmarshal(jsonstr, &bstr2))
+		assert.Equal([]byte(bstr), []byte(bstr2))
+	}
 
 	data := HexBytesify(str)
 	assert.Equal([]byte(bstr), data)
 
 	data = Base64Bytesify(b64str)
 	assert.Equal([]byte(bstr), data)
+
+	data, err = cbor.Marshal(bstr)
+	require.NoError(t, err)
+	{
+		var bstr2 ByteStr
+		require.NoError(t, cbor.Unmarshal(data, &bstr2))
+		assert.Equal([]byte(bstr), []byte(bstr2))
+	}
 }
 
 func TestHexBytesify(t *testing.T) {

@@ -150,6 +150,26 @@ func (k *Key) UnmarshalCBOR(data []byte) error {
 	return (*IntMap)(k).UnmarshalCBOR(data)
 }
 
+// MarshalText implements encoding/text interface for Key.
+func (k Key) MarshalText() ([]byte, error) {
+	return IntMap(k).MarshalText()
+}
+
+// UnmarshalText implements encoding/text interface for Key.
+func (k *Key) UnmarshalText(text []byte) error {
+	return (*IntMap)(k).UnmarshalText(text)
+}
+
+// MarshalJSON implements encoding/json interface for Key.
+func (k Key) MarshalJSON() ([]byte, error) {
+	return IntMap(k).MarshalJSON()
+}
+
+// UnmarshalJSON implements encoding/json interface for Key.
+func (k *Key) UnmarshalJSON(text []byte) error {
+	return (*IntMap)(k).UnmarshalJSON(text)
+}
+
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (k Key) Bytesify() []byte {

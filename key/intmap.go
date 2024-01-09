@@ -193,6 +193,50 @@ func (m *IntMap) UnmarshalCBOR(data []byte) error {
 	return UnmarshalCBOR(data, (*map[int]any)(m))
 }
 
+// MarshalText implements encoding/text interface for IntMap.
+func (m IntMap) MarshalText() ([]byte, error) {
+	data, err := m.MarshalCBOR()
+	if err != nil {
+		return nil, err
+	}
+	return ByteStr(data).MarshalText()
+}
+
+// UnmarshalText implements encoding/text interface for IntMap.
+func (m *IntMap) UnmarshalText(text []byte) error {
+	if m == nil {
+		return errors.New("cose/key: IntMap: UnmarshalText on nil pointer")
+	}
+
+	var bstr ByteStr
+	if err := bstr.UnmarshalText(text); err != nil {
+		return err
+	}
+	return m.UnmarshalCBOR([]byte(bstr))
+}
+
+// MarshalJSON implements encoding/json interface for IntMap.
+func (m IntMap) MarshalJSON() ([]byte, error) {
+	data, err := m.MarshalCBOR()
+	if err != nil {
+		return nil, err
+	}
+	return ByteStr(data).MarshalJSON()
+}
+
+// UnmarshalJSON implements encoding/json interface for IntMap.
+func (m *IntMap) UnmarshalJSON(text []byte) error {
+	if m == nil {
+		return errors.New("cose/key: IntMap: UnmarshalJSON on nil pointer")
+	}
+
+	var bstr ByteStr
+	if err := bstr.UnmarshalJSON(text); err != nil {
+		return err
+	}
+	return m.UnmarshalCBOR([]byte(bstr))
+}
+
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (m IntMap) Bytesify() []byte {
