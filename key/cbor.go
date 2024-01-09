@@ -45,5 +45,5 @@ func UnmarshalCBOR(data []byte, v any) error {
 
 // ValidCBOR returns true if data is valid CBOR.
 func ValidCBOR(data []byte) error {
-	return decMode.Valid(data)
+	return decMode.Wellformed(data)
 }

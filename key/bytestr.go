@@ -6,6 +6,7 @@ package key
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"strings"
 
 	"golang.org/x/crypto/sha3"
@@ -24,14 +25,47 @@ func (bstr ByteStr) Base64() string {
 	return base64.RawURLEncoding.EncodeToString(bstr)
 }
 
-// MarshalText implements the encoding.TextMarshaler interface for ByteStr.
+// MarshalText implements encoding/text interface for ByteStr.
 func (bstr ByteStr) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(bstr)), nil
 }
 
-// MarshalJSON implements the json.Marshaler interface for ByteStr.
+// UnmarshalText implements encoding/text interface for ByteStr.
+func (bstr *ByteStr) UnmarshalText(text []byte) error {
+	if bstr == nil {
+		return errors.New("cose/key: ByteStr: UnmarshalText on nil pointer")
+	}
+
+	data, err := hex.DecodeString(string(text))
+	if err == nil {
+		*bstr = append((*bstr)[0:0], data...)
+	}
+	return err
+}
+
+// MarshalJSON implements encoding/json interface for ByteStr.
 func (bstr ByteStr) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + hex.EncodeToString(bstr) + `"`), nil
+}
+
+// UnmarshalJSON implements encoding/json interface for ByteStr.
+func (bstr *ByteStr) UnmarshalJSON(data []byte) error {
+	if bstr == nil {
+		return errors.New("cose/key: ByteStr: UnmarshalJSON on nil pointer")
+	}
+	s := string(data)
+	if s == "null" {
+		return nil
+	}
+
+	if len(data) < 2 || data[0] != '"' || data[len(data)-1] != '"' {
+		return errors.New("cose/key: ByteStr: UnmarshalJSON with invalid data")
+	}
+	data, err := hex.DecodeString(string(data[1 : len(data)-1]))
+	if err == nil {
+		*bstr = append((*bstr)[0:0], data...)
+	}
+	return err
 }
 
 // HexBytesify converts a hex string to []byte.
