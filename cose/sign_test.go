@@ -34,7 +34,7 @@ func TestSign(t *testing.T) {
 		{
 			`sign-pass-02: External`,
 			key.KeySet{
-				map[int]any{
+				map[any]any{
 					iana.KeyParameterKty:    iana.KeyTypeEC2,
 					iana.KeyParameterKid:    []byte("11"), //  h'3131'
 					iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -56,7 +56,7 @@ func TestSign(t *testing.T) {
 		{
 			`sign-pass-03: Remove CBOR Tag`,
 			key.KeySet{
-				map[int]any{
+				map[any]any{
 					iana.KeyParameterKty:    iana.KeyTypeEC2,
 					iana.KeyParameterKid:    []byte("11"), //  h'3131'
 					iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -78,7 +78,7 @@ func TestSign(t *testing.T) {
 		{
 			`Case: JOSE Cookbook Example 4.8 - multiple signatures`,
 			key.KeySet{
-				map[int]any{
+				map[any]any{
 					iana.KeyParameterKty:    iana.KeyTypeEC2,
 					iana.KeyParameterKid:    []byte("11"), //  h'3131'
 					iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -86,7 +86,7 @@ func TestSign(t *testing.T) {
 					iana.EC2KeyParameterY:   key.Base64Bytesify("IBOL-C3BttVivg-lSreASjpkttcsz-1rb7btKLv8EX4"),
 					iana.EC2KeyParameterD:   key.Base64Bytesify("V8kgd2ZBRuh2dgyVINBUqpPDr7BOMGcF22CQMIUHtNM"),
 				},
-				map[int]any{
+				map[any]any{
 					iana.KeyParameterKty:    iana.KeyTypeEC2,
 					iana.KeyParameterKid:    []byte("bilbo.baggins@hobbiton.example"),
 					iana.EC2KeyParameterCrv: iana.EllipticCurveP_521,
@@ -361,22 +361,23 @@ func TestSignEdgeCase(t *testing.T) {
 		assert.Equal(sigs[0].Signature, obj1.Signatures()[0].Signature)
 		assert.Equal(data, obj1.Bytesify())
 
-		_, err = VerifySignMessage[Headers](verifiers, data, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		obj2, err := VerifySignMessage[Headers](verifiers, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj2.Payload.Get("Str"), "This is the content.")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
-		datae[5] = 0x60
+		datae[5] = 0x40
 		_, err = VerifySignMessage[T](verifiers, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[8])
-		datae[8] = 0x60
+		datae[8] = 0x40
 		_, err = VerifySignMessage[T](verifiers, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
@@ -469,7 +470,7 @@ func TestSignatureEdgeCase(t *testing.T) {
 	datae[6] = 0xf4
 
 	sig1 = &Signature{}
-	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: ")
+	assert.Error(sig1.UnmarshalCBOR(datae))
 
 	datae = make([]byte, len(data))
 	copy(datae, data)
@@ -477,5 +478,5 @@ func TestSignatureEdgeCase(t *testing.T) {
 	datae[3] = 0xf4
 
 	sig1 = &Signature{}
-	assert.ErrorContains(sig1.UnmarshalCBOR(datae), "cbor: ")
+	assert.Error(sig1.UnmarshalCBOR(datae))
 }

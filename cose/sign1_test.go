@@ -33,7 +33,7 @@ func TestSign1(t *testing.T) {
 	}{
 		{
 			`sign-pass-01: Redo protected`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("11"), //  h'3131'
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -54,7 +54,7 @@ func TestSign1(t *testing.T) {
 		},
 		{
 			`sign-pass-02: External`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("11"), //  h'3131'
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -76,7 +76,7 @@ func TestSign1(t *testing.T) {
 		},
 		{
 			`sign-pass-03: Remove CBOR Tag`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("11"), //  h'3131'
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
@@ -324,22 +324,23 @@ func TestSign1EdgeCase(t *testing.T) {
 		assert.Equal(sig, obj1.Signature())
 		assert.Equal(data, obj1.Bytesify())
 
-		_, err = VerifySign1Message[Headers](verifier, data, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		obj2, err := VerifySign1Message[Headers](verifier, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj2.Payload.Get("Str"), "This is the content.")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[4])
-		datae[4] = 0x60
+		datae[4] = 0x40
 		_, err = VerifySign1Message[T](verifier, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[7])
-		datae[7] = 0x60
+		datae[7] = 0x40
 		_, err = VerifySign1Message[T](verifier, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)

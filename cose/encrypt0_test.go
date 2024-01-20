@@ -34,7 +34,7 @@ func TestEncrypt0Message(t *testing.T) {
 	}{
 		{
 			`env-pass-02: Add external data`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -50,7 +50,7 @@ func TestEncrypt0Message(t *testing.T) {
 		},
 		{
 			`enc-pass-03: Remove leading CBOR tag`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -69,7 +69,7 @@ func TestEncrypt0Message(t *testing.T) {
 		},
 		{
 			`Enc-04: Encryption example for spec - Direct ECDH`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret2"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_128,
@@ -85,7 +85,7 @@ func TestEncrypt0Message(t *testing.T) {
 		},
 		{
 			`Encryption example for spec - Direct key - partial IV`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret2"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_128,
@@ -260,14 +260,14 @@ func TestEncrypt0MessageEdgeCase(t *testing.T) {
 			Payload:     key.MustMarshalCBOR("This is the content."),
 		}
 		assert.ErrorContains(obj.Encrypt(encryptor, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		obj = &Encrypt0Message[cbor.RawMessage]{
 			Unprotected: Headers{iana.HeaderParameterPartialIV: 123},
 			Payload:     key.MustMarshalCBOR("This is the content."),
 		}
 		assert.ErrorContains(obj.Encrypt(encryptor, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		obj = &Encrypt0Message[cbor.RawMessage]{
 			Unprotected: Headers{iana.HeaderParameterIV: iv[2:]},
@@ -311,7 +311,7 @@ func TestEncrypt0MessageEdgeCase(t *testing.T) {
 
 		encryptor.Key()[iana.KeyParameterBaseIV] = 123
 		assert.ErrorContains(obj.Encrypt(encryptor, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		encryptor.Key()[iana.KeyParameterBaseIV] = iv[:8]
 		assert.NoError(obj.Encrypt(encryptor, nil))
@@ -340,17 +340,17 @@ func TestEncrypt0MessageEdgeCase(t *testing.T) {
 
 		obj1.Unprotected[iana.HeaderParameterIV] = 123
 		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		delete(obj1.Unprotected, iana.HeaderParameterIV)
 		obj1.Unprotected[iana.HeaderParameterPartialIV] = 123
 		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		obj1.Unprotected[iana.HeaderParameterPartialIV] = partialIV
 		encryptor2.Key()[iana.KeyParameterBaseIV] = 123
 		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 	})
 
 	t.Run("payload cbor.RawMessage", func(t *testing.T) {
@@ -418,22 +418,23 @@ func TestEncrypt0MessageEdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(data, obj1.Bytesify())
 
-		_, err = DecryptEncrypt0Message[Headers](encryptor, data, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		obj2, err := DecryptEncrypt0Message[Headers](encryptor, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj2.Payload.Get("Str"), "This is the content.")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[4])
-		datae[4] = 0x60
+		datae[4] = 0x40
 		_, err = DecryptEncrypt0Message[T](encryptor, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[7])
-		datae[7] = 0x60
+		datae[7] = 0x40
 		_, err = DecryptEncrypt0Message[T](encryptor, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		obj = &Encrypt0Message[T]{
 			Protected: Headers{

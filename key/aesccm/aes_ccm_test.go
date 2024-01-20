@@ -230,7 +230,7 @@ func TestEncryptorExamples(t *testing.T) {
 		ciphertext []byte
 	}{
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_128,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E"),
@@ -241,7 +241,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("6899DA0A132BD2D2B9B10915743EE1F7B92A46802388816C040275EE"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_128_128,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E"),
@@ -252,7 +252,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("6899DA0A132BD2D2B9B10915743EE1F7B92A46801D3D61B6E7C964520652F9D3C8347E8A"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_64_64_128,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E"),
@@ -263,7 +263,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("191BD858DEC79FC11DA3428BDFA446AC240D591F9F0F25E3A3FA4E6C"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_64_128_128,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E"),
@@ -274,7 +274,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("191BD858DEC79FC11DA3428BDFA446AC240D591F59482AEA4157167842D7BF5EDD68EC92"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_256,
 				iana.SymmetricKeyParameterK: key.HexBytesify("0F1E2D3C4B5A69788796A5B4C3D2E1F01F2E3D4C5B6A798897A6B5C4D3E2F100"),
@@ -285,7 +285,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("28B3BDDFF844A736C5F0EE0F8C691FD0B7ADF917A8A3EF3313D6D332"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_128_256,
 				iana.SymmetricKeyParameterK: key.HexBytesify("0F1E2D3C4B5A69788796A5B4C3D2E1F01F2E3D4C5B6A798897A6B5C4D3E2F100"),
@@ -296,7 +296,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("28B3BDDFF844A736C5F0EE0F8C691FD0B7ADF917348CDDC1FD07F3653AD991F9DFB65D50"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_64_64_256,
 				iana.SymmetricKeyParameterK: key.HexBytesify("0F1E2D3C4B5A69788796A5B4C3D2E1F01F2E3D4C5B6A798897A6B5C4D3E2F100"),
@@ -307,7 +307,7 @@ func TestEncryptorExamples(t *testing.T) {
 			key.HexBytesify("721908D60812806F2660054238E931ADB575771EE26C547EC3DE06C5"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_64_128_256,
 				iana.SymmetricKeyParameterK: key.HexBytesify("0F1E2D3C4B5A69788796A5B4C3D2E1F01F2E3D4C5B6A798897A6B5C4D3E2F100"),

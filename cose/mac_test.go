@@ -35,7 +35,7 @@ func TestMac(t *testing.T) {
 	}{
 		{
 			`mac-pass-02: External Data`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -61,7 +61,7 @@ func TestMac(t *testing.T) {
 		},
 		{
 			`mac-pass-03: remvove cbor tag`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -87,7 +87,7 @@ func TestMac(t *testing.T) {
 		},
 		{
 			`HMAC-01: Direct key + HMAC-SHA256`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -113,7 +113,7 @@ func TestMac(t *testing.T) {
 		},
 		{
 			`MAC example with direct shared key and AES-CMAC/64`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_MAC_256_64,
@@ -139,7 +139,7 @@ func TestMac(t *testing.T) {
 		},
 		{
 			`MAC example with direct ECDH static-static and HMAC-SHA256`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -168,7 +168,7 @@ func TestMac(t *testing.T) {
 		},
 		{
 			`MAC example with AES Keywrap from a direct shared secret and AES-128-CBC-MAC-64`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("018c0ae5-4d9b-471b-bfd6-eef314bc7037"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_MAC_128_64,
@@ -194,7 +194,7 @@ func TestMac(t *testing.T) {
 		},
 		{
 			`MAC example with multiple recipients`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("018c0ae5-4d9b-471b-bfd6-eef314bc7037"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -536,22 +536,23 @@ func TestMacEdgeCase(t *testing.T) {
 		assert.Equal(tag, obj1.Tag())
 		assert.Equal(data, obj1.Bytesify())
 
-		_, err = VerifyMacMessage[Headers](macer, data, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		obj2, err := VerifyMacMessage[Headers](macer, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj2.Payload.Get("Str"), "This is the content.")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
-		datae[5] = 0x60
+		datae[5] = 0x40
 		_, err = VerifyMacMessage[T](macer, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[8])
-		datae[8] = 0x60
+		datae[8] = 0x40
 		_, err = VerifyMacMessage[T](macer, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		obj = &MacMessage[T]{
 			Protected: Headers{

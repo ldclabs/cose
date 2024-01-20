@@ -131,14 +131,14 @@ func TestRecipient(t *testing.T) {
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[3])
-		datae[3] = 0x60
-		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: ")
+		datae[3] = 0x40
+		assert.Error(r4.UnmarshalCBOR(datae))
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[7])
-		datae[7] = 0x60
-		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: ")
+		datae[7] = 0x40
+		assert.Error(r4.UnmarshalCBOR(datae))
 		assert.NoError(r4.UnmarshalCBOR(data))
 		assert.Equal(r.Ciphertext, r4.Ciphertext)
 		assert.Equal(r.Bytesify(), r4.Bytesify())
@@ -192,14 +192,14 @@ func TestRecipient(t *testing.T) {
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[3])
-		datae[3] = 0x60
-		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: ")
+		datae[3] = 0x40
+		assert.Error(r4.UnmarshalCBOR(datae))
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[7])
-		datae[7] = 0x60
-		assert.ErrorContains(r4.UnmarshalCBOR(datae), "cbor: ")
+		datae[7] = 0x40
+		assert.Error(r4.UnmarshalCBOR(datae))
 		assert.NoError(r4.UnmarshalCBOR(data))
 		assert.Equal(r.Ciphertext, r4.Ciphertext)
 		assert.Equal(r.Bytesify(), r4.Bytesify())

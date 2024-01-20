@@ -73,7 +73,7 @@ func TestClaimsSign1AndVerify(t *testing.T) {
 	}{
 		{
 			`Case: Example Signed CWT`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    key.HexBytesify("4173796d6d65747269634543445341323536"),
 				iana.KeyParameterAlg:    iana.AlgorithmES256,

@@ -297,7 +297,7 @@ func (s *Signature) Kid() key.ByteStr {
 		return nil
 	}
 
-	kid, _ := key.IntMap(s.Unprotected).GetBytes(iana.HeaderParameterKid)
+	kid, _ := key.CoseMap(s.Unprotected).GetBytes(iana.HeaderParameterKid)
 	return kid
 }
 

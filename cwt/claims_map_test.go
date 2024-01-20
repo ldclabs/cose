@@ -52,7 +52,7 @@ func TestClaimsMap(t *testing.T) {
 	assert.Equal("hello", vstr)
 
 	var p *ClaimsMap
-	assert.ErrorContains(p.UnmarshalCBOR([]byte{0xa0}), "nil IntMap")
+	assert.ErrorContains(p.UnmarshalCBOR([]byte{0xa0}), "nil CoseMap")
 
 	cm = ClaimsMap{
 		iana.CWTClaimIss: "issuer",
@@ -88,7 +88,7 @@ func TestClaimsMap(t *testing.T) {
 		},
 	}
 
-	k, err := cm.GetIntMap(iana.CWTClaimHCert)
+	k, err := cm.GetMap(iana.CWTClaimHCert)
 	assert.NoError(err)
 	x, err := k.GetBytes(iana.EC2KeyParameterX)
 	assert.NoError(err)
@@ -103,7 +103,7 @@ func TestClaimsMap(t *testing.T) {
 	nonce, _ := cm4.GetBytes(iana.CWTClaimEUPHNonce)
 	assert.Equal([]byte{5, 6, 7, 8}, nonce)
 
-	k, err = cm4.GetIntMap(iana.CWTClaimHCert)
+	k, err = cm4.GetMap(iana.CWTClaimHCert)
 	assert.NoError(err)
 	x, err = k.GetBytes(iana.EC2KeyParameterX)
 	assert.NoError(err)

@@ -192,12 +192,12 @@ func TestKDFContext(t *testing.T) {
 		copy(datae, data)
 		assert.Equal(byte(0x18), datae[1])
 		datae[1] = 0x22
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
+		assert.Error(s2.UnmarshalCBOR(datae))
 
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
-		datae[5] = 0x60
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
+		datae[5] = 0x40
+		assert.Error(s2.UnmarshalCBOR(datae))
 
 		assert.NoError(key.UnmarshalCBOR(data, s2))
 		assert.Equal(key.MustMarshalCBOR(s1), key.MustMarshalCBOR(s2))
@@ -221,12 +221,12 @@ func TestKDFContext(t *testing.T) {
 		copy(datae, data)
 		assert.Equal(byte(0x18), datae[1])
 		datae[1] = 0x22
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
+		assert.Error(s2.UnmarshalCBOR(datae))
 
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
-		datae[5] = 0x60
-		assert.ErrorContains(s2.UnmarshalCBOR(datae), "cbor: ")
+		datae[5] = 0x40
+		assert.Error(s2.UnmarshalCBOR(datae))
 
 		assert.NoError(key.UnmarshalCBOR(data, s2))
 		assert.Equal(key.MustMarshalCBOR(s1), key.MustMarshalCBOR(s2))

@@ -21,7 +21,7 @@ func GenerateKey() (key.Key, error) {
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeOKP,
 		iana.KeyParameterKid:    key.SumKid(pubKey), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    iana.AlgorithmEdDSA,
@@ -71,7 +71,7 @@ func KeyFromPrivate(pk goed25519.PrivateKey) (key.Key, error) {
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeOKP,
 		iana.KeyParameterKid:    key.SumKid(pk.Public().(goed25519.PublicKey)), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    iana.AlgorithmEdDSA,
@@ -100,7 +100,7 @@ func KeyFromPublic(pk goed25519.PublicKey) (key.Key, error) {
 
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-octet-key-pair
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeOKP,
 		iana.KeyParameterKid:    key.SumKid(pk), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    iana.AlgorithmEdDSA,

@@ -32,7 +32,7 @@ func GenerateKey(alg int) (key.Key, error) {
 
 	pk, _ := goecdsa.GenerateKey(curve, rand.Reader) // err should never happen
 	// https://datatracker.ietf.org/doc/html/rfc9053#name-double-coordinate-curves
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    alg,
@@ -73,7 +73,7 @@ func KeyFromPrivate(pk *goecdsa.PrivateKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPrivate: unsupported curve %v", pk.Curve.Params().Name)
 	}
 
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey.X.Bytes()), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    alg,
@@ -98,7 +98,7 @@ func KeyFromPublic(pk *goecdsa.PublicKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/key/ecdsa: KeyFromPublic: unsupported curve %v", pk.Curve.Params().Name)
 	}
 
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(pk.X.Bytes()), // default kid, can be set to other value.
 		iana.KeyParameterAlg:    alg,

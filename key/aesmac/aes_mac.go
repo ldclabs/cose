@@ -27,7 +27,7 @@ func GenerateKey(alg int) (key.Key, error) {
 	}
 
 	k := key.GetRandomBytes(uint16(keySize))
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
 		iana.KeyParameterAlg:        alg,
@@ -45,7 +45,7 @@ func KeyFrom(alg int, k []byte) (key.Key, error) {
 		return nil, fmt.Errorf(`cose/key/aesmac: KeyFrom: invalid key size, expected %d, got %d`, keySize, len(k))
 	}
 
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
 		iana.KeyParameterAlg:        alg,

@@ -13,7 +13,7 @@ import (
 // Key represents a COSE_Key object.
 //
 // Reference https://datatracker.ietf.org/doc/html/rfc9052#name-key-objects.
-type Key IntMap
+type Key CoseMap
 
 // Kty returns the key type.
 // If the key is nil, it returns KtyReserved.
@@ -106,72 +106,82 @@ func (k Key) BaseIV() ByteStr {
 }
 
 // Has returns true if the key has the given parameter.
-func (k Key) Has(p int) bool {
-	return IntMap(k).Has(p)
+func (k Key) Has(p any) bool {
+	return CoseMap(k).Has(p)
+}
+
+// Get returns the value of the given parameter.
+func (k Key) Get(p any) any {
+	return CoseMap(k).Get(p)
+}
+
+// Set sets the parameter. parameter key should be int or string.
+func (k Key) Set(p, value any) error {
+	return CoseMap(k).Set(p, value)
 }
 
 // GetBool returns the value of the given parameter as a bool, or a error.
-func (k Key) GetBool(p int) (bool, error) {
-	return IntMap(k).GetBool(p)
+func (k Key) GetBool(p any) (bool, error) {
+	return CoseMap(k).GetBool(p)
 }
 
 // GetInt returns the value of the given parameter as a int, or a error.
-func (k Key) GetInt(p int) (int, error) {
-	return IntMap(k).GetInt(p)
+func (k Key) GetInt(p any) (int, error) {
+	return CoseMap(k).GetInt(p)
 }
 
 // GetInt64 returns the value of the given parameter as a int64, or a error.
-func (k Key) GetInt64(p int) (int64, error) {
-	return IntMap(k).GetInt64(p)
+func (k Key) GetInt64(p any) (int64, error) {
+	return CoseMap(k).GetInt64(p)
 }
 
 // GetUint64 returns the value of the given parameter as a uint64, or a error.
-func (k Key) GetUint64(p int) (uint64, error) {
-	return IntMap(k).GetUint64(p)
+func (k Key) GetUint64(p any) (uint64, error) {
+	return CoseMap(k).GetUint64(p)
 }
 
 // GetBytes returns the value of the given parameter as a slice of bytes, or a error.
-func (k Key) GetBytes(p int) ([]byte, error) {
-	return IntMap(k).GetBytes(p)
+func (k Key) GetBytes(p any) ([]byte, error) {
+	return CoseMap(k).GetBytes(p)
 }
 
 // GetString returns the value of the given parameter as a string, or a error.
-func (k Key) GetString(p int) (string, error) {
-	return IntMap(k).GetString(p)
+func (k Key) GetString(p any) (string, error) {
+	return CoseMap(k).GetString(p)
 }
 
 // MarshalCBOR implements the CBOR Marshaler interface for Key.
 func (k Key) MarshalCBOR() ([]byte, error) {
-	return IntMap(k).MarshalCBOR()
+	return CoseMap(k).MarshalCBOR()
 }
 
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Key.
 func (k *Key) UnmarshalCBOR(data []byte) error {
-	return (*IntMap)(k).UnmarshalCBOR(data)
+	return (*CoseMap)(k).UnmarshalCBOR(data)
 }
 
 // MarshalText implements encoding/text interface for Key.
 func (k Key) MarshalText() ([]byte, error) {
-	return IntMap(k).MarshalText()
+	return CoseMap(k).MarshalText()
 }
 
 // UnmarshalText implements encoding/text interface for Key.
 func (k *Key) UnmarshalText(text []byte) error {
-	return (*IntMap)(k).UnmarshalText(text)
+	return (*CoseMap)(k).UnmarshalText(text)
 }
 
 // MarshalJSON implements encoding/json interface for Key.
 func (k Key) MarshalJSON() ([]byte, error) {
-	return IntMap(k).MarshalJSON()
+	return CoseMap(k).MarshalJSON()
 }
 
 // UnmarshalJSON implements encoding/json interface for Key.
 func (k *Key) UnmarshalJSON(text []byte) error {
-	return (*IntMap)(k).UnmarshalJSON(text)
+	return (*CoseMap)(k).UnmarshalJSON(text)
 }
 
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (k Key) Bytesify() []byte {
-	return IntMap(k).Bytesify()
+	return CoseMap(k).Bytesify()
 }

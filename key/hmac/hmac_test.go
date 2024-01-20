@@ -198,7 +198,7 @@ func TestMACerExamples(t *testing.T) {
 		tag  []byte
 	}{
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E976686457C1491BE3A76DCEA6C427188"),
@@ -207,7 +207,7 @@ func TestMACerExamples(t *testing.T) {
 			key.HexBytesify("2BDCC89F058216B8A208DDC6D8B54AA91F48BD63484986565105C9AD5A6682F6"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_384_384,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E976686457C1491BE3A76DCEA6C42718800112233778899AA2122232425262728"),
@@ -216,7 +216,7 @@ func TestMACerExamples(t *testing.T) {
 			key.HexBytesify("B3097F70009A11507409598A83E15BBBBF1982DCE28E5AB6D5A6AFF6897BD24BB8B7479622C9401B24090D458206D587"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_512_512,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E976686457C1491BE3A76DCEA6C42718800112233778899AA2122232425262728AABBCCDDEEFFA5A6A7A8A9A0B1B2B3B4"),
@@ -225,7 +225,7 @@ func TestMACerExamples(t *testing.T) {
 			key.HexBytesify("CD28A6B3CFBBBF214851B906E050056CB438A8B88905B8B7461977022711A9D8AC5DBC54E29A56D926046B40FC2607C25B344454AA5F68DE09A3E525D3865A05"),
 		},
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_64,
 				iana.SymmetricKeyParameterK: key.HexBytesify("849B57219DAE48DE646D07DBB533566E976686457C1491BE3A76DCEA6C427188"),

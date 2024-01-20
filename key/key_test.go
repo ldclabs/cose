@@ -329,7 +329,7 @@ func TestKey(t *testing.T) {
 	})
 
 	var k *Key
-	assert.ErrorContains(t, k.UnmarshalCBOR([]byte{0xa0}), "nil IntMap")
+	assert.ErrorContains(t, k.UnmarshalCBOR([]byte{0xa0}), "nil CoseMap")
 }
 
 func TestKeyExamples(t *testing.T) {
@@ -342,7 +342,7 @@ func TestKeyExamples(t *testing.T) {
 	}{
 		{
 			`128-Bit Symmetric COSE_Key`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        HexBytesify("53796d6d6574726963313238"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_128,
@@ -352,7 +352,7 @@ func TestKeyExamples(t *testing.T) {
 		},
 		{
 			`256-Bit Symmetric COSE_Key`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        HexBytesify("53796d6d6574726963323536"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_64,
@@ -362,7 +362,7 @@ func TestKeyExamples(t *testing.T) {
 		},
 		{
 			`ECDSA 256-Bit COSE Key`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    HexBytesify("4173796d6d65747269634543445341323536"),
 				iana.KeyParameterAlg:    iana.AlgorithmES256,

@@ -196,7 +196,7 @@ func TestEncryptorExamples(t *testing.T) {
 		ciphertext []byte
 	}{
 		{
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterAlg:        iana.AlgorithmChaCha20Poly1305,
 				iana.SymmetricKeyParameterK: key.HexBytesify("0F1E2D3C4B5A69788796A5B4C3D2E1F01F2E3D4C5B6A798897A6B5C4D3E2F100"),

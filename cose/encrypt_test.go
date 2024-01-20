@@ -38,7 +38,7 @@ func TestEncryptMessage(t *testing.T) {
 	}{
 		{
 			`env-pass-02: Add external data`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -64,7 +64,7 @@ func TestEncryptMessage(t *testing.T) {
 		},
 		{
 			`env-pass-03: Remove leading CBOR tag`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -93,7 +93,7 @@ func TestEncryptMessage(t *testing.T) {
 		},
 		{
 			`AES-GCM-01: Encryption example for spec - `,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -123,7 +123,7 @@ func TestEncryptMessage(t *testing.T) {
 		},
 		{
 			`Encryption example for spec - Direct ECDH`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -160,7 +160,7 @@ func TestEncryptMessage(t *testing.T) {
 		},
 		{
 			`Encryption example for spec - Direct ECDH 2`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_CCM_16_64_128,
@@ -192,7 +192,7 @@ func TestEncryptMessage(t *testing.T) {
 		},
 		{
 			`Encryption example for spec - Direct ECDH 3`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -238,7 +238,7 @@ func TestEncryptMessage(t *testing.T) {
 		},
 		{
 			`ENC-06: Encryption example for spec - Direct ECDH + A128 Key Wrap`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmA128GCM,
@@ -479,14 +479,14 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 			Payload:     key.MustMarshalCBOR("This is the content."),
 		}
 		assert.ErrorContains(obj.Encrypt(encryptor, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		obj = &EncryptMessage[cbor.RawMessage]{
 			Unprotected: Headers{iana.HeaderParameterPartialIV: 123},
 			Payload:     key.MustMarshalCBOR("This is the content."),
 		}
 		assert.ErrorContains(obj.Encrypt(encryptor, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		obj = &EncryptMessage[cbor.RawMessage]{
 			Unprotected: Headers{iana.HeaderParameterIV: iv[2:]},
@@ -538,7 +538,7 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 
 		encryptor.Key()[iana.KeyParameterBaseIV] = 123
 		assert.ErrorContains(obj.Encrypt(encryptor, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		encryptor.Key()[iana.KeyParameterBaseIV] = iv[:8]
 		assert.NoError(obj.Encrypt(encryptor, nil))
@@ -567,17 +567,17 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 
 		obj1.Unprotected[iana.HeaderParameterIV] = 123
 		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		delete(obj1.Unprotected, iana.HeaderParameterIV)
 		obj1.Unprotected[iana.HeaderParameterPartialIV] = 123
 		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 
 		obj1.Unprotected[iana.HeaderParameterPartialIV] = partialIV
 		encryptor2.Key()[iana.KeyParameterBaseIV] = 123
 		assert.ErrorContains(obj1.Decrypt(encryptor2, nil),
-			`IntMap.GetBytes: invalid value type`)
+			`CoseMap.GetBytes: invalid value type`)
 	})
 
 	t.Run("payload cbor.RawMessage", func(t *testing.T) {
@@ -661,22 +661,23 @@ func TestEncryptMessageEdgeCase(t *testing.T) {
 		assert.Equal(obj.Payload.Str, obj1.Payload.Str)
 		assert.Equal(data, obj1.Bytesify())
 
-		_, err = DecryptEncryptMessage[Headers](encryptor, data, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		obj2, err := DecryptEncryptMessage[Headers](encryptor, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj2.Payload.Get("Str"), "This is the content.")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[5])
-		datae[5] = 0x60
+		datae[5] = 0x40
 		_, err = DecryptEncryptMessage[T](encryptor, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[8])
-		datae[8] = 0x60
+		datae[8] = 0x40
 		_, err = DecryptEncryptMessage[T](encryptor, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		obj = &EncryptMessage[T]{
 			Protected: Headers{
@@ -732,14 +733,14 @@ func TestEncryptMessageECDH(t *testing.T) {
 	}{
 		{
 			`Encryption example for spec - Direct ECDH`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("meriadoc.brandybuck@buckland.example"),
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,
 				iana.EC2KeyParameterX:   key.Base64Bytesify("mPUKT_bAWGHIhg0TpjjqVsP1rXWQu_vwVOHHtNkdYoA"),
 				iana.EC2KeyParameterY:   key.Base64Bytesify("8BQAsImGeAS46fyWw5MhYfGTT0IjBpFw2SS34Dv4Irs"),
 			},
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:    iana.KeyTypeEC2,
 				iana.KeyParameterKid:    []byte("meriadoc.brandybuck@buckland.example"),
 				iana.EC2KeyParameterCrv: iana.EllipticCurveP_256,

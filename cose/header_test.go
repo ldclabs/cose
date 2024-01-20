@@ -52,7 +52,7 @@ func TestHeaders(t *testing.T) {
 	assert.Equal("hello", vstr)
 
 	var p *Headers
-	assert.ErrorContains(p.UnmarshalCBOR([]byte{0xa0}), "nil IntMap")
+	assert.ErrorContains(p.UnmarshalCBOR([]byte{0xa0}), "nil CoseMap")
 
 	h = Headers{
 		iana.HeaderParameterAlg: iana.AlgorithmECDH_ES_HKDF_256,
@@ -88,7 +88,7 @@ func TestHeaders(t *testing.T) {
 	assert.Equal(data, h4.Bytesify())
 	kid, _ := h4.GetBytes(iana.HeaderParameterKid)
 	assert.Equal([]byte("bilbo.baggins@hobbiton.example"), kid)
-	im, err := h4.GetIntMap(iana.HeaderAlgorithmParameterEphemeralKey)
+	im, err := h4.GetMap(iana.HeaderAlgorithmParameterEphemeralKey)
 	assert.NoError(err)
 	x, err := im.GetBytes(iana.EC2KeyParameterX)
 	assert.NoError(err)
@@ -128,7 +128,7 @@ func TestHeaderBytes(t *testing.T) {
 
 	data[1] = 0xf5
 	_, err = HeadersFromBytes(data)
-	assert.ErrorContains(err, "cbor: ")
+	assert.ErrorContains(err, "invalid key type")
 
 	h = Headers{iana.HeaderParameterReserved: func() {}}
 	_, err = h.Bytes()

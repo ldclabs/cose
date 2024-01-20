@@ -17,7 +17,7 @@ import (
 // GenerateKey generates a new Key with given algorithm for ChaCha20/Poly1305.
 func GenerateKey() (key.Key, error) {
 	k := key.GetRandomBytes(uint16(keySize))
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
 		iana.KeyParameterAlg:        iana.AlgorithmChaCha20Poly1305,
@@ -32,7 +32,7 @@ func KeyFrom(k []byte) (key.Key, error) {
 			keySize, len(k))
 	}
 
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 		iana.KeyParameterKid:        key.SumKid(k), // default kid, can be set to other value.
 		iana.KeyParameterAlg:        iana.AlgorithmChaCha20Poly1305,

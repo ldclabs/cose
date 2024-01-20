@@ -29,7 +29,7 @@ func GenerateKey(crv int) (key.Key, error) {
 		kty = iana.KeyTypeOKP
 	}
 	pk, _ := curve.GenerateKey(rand.Reader) // err should never happen
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    kty,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey().Bytes()), // default kid, can be set to other value.
 		iana.EC2KeyParameterCrv: crv,                                // REQUIRED
@@ -71,7 +71,7 @@ func KeyFromPrivate(pk *goecdh.PrivateKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/key/ecdh: KeyFromPrivate: unsupported curve %q", curve)
 	}
 
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    kty,
 		iana.KeyParameterKid:    key.SumKid(pk.PublicKey().Bytes()), // default kid, can be set to other value.
 		iana.EC2KeyParameterCrv: crv,                                // REQUIRED
@@ -128,7 +128,7 @@ func KeyFromPublic(pk *goecdh.PublicKey) (key.Key, error) {
 	data := pk.Bytes()
 	curve := pk.Curve()
 	if curve == goecdh.X25519() {
-		return map[int]any{
+		return map[any]any{
 			iana.KeyParameterKty:    iana.KeyTypeOKP,
 			iana.KeyParameterKid:    key.SumKid(data),         // default kid, can be set to other value.
 			iana.EC2KeyParameterCrv: iana.EllipticCurveX25519, // REQUIRED
@@ -142,7 +142,7 @@ func KeyFromPublic(pk *goecdh.PublicKey) (key.Key, error) {
 	}
 
 	x, y := elliptic.Unmarshal(ecdsaCurve, data)
-	return map[int]any{
+	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(data), // default kid, can be set to other value.
 		iana.EC2KeyParameterCrv: crv,              // REQUIRED

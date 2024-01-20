@@ -8,62 +8,72 @@ package cose
 import "github.com/ldclabs/cose/key"
 
 // Headers represents a COSE Generic_Headers structure.
-type Headers key.IntMap
+type Headers key.CoseMap
 
 // Has returns true if the Headers has the given parameter.
-func (h Headers) Has(p int) bool {
-	return key.IntMap(h).Has(p)
+func (h Headers) Has(p any) bool {
+	return key.CoseMap(h).Has(p)
+}
+
+// Get returns the value of the given parameter.
+func (h Headers) Get(p any) any {
+	return key.CoseMap(h).Get(p)
+}
+
+// Set sets the parameter. parameter key should be int or string.
+func (h Headers) Set(p, value any) error {
+	return key.CoseMap(h).Set(p, value)
 }
 
 // GetBool returns the value of the given parameter as a bool, or a error.
-func (h Headers) GetBool(p int) (bool, error) {
-	return key.IntMap(h).GetBool(p)
+func (h Headers) GetBool(p any) (bool, error) {
+	return key.CoseMap(h).GetBool(p)
 }
 
 // GetInt returns the value of the given parameter as a int, or a error.
-func (h Headers) GetInt(p int) (int, error) {
-	return key.IntMap(h).GetInt(p)
+func (h Headers) GetInt(p any) (int, error) {
+	return key.CoseMap(h).GetInt(p)
 }
 
 // GetInt64 returns the value of the given parameter as a int64, or a error.
-func (h Headers) GetInt64(p int) (int64, error) {
-	return key.IntMap(h).GetInt64(p)
+func (h Headers) GetInt64(p any) (int64, error) {
+	return key.CoseMap(h).GetInt64(p)
 }
 
 // GetUint64 returns the value of the given parameter as a uint64, or a error.
-func (h Headers) GetUint64(p int) (uint64, error) {
-	return key.IntMap(h).GetUint64(p)
+func (h Headers) GetUint64(p any) (uint64, error) {
+	return key.CoseMap(h).GetUint64(p)
 }
 
 // GetBytes returns the value of the given parameter as a slice of bytes, or a error.
-func (h Headers) GetBytes(p int) ([]byte, error) {
-	return key.IntMap(h).GetBytes(p)
+func (h Headers) GetBytes(p any) ([]byte, error) {
+	return key.CoseMap(h).GetBytes(p)
 }
 
 // GetString returns the value of the given parameter as a string, or a error.
-func (h Headers) GetString(p int) (string, error) {
-	return key.IntMap(h).GetString(p)
+func (h Headers) GetString(p any) (string, error) {
+	return key.CoseMap(h).GetString(p)
 }
 
-// GetIntMap returns the value of the given parameter as a key.IntMap, or a error.
-func (h Headers) GetIntMap(p int) (key.IntMap, error) {
-	return key.IntMap(h).GetIntMap(p)
+// GetMap returns the value of the given parameter as a key.CoseMap, or a error.
+func (h Headers) GetMap(p any) (key.CoseMap, error) {
+	return key.CoseMap(h).GetMap(p)
 }
 
 // MarshalCBOR implements the CBOR Marshaler interface for Headers.
 func (h Headers) MarshalCBOR() ([]byte, error) {
-	return key.IntMap(h).MarshalCBOR()
+	return key.CoseMap(h).MarshalCBOR()
 }
 
 // UnmarshalCBOR implements the CBOR Unmarshaler interface for Headers.
 func (h *Headers) UnmarshalCBOR(data []byte) error {
-	return (*key.IntMap)(h).UnmarshalCBOR(data)
+	return (*key.CoseMap)(h).UnmarshalCBOR(data)
 }
 
 // Bytesify returns a CBOR-encoded byte slice.
 // It returns nil if MarshalCBOR failed.
 func (h Headers) Bytesify() []byte {
-	return key.IntMap(h).Bytesify()
+	return key.CoseMap(h).Bytesify()
 }
 
 // Bytesify returns a CBOR-encoded byte slice.

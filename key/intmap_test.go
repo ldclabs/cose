@@ -12,47 +12,49 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIntMap(t *testing.T) {
+func TestCoseMap(t *testing.T) {
 	t.Run("common", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		var im *IntMap
-		assert.ErrorContains(im.UnmarshalCBOR([]byte{0xa0}), "nil IntMap")
+		var im *CoseMap
+		assert.ErrorContains(im.UnmarshalCBOR([]byte{0xa0}), "nil CoseMap")
 
 		type Str string
-		m1 := IntMap{
-			1:  int(1),
-			2:  int64(2),
-			3:  int32(3),
-			-1: int(-1),
-			-2: int64(-2),
-			-3: int32(-3),
-			0:  math.MaxInt64,
-			10: []byte{1, 2, 3, 4},
-			11: ByteStr{1, 2, 3, 4},
-			12: [4]byte{1, 2, 3, 4},
-			13: "hello",
-			14: []string{"hello"},
-			15: Str("hello"),
+		m1 := CoseMap{
+			1:       int(1),
+			2:       int64(2),
+			3:       int32(3),
+			-1:      int(-1),
+			-2:      int64(-2),
+			-3:      int32(-3),
+			0:       math.MaxInt64,
+			10:      []byte{1, 2, 3, 4},
+			11:      ByteStr{1, 2, 3, 4},
+			12:      [4]byte{1, 2, 3, 4},
+			13:      "hello",
+			14:      []string{"hello"},
+			15:      Str("hello"),
+			"hello": "hello",
 		}
 
 		data := MustMarshalCBOR(m1)
 		assert.NoError(ValidCBOR(data))
+		fmt.Printf("%x\n", data)
 
-		var m2 IntMap
+		var m2 CoseMap
 		assert.NoError(UnmarshalCBOR(data, &m2))
 
-		mx := IntMap{}
-		assert.NoError(UnmarshalCBOR(MustMarshalCBOR(IntMap{-11: m1}), &mx))
+		mx := CoseMap{}
+		assert.NoError(UnmarshalCBOR(MustMarshalCBOR(CoseMap{-11: m1}), &mx))
 		mx[-12] = m2
 
-		m3, err := mx.GetIntMap(-11)
+		m3, err := mx.GetMap(-11)
 		assert.NoError(err)
-		m4, err := mx.GetIntMap(-12)
+		m4, err := mx.GetMap(-12)
 		assert.NoError(err)
 
-		for i, m := range []IntMap{m1, m2, m3, m4} {
+		for i, m := range []CoseMap{m1, m2, m3, m4} {
 			smallInt, err := m.GetInt(1)
 			assert.NoError(err)
 			assert.Equal(1, smallInt, fmt.Sprintf("case %d", i))
@@ -169,64 +171,66 @@ func TestIntMap(t *testing.T) {
 			assert.NoError(err)
 			assert.Equal("hello", vs)
 
+			assert.Equal("hello", m.Get("hello"))
+
 			data, err := MarshalCBOR(m)
 			require.NoError(err)
 			// CBOR Diagnostic:
-			// {0: 9223372036854775807, 1: 1, 2: 2, 3: 3, 10: h'01020304', 11: h'01020304', 12: h'01020304', 13: "hello", 14: ["hello"], 15: "hello", -1: -1, -2: -2, -3: -3}
-			assert.Equal(`ad001b7fffffffffffffff0101020203030a44010203040b44010203040c44010203040d6568656c6c6f0e816568656c6c6f0f6568656c6c6f202021212222`, ByteStr(data).String())
+			// {0: 9223372036854775807, 1: 1, 2: 2, 3: 3, 10: h'01020304', 11: h'01020304', 12: h'01020304', 13: "hello", 14: ["hello"], 15: "hello", -1: -1, -2: -2, -3: -3, "hello": "hello"}
+			assert.Equal(`ae001b7fffffffffffffff0101020203030a44010203040b44010203040c44010203040d6568656c6c6f0e816568656c6c6f0f6568656c6c6f2020212122226568656c6c6f6568656c6c6f`, ByteStr(data).String())
 		}
 	})
 
-	t.Run("GetIntMap", func(t *testing.T) {
+	t.Run("GetMap", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		var m1 IntMap
-		vm, err := m1.GetIntMap(1)
+		var m1 CoseMap
+		vm, err := m1.GetMap(1)
 		require.Nil(err)
 		require.Nil(vm)
 
-		m1 = IntMap{
-			1: IntMap{},
+		m1 = CoseMap{
+			1: CoseMap{},
 		}
 
-		vm, err = m1.GetIntMap(1)
+		vm, err = m1.GetMap(1)
 		require.NoError(err)
-		assert.Equal(IntMap{}, vm)
+		assert.Equal(CoseMap{}, vm)
 
-		m1 = IntMap{
+		m1 = CoseMap{
 			1: map[int]any{},
 		}
-		vm, err = m1.GetIntMap(1)
+		vm, err = m1.GetMap(1)
 		require.NoError(err)
-		assert.Equal(IntMap{}, vm)
+		assert.Equal(CoseMap{}, vm)
 
-		m1 = IntMap{
+		m1 = CoseMap{
 			1: map[uint]any{},
 		}
-		vm, err = m1.GetIntMap(1)
+		vm, err = m1.GetMap(1)
 		require.NoError(err)
-		assert.Equal(IntMap{}, vm)
+		assert.Equal(CoseMap{}, vm)
 
-		m1 = IntMap{
+		m1 = CoseMap{
 			1: map[any]any{
-				int64(-1): IntMap{},
+				int64(-1): CoseMap{},
 			},
 		}
-		vm, err = m1.GetIntMap(1)
+		vm, err = m1.GetMap(1)
 		require.NoError(err)
 
-		vm, err = vm.GetIntMap(-1)
+		vm, err = vm.GetMap(-1)
 		require.NoError(err)
-		assert.Equal(IntMap{}, vm)
+		assert.Equal(CoseMap{}, vm)
 
-		m1 = IntMap{
+		m1 = CoseMap{
 			1: map[any]any{
-				1:   IntMap{},
-				"2": IntMap{},
+				1:   CoseMap{},
+				"2": CoseMap{},
 			},
 		}
-		_, err = m1.GetIntMap(1)
-		require.ErrorContains(err, "ToInt: invalid value type string")
+		_, err = m1.GetMap(1)
+		require.NoError(err)
 	})
 }

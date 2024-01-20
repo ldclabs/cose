@@ -33,7 +33,7 @@ func TestMac0(t *testing.T) {
 	}{
 		{
 			`mac-pass-02: External Data`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -49,7 +49,7 @@ func TestMac0(t *testing.T) {
 		},
 		{
 			`mac-pass-03: Remvove cbor tag`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -65,7 +65,7 @@ func TestMac0(t *testing.T) {
 		},
 		{
 			`HMAC-01: Direct key + HMAC-SHA256`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmHMAC_256_256,
@@ -81,7 +81,7 @@ func TestMac0(t *testing.T) {
 		},
 		{
 			`MAC0 example with direct shared key and AES-MAC/64`,
-			map[int]any{
+			map[any]any{
 				iana.KeyParameterKty:        iana.KeyTypeSymmetric,
 				iana.KeyParameterKid:        []byte("our-secret"),
 				iana.KeyParameterAlg:        iana.AlgorithmAES_MAC_256_64,
@@ -312,22 +312,23 @@ func TestMac0EdgeCase(t *testing.T) {
 		assert.Equal(tag, obj1.Tag())
 		assert.Equal(data, obj1.Bytesify())
 
-		_, err = VerifyMac0Message[Headers](macer, data, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		obj2, err := VerifyMac0Message[Headers](macer, data, nil)
+		require.NoError(t, err)
+		assert.Equal(obj2.Payload.Get("Str"), "This is the content.")
 
 		datae := make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x01), datae[4])
-		datae[4] = 0x60
+		datae[4] = 0x40
 		_, err = VerifyMac0Message[T](macer, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		datae = make([]byte, len(data))
 		copy(datae, data)
 		assert.Equal(byte(0x04), datae[7])
-		datae[7] = 0x60
+		datae[7] = 0x40
 		_, err = VerifyMac0Message[T](macer, datae, nil)
-		assert.ErrorContains(err, "cannot unmarshal UTF-8 text string")
+		assert.Error(err)
 
 		obj = &Mac0Message[T]{
 			Protected: Headers{
