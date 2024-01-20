@@ -128,7 +128,7 @@ func TestHeaderBytes(t *testing.T) {
 
 	data[1] = 0xf5
 	_, err = HeadersFromBytes(data)
-	assert.ErrorContains(err, "invalid key type")
+	assert.ErrorContains(err, "invalid key")
 
 	h = Headers{iana.HeaderParameterReserved: func() {}}
 	_, err = h.Bytes()
