@@ -3,7 +3,7 @@ module github.com/ldclabs/cose
 go 1.20
 
 require (
-	github.com/fxamacker/cbor/v2 v2.6.0
+	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.23.0
 )
