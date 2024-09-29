@@ -7,6 +7,7 @@ package ecdh
 
 import (
 	goecdh "crypto/ecdh"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
@@ -119,8 +120,8 @@ func keyToPublic(pk key.Key) (*goecdh.PublicKey, error) {
 		copy(compressed[1:], x)
 		ix, iy = elliptic.UnmarshalCompressed(ecdsaCurve, compressed)
 	}
-
-	return curve.NewPublicKey(elliptic.Marshal(ecdsaCurve, ix, iy))
+	k := ecdsa.PublicKey{Curve: ecdsaCurve, X: ix, Y: iy}
+	return k.ECDH()
 }
 
 // KeyFromPublic returns a public Key with given ecdh.PublicKey.
