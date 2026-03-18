@@ -7,89 +7,84 @@
 [![Installation](https://img.shields.io/badge/go-%3E%3D%201.19-blue)](#installation)
 [![Go Reference](https://pkg.go.dev/badge/github.com/ldclabs/cose.svg)](https://pkg.go.dev/github.com/ldclabs/cose)
 
-*A golang library for the [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBOR Web Token (CWT)][cwt-spec].*
+A Go library for [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBOR Web Token (CWT)][cwt-spec].
 
-## Index
+## Table of Contents
 
 - [Keys, Algorithms, COSE and CWT in Go](#keys-algorithms-cose-and-cwt-in-go)
-	- [Index](#index)
-	- [Introduction](#introduction)
-	- [Features](#features)
+	- [Table of Contents](#table-of-contents)
+	- [Overview](#overview)
+	- [Highlights](#highlights)
 	- [Installation](#installation)
-	- [Packages](#packages)
+	- [Quick Start](#quick-start)
+	- [Package Guide](#package-guide)
 	- [Examples](#examples)
-		- [Create a simple CWT with a signer](#create-a-simple-cwt-with-a-signer)
-		- [Create a complex CWT with one more signers](#create-a-complex-cwt-with-one-more-signers)
-	- [Security Reviews](#security-reviews)
-	- [Reference](#reference)
+	- [Development](#development)
+	- [Security](#security)
+	- [References](#references)
 	- [License](#license)
 
-## Introduction
+## Overview
 
-COSE is a standard for signing and encrypting data in the [CBOR][cbor] data format. It is designed to be simple and efficient, and to be usable in constrained environments. It is intended to be used in a variety of applications, including the Internet of Things, and is designed to be extensible to support new algorithms and applications.
+This project provides:
 
-## Features
+- COSE message types defined by RFC 9052: Encrypt, Encrypt0, Mac, Mac0, Sign, Sign1, Recipient, and KDF context.
+- CWT claims parsing/validation utilities defined by RFC 8392.
+- IANA registries and key/algorithm abstractions defined by RFC 9053.
 
-- Key: Full support.
-- Algorithms:
-  - Signing: ECDSA, Ed25519;
-  - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305;
-  - MAC: AES-MAC, HMAC;
-  - KDF: HKDF-SHA, HKDF-AES.
-  - ECDH: P256, P384, P521, X25519.
-- COSE: COSE_Encrypt, COSE_Encrypt0, COSE_Mac, COSE_Mac0, COSE_Sign, COSE_Sign1, COSE_recipient, COSE_KDF_Context.
-- CWT: Full support.
+The implementation targets interoperability, explicit algorithm selection, and practical use in constrained or binary-first environments where CBOR is preferred.
+
+## Highlights
+
+- Full COSE key object modeling and conversion helpers.
+- Built-in support for common algorithms:
+  - Signature: ECDSA, Ed25519
+  - Encryption: AES-CCM, AES-GCM, ChaCha20/Poly1305
+  - MAC: AES-CBC-MAC, HMAC
+  - KDF: HKDF (SHA and AES variants)
+  - ECDH: P-256, P-384, P-521, X25519
+- Generic APIs for typed payload signing/verification and encryption/decryption.
+- Rich test suite including package examples.
 
 ## Installation
-
-To install COSE locally run:
 
 ```sh
 go get github.com/ldclabs/cose
 ```
 
-To import in the cwt package:
-
-```go
-import "github.com/ldclabs/cose/cwt"
-```
-
-To register crypto algorithms:
+Import the packages you need:
 
 ```go
 import (
-  _ "github.com/ldclabs/cose/key/ed25519"
-  _ "github.com/ldclabs/cose/key/aesgcm"
+	"github.com/ldclabs/cose/cose"
+	"github.com/ldclabs/cose/cwt"
 )
 ```
 
-## Packages
+Register algorithm implementations with side-effect imports:
 
-| Package name                                                                        | Import                                       | Description                                                                                                                                |
-| ----------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| [cose](https://pkg.go.dev/github.com/ldclabs/cose/cose)                             | github.com/ldclabs/cose/cose                 | [RFC9052: CBOR Object Signing and Encryption][cose-spec]                                                                                   |
-| [cwt](https://pkg.go.dev/github.com/ldclabs/cose/cwt)                               | github.com/ldclabs/cose/cwt                  | [RFC8392: CBOR Web Token][cwt-spec]                                                                                                        |
-| [iana](https://pkg.go.dev/github.com/ldclabs/cose/iana)                             | github.com/ldclabs/cose/iana                 | [IANA: COSE][iana-cose] + [IANA: CWT][iana-cwt] + [IANA: CBOR Tags][iana-cbor-tags]                                                        |
-| [key](https://pkg.go.dev/github.com/ldclabs/cose/key)                               | github.com/ldclabs/cose/key                  | [RFC9053: Algorithms and Key Objects][algorithms-spec]                                                                                     |
-| [ed25519](https://pkg.go.dev/github.com/ldclabs/cose/key/ed25519)                   | github.com/ldclabs/cose/key/ed25519          | Signature Algorithm: [Ed25519](https://datatracker.ietf.org/doc/html/rfc9053#name-edwards-curve-digital-signa)                             |
-| [ecdsa](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdsa)                       | github.com/ldclabs/cose/key/ecdsa            | Signature Algorithm: [ECDSA](https://datatracker.ietf.org/doc/html/rfc9053#name-ecdsa)                                                     |
-| [ecdh](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdh)                         | github.com/ldclabs/cose/key/ecdh             | Elliptic Curve Diffie-Hellman Algorithm: [ECDH](https://datatracker.ietf.org/doc/html/rfc9053#name-direct-key-agreement)                   |
-| [hmac](https://pkg.go.dev/github.com/ldclabs/cose/key/hmac)                         | github.com/ldclabs/cose/key/hmac             | Message Authentication Code (MAC) Algorithm: [HMAC](https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti)        |
-| [aesmac](https://pkg.go.dev/github.com/ldclabs/cose/key/aesmac)                     | github.com/ldclabs/cose/key/aesmac           | Message Authentication Code (MAC) Algorithm: [AES-CBC-MAC](https://datatracker.ietf.org/doc/html/rfc9053#name-hash-based-message-authenti) |
-| [aesgcm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesgcm)                     | github.com/ldclabs/cose/key/aesgcm           | Content Encryption Algorithm: [AES-GCM](https://datatracker.ietf.org/doc/html/rfc9053#name-aes-gcm)                                        |
-| [aesccm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesccm)                     | github.com/ldclabs/cose/key/aesccm           | Content Encryption Algorithm: [AES-CCM](https://datatracker.ietf.org/doc/html/rfc9053#name-aes-ccm)                                        |
-| [chacha20poly1305](https://pkg.go.dev/github.com/ldclabs/cose/key/chacha20poly1305) | github.com/ldclabs/cose/key/chacha20poly1305 | Content Encryption Algorithm: [ChaCha20/Poly1305](https://datatracker.ietf.org/doc/html/rfc9053#name-chacha20-and-poly1305)                |
-| [hkdf](https://pkg.go.dev/github.com/ldclabs/cose/key/hkdf)                         | github.com/ldclabs/cose/key/hkdf             | Key Derivation Functions (KDFs) Algorithm: [HKDF](https://datatracker.ietf.org/doc/html/rfc9053#name-key-derivation-functions-kd)          |
+```go
+import (
+	_ "github.com/ldclabs/cose/key/ed25519"
+	_ "github.com/ldclabs/cose/key/ecdsa"
+	_ "github.com/ldclabs/cose/key/aesgcm"
+	_ "github.com/ldclabs/cose/key/aesccm"
+	_ "github.com/ldclabs/cose/key/chacha20poly1305"
+	_ "github.com/ldclabs/cose/key/hmac"
+	_ "github.com/ldclabs/cose/key/aesmac"
+	_ "github.com/ldclabs/cose/key/ecdh"
+	_ "github.com/ldclabs/cose/key/hkdf"
+)
+```
 
-## Examples
+## Quick Start
 
-### Create a simple CWT with a signer
+The snippet below creates a CWT payload, signs it with COSE_Sign1, verifies it, and validates claims:
 
 ```go
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -99,49 +94,42 @@ import (
 )
 
 func main() {
-	// Create a ed25519 signer key
-	privKey, err := ed25519.GenerateKey()
+	priv, err := ed25519.GenerateKey()
 	if err != nil {
 		panic(err)
 	}
-	signer, err := privKey.Signer()
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a verifier key
-	pubKey, err := ed25519.ToPublicKey(privKey)
-	if err != nil {
-		panic(err)
-	}
-	verifier, err := pubKey.Verifier()
+	signer, err := priv.Signer()
 	if err != nil {
 		panic(err)
 	}
 
-	// create a claims set
+	pub, err := ed25519.ToPublicKey(priv)
+	if err != nil {
+		panic(err)
+	}
+	verifier, err := pub.Verifier()
+	if err != nil {
+		panic(err)
+	}
+
 	claims := cwt.Claims{
 		Issuer:     "ldc:ca",
 		Subject:    "ldc:chain",
 		Audience:   "ldc:txpool",
-		Expiration: 1670123579,
-		CWTID:      []byte{1, 2, 3, 4},
+		Expiration: time.Now().Add(5 * time.Minute).Unix(),
 	}
 
-	// sign with Sign1Message
-	obj := cose.Sign1Message[cwt.Claims]{Payload: claims}
-	cwtData, err := obj.SignAndEncode(signer, nil)
+	msg := cose.Sign1Message[cwt.Claims]{Payload: claims}
+	encoded, err := msg.SignAndEncode(signer, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// decode and verify the cwt
-	obj2, err := cose.VerifySign1Message[cwt.Claims](verifier, cwtData, nil)
+	verified, err := cose.VerifySign1Message[cwt.Claims](verifier, encoded, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	// validate the cwt's claims
 	validator, err := cwt.NewValidator(&cwt.ValidatorOpts{
 		ExpectedIssuer:   "ldc:ca",
 		ExpectedAudience: "ldc:txpool",
@@ -151,111 +139,60 @@ func main() {
 		panic(err)
 	}
 
-	err = validator.Validate(&obj2.Payload)
-	fmt.Printf("Validate Claims: %v\n", err)
-	// Validate Claims: cose/cwt: Validator.Validate: token has expired
-
-	cborData, err := key.MarshalCBOR(obj2.Payload)
-	// cborData, err := cbor.Marshal(myClaims)
-	if err != nil {
+	if err := validator.Validate(&verified.Payload); err != nil {
 		panic(err)
 	}
-	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
-	// CBOR(44 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b074401020304
+
+	fmt.Println("ok")
 }
 ```
 
-### Create a complex CWT with one more signers
+## Package Guide
 
-```go
-package main
+| Package                                                                                 | Import                                         | Description                                                        |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| [cose](https://pkg.go.dev/github.com/ldclabs/cose/cose)                                 | `github.com/ldclabs/cose/cose`                 | COSE message model and encode/decode/sign/encrypt APIs (RFC 9052). |
+| [cwt](https://pkg.go.dev/github.com/ldclabs/cose/cwt)                                   | `github.com/ldclabs/cose/cwt`                  | CWT claims model and validation logic (RFC 8392).                  |
+| [key](https://pkg.go.dev/github.com/ldclabs/cose/key)                                   | `github.com/ldclabs/cose/key`                  | COSE key objects, interfaces, registries, and CBOR helpers.        |
+| [iana](https://pkg.go.dev/github.com/ldclabs/cose/iana)                                 | `github.com/ldclabs/cose/iana`                 | Constants for COSE/CWT/CBOR IANA registries.                       |
+| [key/ed25519](https://pkg.go.dev/github.com/ldclabs/cose/key/ed25519)                   | `github.com/ldclabs/cose/key/ed25519`          | Ed25519 signing support.                                           |
+| [key/ecdsa](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdsa)                       | `github.com/ldclabs/cose/key/ecdsa`            | ECDSA signing support.                                             |
+| [key/ecdh](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdh)                         | `github.com/ldclabs/cose/key/ecdh`             | ECDH key agreement support.                                        |
+| [key/hmac](https://pkg.go.dev/github.com/ldclabs/cose/key/hmac)                         | `github.com/ldclabs/cose/key/hmac`             | HMAC support.                                                      |
+| [key/aesmac](https://pkg.go.dev/github.com/ldclabs/cose/key/aesmac)                     | `github.com/ldclabs/cose/key/aesmac`           | AES-CBC-MAC support.                                               |
+| [key/aesgcm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesgcm)                     | `github.com/ldclabs/cose/key/aesgcm`           | AES-GCM content encryption support.                                |
+| [key/aesccm](https://pkg.go.dev/github.com/ldclabs/cose/key/aesccm)                     | `github.com/ldclabs/cose/key/aesccm`           | AES-CCM content encryption support.                                |
+| [key/chacha20poly1305](https://pkg.go.dev/github.com/ldclabs/cose/key/chacha20poly1305) | `github.com/ldclabs/cose/key/chacha20poly1305` | ChaCha20/Poly1305 content encryption support.                      |
+| [key/hkdf](https://pkg.go.dev/github.com/ldclabs/cose/key/hkdf)                         | `github.com/ldclabs/cose/key/hkdf`             | HKDF derivation support.                                           |
 
-import (
-	"encoding/json"
-	"fmt"
-	"time"
+## Examples
 
-	"github.com/ldclabs/cose/cose"
-	"github.com/ldclabs/cose/cwt"
-	"github.com/ldclabs/cose/iana"
-	"github.com/ldclabs/cose/key"
-	"github.com/ldclabs/cose/key/ecdsa"
-	"github.com/ldclabs/cose/key/ed25519"
-)
+- COSE examples: `cose/*_example_test.go`
+- CWT examples: `cwt/example_test.go`
+- Algorithm package examples/tests: `key/**/**/*_test.go`
 
-func main() {
-	// Create a ed25519 signer key
-	privKey1, err := ed25519.GenerateKey()
-	if err != nil {
-		panic(err)
-	}
-	privKey2, err := ecdsa.GenerateKey(iana.AlgorithmES256)
-	if err != nil {
-		panic(err)
-	}
-	ks := key.KeySet{privKey1, privKey2}
+Run package examples together with tests:
 
-	// create a claims set
-	claims := cwt.ClaimsMap{
-		iana.CWTClaimIss:   "ldc:ca",
-		iana.CWTClaimSub:   "ldc:chain",
-		iana.CWTClaimAud:   "ldc:txpool",
-		iana.CWTClaimExp:   1670123579,
-		iana.CWTClaimScope: "read,write",
-		// and more claims...
-	}
-
-	// Sign the claims
-	signers, err := ks.Signers()
-	if err != nil {
-		panic(err)
-	}
-	// sign with SignMessage
-	obj := cose.SignMessage[cwt.ClaimsMap]{Payload: claims}
-	cwtData, err := obj.SignAndEncode(signers, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	// decode and verify the cwt
-	verifiers, err := ks.Verifiers()
-	if err != nil {
-		panic(err)
-	}
-	obj2, err := cose.VerifySignMessage[cwt.ClaimsMap](verifiers, cwtData, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	// Validate the claims
-	validator, err := cwt.NewValidator(&cwt.ValidatorOpts{
-		ExpectedIssuer:   "ldc:ca",
-		ExpectedAudience: "ldc:txpool",
-		ClockSkew:        time.Minute,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = validator.ValidateMap(obj2.Payload)
-	fmt.Printf("Validate Claims: %v\n", err)
-	// Validate Claims: cose/cwt: Validator.Validate: token has expired
-
-	cborData, err := key.MarshalCBOR(obj2.Payload)
-	// cborData, err := cbor.Marshal(myClaims)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("CBOR(%d bytes): %x\n", len(cborData), cborData)
-	// CBOR(50 bytes): a501666c64633a636102696c64633a636861696e036a6c64633a7478706f6f6c041a638c103b096a726561642c7772697465
-}
+```sh
+go test ./...
 ```
 
-## Security Reviews
+## Development
 
-Todo.
+Project helper targets:
 
-## Reference
+```sh
+make test    # go test -v -failfast -tags=test --race ./...
+make update  # go get -u all && go mod tidy
+```
+
+## Security
+
+- See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+- Keep dependencies and toolchain updated.
+- Prefer strict key operation checks (`key_ops`) and validated claim constraints in production.
+
+## References
 
 1. [RFC9052: CBOR Object Signing and Encryption (COSE)][cose-spec]
 2. [RFC8392: CBOR Web Token (CWT)][cwt-spec]
@@ -263,7 +200,6 @@ Todo.
 4. [IANA: CBOR Object Signing and Encryption (COSE)][iana-cose]
 5. [IANA: CBOR Web Token (CWT) Claims][iana-cwt]
 6. [IANA: Concise Binary Object Representation (CBOR) Tags][iana-cbor-tags]
-
 
 [cbor]: https://datatracker.ietf.org/doc/html/rfc8949
 [cose-spec]: https://datatracker.ietf.org/doc/html/rfc9052
@@ -274,6 +210,7 @@ Todo.
 [iana-cbor-tags]: https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml
 
 ## License
+
 Copyright © 2022-2024 [LDC Labs](https://github.com/ldclabs).
 
-ldclabs/cose is licensed under the MIT License. See [LICENSE](LICENSE) for the full license text.
+`ldclabs/cose` is licensed under the MIT License. See [LICENSE](LICENSE).

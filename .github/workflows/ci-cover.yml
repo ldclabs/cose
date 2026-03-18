@@ -2,7 +2,7 @@ name: CI Cover
 on:
   push:
     tags:
-      - '*'
+      - "*"
 jobs:
   # Test on various OS with default Go version.
   tests:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go-version: ['1.21.x']
+        go-version: ["1.25.x"]
 
     steps:
       - name: Install Go

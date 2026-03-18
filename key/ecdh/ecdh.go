@@ -342,6 +342,7 @@ func ToCompressedKey(k key.Key) (key.Key, error) {
 	return ck, nil
 }
 
+// ECDHer provides ECDH key agreement operations bound to a private COSE key.
 type ECDHer struct {
 	key     key.Key
 	privKey *goecdh.PrivateKey
