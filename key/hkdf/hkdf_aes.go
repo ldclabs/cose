@@ -44,10 +44,10 @@ func (f *aesHKDF) Read(p []byte) (int, error) {
 	// Fill the rest of the buffer
 	for len(p) > 0 {
 		inputSize := len(f.prev) + len(f.info) + 1
-		x := inputSize % aes.BlockSize
-		if x > 0 {
-			inputSize += aes.BlockSize - x
-		}
+		// AES-CBC-MAC zero-pads the message to a multiple of the block size.
+		// When the message is already block-aligned, no padding is added.
+		pad := (aes.BlockSize - inputSize%aes.BlockSize) % aes.BlockSize
+		inputSize += pad
 
 		if cap(f.buf) < inputSize {
 			f.buf = make([]byte, 0, inputSize)
@@ -56,7 +56,7 @@ func (f *aesHKDF) Read(p []byte) (int, error) {
 		f.buf = append(f.buf[:0], f.prev...)
 		f.buf = append(f.buf, f.info...)
 		f.buf = append(f.buf, f.counter)
-		f.buf = append(f.buf, fixedIV[:aes.BlockSize-x]...)
+		f.buf = append(f.buf, fixedIV[:pad]...)
 
 		mode := cipher.NewCBCEncrypter(f.block, fixedIV)
 		mode.CryptBlocks(f.buf, f.buf)

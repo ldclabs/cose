@@ -207,7 +207,7 @@ func (c *ccm) Open(dst, nonce, ciphertext, adata []byte) ([]byte, error) {
 		return nil, errors.New("ccm: ciphertext too long")
 	}
 
-	var tag = make([]byte, int(c.M), int(c.M))
+	var tag = make([]byte, int(c.M))
 	copy(tag, ciphertext[len(ciphertext)-int(c.M):])
 	ciphertextWithoutTag := ciphertext[:len(ciphertext)-int(c.M)]
 
@@ -231,7 +231,7 @@ func (c *ccm) Open(dst, nonce, ciphertext, adata []byte) ([]byte, error) {
 	}
 
 	if subtle.ConstantTimeCompare(tag, expectedTag) != 1 {
-		return nil, errors.New(fmt.Sprintf("ccm: t[%X] != et[%X]", tag, expectedTag))
+		return nil, fmt.Errorf("ccm: t[%X] != et[%X]", tag, expectedTag)
 	}
 	return append(dst, plaintext...), nil
 }

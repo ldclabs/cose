@@ -59,7 +59,7 @@ func (m *EncryptMessage[T]) AddRecipient(recipient *Recipient) error {
 	}
 
 	if recipient.context != "" {
-		return fmt.Errorf("cose/cose: MacMessage.AddRecipient: should not have %q context",
+		return fmt.Errorf("cose/cose: EncryptMessage.AddRecipient: should not have %q context",
 			recipient.context)
 	}
 	recipient.context = "Enc_Recipient"
@@ -190,11 +190,11 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 	ivSize := encryptor.NonceSize()
 	if len(partialIV) > 0 {
 		if len(iv) > 0 {
-			return errors.New("cose/cose: Encrypt0Message.Decrypt: both iv and partial iv are present")
+			return errors.New("cose/cose: EncryptMessage.Decrypt: both iv and partial iv are present")
 		}
 
 		if len(partialIV) >= ivSize {
-			return errors.New("cose/cose: Encrypt0Message.Decrypt: partial iv is too long")
+			return errors.New("cose/cose: EncryptMessage.Decrypt: partial iv is too long")
 		}
 
 		baseIV, err := encryptor.Key().GetBytes(iana.KeyParameterBaseIV)
@@ -203,7 +203,7 @@ func (m *EncryptMessage[T]) Decrypt(encryptor key.Encryptor, externalData []byte
 		}
 
 		if len(baseIV) == 0 {
-			return errors.New("cose/cose: Encrypt0Message.Decrypt: base iv is missing")
+			return errors.New("cose/cose: EncryptMessage.Decrypt: base iv is missing")
 		}
 
 		iv = xorIV(baseIV, partialIV, ivSize)

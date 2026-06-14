@@ -4,6 +4,8 @@
 package hkdf
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"fmt"
 	"testing"
 
@@ -176,4 +178,39 @@ func TestHKDFAES(t *testing.T) {
 
 	_, err = HKDFAES(key.Base64Bytesify("hJtXIZ2uSN5kbQfbtTNWbg"), nil, 256*16)
 	assert.ErrorContains(err, "entropy limit reached")
+}
+
+// TestHKDFAESBlockAligned exercises the AES-CBC-MAC PRF when the message
+// (T(i-1) || info || counter) is already a multiple of the AES block size.
+// In that case the zero-padding step must add nothing; an extra padding block
+// would produce a non-conformant, non-interoperable result.
+// The expected value is computed independently from HKDFAES.
+func TestHKDFAESBlockAligned(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	secret := key.Base64Bytesify("hJtXIZ2uSN5kbQfbtTNWbg") // 16-byte AES key
+
+	// len(info) chosen so that len(info) + counter(1 byte) == aes.BlockSize.
+	info := make([]byte, aes.BlockSize-1)
+	for i := range info {
+		info[i] = byte(i + 1)
+	}
+
+	got, err := HKDFAES(secret, info, aes.BlockSize)
+	require.NoError(err)
+
+	// Reference: T(1) = AES-CBC-MAC(zeropad(info || 0x01)). The input is already
+	// block-aligned, so no padding block is added.
+	block, err := aes.NewCipher(secret)
+	require.NoError(err)
+
+	msg := append(append([]byte{}, info...), 0x01)
+	require.Equal(aes.BlockSize, len(msg))
+
+	out := make([]byte, len(msg))
+	cipher.NewCBCEncrypter(block, make([]byte, aes.BlockSize)).CryptBlocks(out, msg)
+	want := out[len(out)-aes.BlockSize:]
+
+	assert.Equal(want, got)
 }

@@ -142,13 +142,14 @@ func KeyFromPublic(pk *goecdh.PublicKey) (key.Key, error) {
 		return nil, fmt.Errorf("cose/key/ecdh: KeyFromPublic: unsupported curve %v", curve)
 	}
 
-	x, y := elliptic.Unmarshal(ecdsaCurve, data)
+	// data is the uncompressed point 0x04 || X || Y from a valid ecdh.PublicKey.
+	x, y := uncompressedXY(data, getKeySize(curve))
 	return map[any]any{
 		iana.KeyParameterKty:    iana.KeyTypeEC2,
 		iana.KeyParameterKid:    key.SumKid(data), // default kid, can be set to other value.
 		iana.EC2KeyParameterCrv: crv,              // REQUIRED
-		iana.EC2KeyParameterX:   x.Bytes(),        // REQUIRED
-		iana.EC2KeyParameterY:   y.Bytes(),        // REQUIRED
+		iana.EC2KeyParameterX:   x,                // REQUIRED
+		iana.EC2KeyParameterY:   y,                // REQUIRED
 	}, nil
 }
 
@@ -301,10 +302,10 @@ func ToPublicKey(k key.Key) (key.Key, error) {
 		return nk, nil
 	}
 
-	ecdsaCurve, _ := getECDSACurve(curve)
-	x, y := elliptic.Unmarshal(ecdsaCurve, data)
-	nk[iana.EC2KeyParameterX] = x.Bytes()
-	nk[iana.EC2KeyParameterY] = y.Bytes()
+	// data is the uncompressed point 0x04 || X || Y from a valid ecdh.PublicKey.
+	x, y := uncompressedXY(data, getKeySize(curve))
+	nk[iana.EC2KeyParameterX] = x
+	nk[iana.EC2KeyParameterY] = y
 	return nk, nil
 }
 
@@ -408,6 +409,15 @@ func getECDSACurve(curve goecdh.Curve) (elliptic.Curve, int) {
 	default:
 		return nil, 0
 	}
+}
+
+// uncompressedXY splits an uncompressed elliptic-curve point (0x04 || X || Y)
+// with byteLen-wide coordinates into its big-endian X and Y, stripping leading
+// zero bytes to match the COSE EC2 key encoding used elsewhere in this package.
+func uncompressedXY(data []byte, byteLen int) (x, y []byte) {
+	x = new(big.Int).SetBytes(data[1 : 1+byteLen]).Bytes()
+	y = new(big.Int).SetBytes(data[1+byteLen:]).Bytes()
+	return
 }
 
 func getKeySize(curve goecdh.Curve) int {

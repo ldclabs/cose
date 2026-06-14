@@ -112,8 +112,8 @@ func CheckKey(k key.Key) error {
 }
 
 type aesGCM struct {
-	key   key.Key
-	block cipher.Block
+	key  key.Key
+	aead cipher.AEAD
 }
 
 // New creates a key.Encryptor for the given AES-GCM key.
@@ -123,8 +123,9 @@ func New(k key.Key) (key.Encryptor, error) {
 	}
 
 	cek, _ := k.GetBytes(iana.SymmetricKeyParameterK)
-	block, _ := aes.NewCipher(cek) // err should never happen
-	return &aesGCM{key: k, block: block}, nil
+	block, _ := aes.NewCipher(cek)  // err should never happen
+	aead, _ := cipher.NewGCM(block) // err should never happen
+	return &aesGCM{key: k, aead: aead}, nil
 }
 
 // Encrypt implements the key.Encryptor interface.
@@ -139,8 +140,7 @@ func (h *aesGCM) Encrypt(iv, plaintext, additionalData []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cose/key/aesgcm: Encryptor.Encrypt: invalid nonce size, expected 12, got %d",
 			len(iv))
 	}
-	aead, _ := cipher.NewGCM(h.block) // err should never happen
-	ciphertext := aead.Seal(nil, iv, plaintext, additionalData)
+	ciphertext := h.aead.Seal(nil, iv, plaintext, additionalData)
 	return ciphertext, nil
 }
 
@@ -157,8 +157,7 @@ func (h *aesGCM) Decrypt(iv, ciphertext, additionalData []byte) ([]byte, error) 
 			len(iv))
 	}
 
-	aead, _ := cipher.NewGCM(h.block) // err should never happen
-	return aead.Open(nil, iv, ciphertext, additionalData)
+	return h.aead.Open(nil, iv, ciphertext, additionalData)
 }
 
 // NonceSize implements the key.Encryptor interface.

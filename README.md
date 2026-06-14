@@ -4,7 +4,7 @@
 [![Codecov](https://codecov.io/gh/ldclabs/cose/branch/main/graph/badge.svg)](https://codecov.io/gh/ldclabs/cose)
 [![CodeQL](https://github.com/ldclabs/cose/actions/workflows/codeql.yml/badge.svg)](https://github.com/ldclabs/cose/actions/workflows/codeql.yml)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/ldclabs/cose/main/LICENSE)
-[![Installation](https://img.shields.io/badge/go-%3E%3D%201.19-blue)](#installation)
+[![Installation](https://img.shields.io/badge/go-%3E%3D%201.25-blue)](#installation)
 [![Go Reference](https://pkg.go.dev/badge/github.com/ldclabs/cose.svg)](https://pkg.go.dev/github.com/ldclabs/cose)
 
 A Go library for [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBOR Web Token (CWT)][cwt-spec].
