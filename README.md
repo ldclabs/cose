@@ -9,6 +9,9 @@
 
 A Go library for [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBOR Web Token (CWT)][cwt-spec].
 
+- Rust version: [https://github.com/ldclabs/cose2](https://github.com/ldclabs/cose2)
+- Typescript version: [https://github.com/ldclabs/cose-ts](https://github.com/ldclabs/cose-ts)
+
 ## Table of Contents
 
 - [Keys, Algorithms, COSE and CWT in Go](#keys-algorithms-cose-and-cwt-in-go)
@@ -19,6 +22,7 @@ A Go library for [CBOR Object Signing and Encryption (COSE)][cose-spec] and [CBO
 	- [Quick Start](#quick-start)
 	- [Package Guide](#package-guide)
 	- [Examples](#examples)
+	- [Agent Usage](#agent-usage)
 	- [Development](#development)
 	- [Security](#security)
 	- [References](#references)
@@ -70,7 +74,14 @@ import (
 )
 ```
 
-Register algorithm implementations with side-effect imports:
+Most applications and generated examples can register all built-in algorithm
+packages with one side-effect import:
+
+```go
+import _ "github.com/ldclabs/cose/key/all"
+```
+
+Library code can import only the concrete algorithm packages it needs:
 
 ```go
 import (
@@ -125,7 +136,7 @@ func main() {
 		Issuer:     "ldc:ca",
 		Subject:    "ldc:chain",
 		Audience:   "ldc:txpool",
-		Expiration: time.Now().Add(5 * time.Minute).Unix(),
+		Expiration: uint64(time.Now().Add(5 * time.Minute).Unix()),
 	}
 
 	msg := cose.Sign1Message[cwt.Claims]{Payload: claims}
@@ -164,6 +175,7 @@ func main() {
 | [cwt](https://pkg.go.dev/github.com/ldclabs/cose/cwt)                                   | `github.com/ldclabs/cose/cwt`                  | CWT claims model and validation logic (RFC 8392).                  |
 | [key](https://pkg.go.dev/github.com/ldclabs/cose/key)                                   | `github.com/ldclabs/cose/key`                  | COSE key objects, interfaces, registries, and CBOR helpers.        |
 | [iana](https://pkg.go.dev/github.com/ldclabs/cose/iana)                                 | `github.com/ldclabs/cose/iana`                 | Constants for COSE/CWT/CBOR IANA registries.                       |
+| [key/all](https://pkg.go.dev/github.com/ldclabs/cose/key/all)                           | `github.com/ldclabs/cose/key/all`              | Aggregate side-effect import for built-in algorithm packages.      |
 | [key/ed25519](https://pkg.go.dev/github.com/ldclabs/cose/key/ed25519)                   | `github.com/ldclabs/cose/key/ed25519`          | Ed25519 signing support.                                           |
 | [key/ecdsa](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdsa)                       | `github.com/ldclabs/cose/key/ecdsa`            | ECDSA signing support.                                             |
 | [key/ecdh](https://pkg.go.dev/github.com/ldclabs/cose/key/ecdh)                         | `github.com/ldclabs/cose/key/ecdh`             | ECDH key agreement support.                                        |
@@ -179,12 +191,22 @@ func main() {
 - COSE examples: `cose/*_example_test.go`
 - CWT examples: `cwt/example_test.go`
 - Algorithm package examples/tests: `key/**/**/*_test.go`
+- Runnable recipes:
+  - `go run ./examples/sign1-cwt`
+  - `go run ./examples/encrypt0-cwt`
+  - `go run ./examples/detached-sign1`
 
 Run package examples together with tests:
 
 ```sh
 go test ./...
 ```
+
+## Agent Usage
+
+AI coding agents should read [AGENTS.md](AGENTS.md) before generating code for
+this module. It documents package selection, algorithm registration, COSE header
+rules, detached-content helpers, common errors, and verification commands.
 
 ## Development
 
