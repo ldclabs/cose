@@ -205,3 +205,63 @@ func TestRecipient(t *testing.T) {
 		assert.Equal(r.Bytesify(), r4.Bytesify())
 	})
 }
+
+// RFC 9052 §8.5 opt-in recipient structural validation.
+func TestRecipientValidate(t *testing.T) {
+	assert := assert.New(t)
+
+	var rn *Recipient
+	assert.ErrorContains(rn.Validate(), "nil Recipient")
+
+	// §8.5: "alg" MUST be present.
+	assert.ErrorContains((&Recipient{
+		Unprotected: Headers{iana.HeaderParameterKid: []byte("k")},
+	}).Validate(), `missing "alg"`)
+
+	// §8.5.1 direct: ciphertext MUST be zero-length.
+	assert.ErrorContains((&Recipient{
+		Unprotected: Headers{iana.HeaderParameterAlg: iana.AlgorithmDirect},
+		Ciphertext:  []byte{1, 2, 3},
+	}).Validate(), "ciphertext MUST be empty")
+	assert.NoError((&Recipient{
+		Unprotected: Headers{iana.HeaderParameterAlg: iana.AlgorithmDirect},
+		Ciphertext:  []byte{},
+	}).Validate())
+
+	// §8.5.4 direct key agreement: ciphertext MUST be zero-length.
+	assert.NoError((&Recipient{
+		Protected:   Headers{iana.HeaderParameterAlg: iana.AlgorithmECDH_ES_HKDF_256},
+		Unprotected: Headers{iana.HeaderAlgorithmParameterEphemeralKey: key.Key{}},
+	}).Validate())
+	assert.ErrorContains((&Recipient{
+		Protected:  Headers{iana.HeaderParameterAlg: iana.AlgorithmECDH_ES_HKDF_256},
+		Ciphertext: []byte{1, 2, 3},
+	}).Validate(), "ciphertext MUST be empty")
+
+	// §8.5.2 key wrap: protected MUST be zero-length.
+	assert.ErrorContains((&Recipient{
+		Protected:  Headers{iana.HeaderParameterAlg: iana.AlgorithmA128KW},
+		Ciphertext: []byte{1, 2, 3, 4},
+	}).Validate(), "protected header MUST be empty")
+	assert.NoError((&Recipient{
+		Unprotected: Headers{iana.HeaderParameterAlg: iana.AlgorithmA128KW},
+		Ciphertext:  []byte{1, 2, 3, 4},
+	}).Validate())
+
+	// §8.5.5 key agreement + key wrap: only alg-presence is enforced.
+	assert.NoError((&Recipient{
+		Protected:  Headers{iana.HeaderParameterAlg: iana.AlgorithmECDH_ES_A128KW},
+		Ciphertext: []byte{1, 2, 3, 4},
+	}).Validate())
+
+	// nested recipient violations propagate.
+	parent := &Recipient{
+		Unprotected: Headers{iana.HeaderParameterAlg: iana.AlgorithmA128KW},
+		Ciphertext:  []byte{1, 2, 3, 4},
+	}
+	assert.NoError(parent.AddRecipient(&Recipient{
+		Unprotected: Headers{iana.HeaderParameterAlg: iana.AlgorithmDirect},
+		Ciphertext:  []byte{9},
+	}))
+	assert.ErrorContains(parent.Validate(), "ciphertext MUST be empty")
+}

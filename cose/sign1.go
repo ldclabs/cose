@@ -26,8 +26,9 @@ type Sign1Message[T any] struct {
 	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
 	Payload T
 
-	mm     *sign1Message
-	toSign []byte
+	mm       *sign1Message
+	toSign   []byte
+	detached bool
 }
 
 // VerifySign1Message verifies and decodes a COSE_Sign1 message with a Verifier and returns a *Sign1Message.
@@ -75,6 +76,9 @@ func (m *Sign1Message[T]) WithSign(signer key.Signer, externalData []byte) error
 		if kid := signer.Key().Kid(); len(kid) > 0 {
 			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
+	}
+	if err := checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
 	}
 
 	mm := &sign1Message{
@@ -153,9 +157,18 @@ func (m *Sign1Message[T]) MarshalCBOR() ([]byte, error) {
 		return nil, errors.New("cose/cose: Sign1Message.MarshalCBOR: should call Sign1Message.WithSign")
 	}
 
+	content := m.mm
+	if m.detached {
+		// detached content: the payload is transported separately, so a nil
+		// CBOR object is placed in the payload field.
+		cp := *m.mm
+		cp.Payload = nil
+		content = &cp
+	}
+
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  iana.CBORTagCOSESign1,
-		Content: m.mm,
+		Content: content,
 	})
 }
 
@@ -179,7 +192,7 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 		return err
 	}
 
-	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+	if m.Protected, mm.Protected, err = protectedHeadersFromBytes(mm.Protected); err != nil {
 		return err
 	}
 
@@ -197,6 +210,10 @@ func (m *Sign1Message[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	m.Unprotected = mm.Unprotected
+	if err = checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
+	}
+
 	m.mm = mm
 	return nil
 }

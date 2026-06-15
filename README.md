@@ -44,6 +44,15 @@ The implementation targets interoperability, explicit algorithm selection, and p
   - KDF: HKDF (SHA and AES variants)
   - ECDH: P-256, P-384, P-521, X25519
 - Generic APIs for typed payload signing/verification and encryption/decryption.
+- Explicit detached-content APIs (`SignDetached`, `ComputeDetached`,
+  `EncryptDetached`, `VerifyDetached`, `DecryptDetached`) for COSE messages
+  whose payload/ciphertext is transported separately (RFC 9052 §4.1/§5.1/§6.1).
+- RFC 9052 §3 / §3.1 header validation on decode: rejects messages with a
+  `crit` parameter outside the protected bucket, an empty or malformed `crit`
+  array, critical labels missing from the protected bucket, or a label present
+  in both the protected and unprotected buckets.
+- `Recipient.Validate` for opt-in RFC 9052 §8.5 recipient-layer checks, and
+  `KeySet` that enforces the non-empty `COSE_KeySet` requirement (§7).
 - Rich test suite including package examples.
 
 ## Installation

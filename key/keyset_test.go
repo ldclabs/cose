@@ -82,3 +82,22 @@ func TestKeySet(t *testing.T) {
 	assert.Equal(k1.Kid(), verifiers[0].Key().Kid())
 	assert.Equal(k2.Kid(), verifiers[1].Key().Kid())
 }
+
+// A COSE_KeySet MUST have at least one element (RFC 9052 §7).
+func TestKeySetMustBeNonEmpty(t *testing.T) {
+	assert := assert.New(t)
+
+	_, err := key.KeySet{}.MarshalCBOR()
+	assert.ErrorContains(err, "no keys")
+
+	var ks key.KeySet
+	assert.Error(ks.UnmarshalCBOR([]byte{0xff}))                    // invalid CBOR
+	assert.ErrorContains(ks.UnmarshalCBOR([]byte{0x80}), "no keys") // empty array
+	assert.NoError(ks.UnmarshalCBOR(key.MustMarshalCBOR(key.KeySet{
+		{iana.KeyParameterKty: iana.KeyTypeSymmetric},
+	})))
+	assert.Equal(1, len(ks))
+
+	var ksp *key.KeySet
+	assert.ErrorContains(ksp.UnmarshalCBOR([]byte{0x80}), "nil KeySet")
+}

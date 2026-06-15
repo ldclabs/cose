@@ -5,7 +5,14 @@
 // https://datatracker.ietf.org/doc/html/rfc9052.
 package cose
 
-import "github.com/ldclabs/cose/key"
+import (
+	"errors"
+	"fmt"
+	"reflect"
+
+	"github.com/ldclabs/cose/iana"
+	"github.com/ldclabs/cose/key"
+)
 
 // Headers represents a COSE Generic_Headers structure.
 type Headers key.CoseMap
@@ -96,4 +103,118 @@ func HeadersFromBytes(data []byte) (Headers, error) {
 	}
 
 	return h, nil
+}
+
+// protectedHeadersFromBytes decodes an empty_or_serialized_map value and also
+// returns the bytes that must be used in Sig_structure / Enc_structure /
+// MAC_structure. RFC 9052 requires recipients to accept h'a0' on the wire for
+// an empty protected map, but the authenticated structure uses an empty bstr
+// in that case.
+func protectedHeadersFromBytes(data []byte) (Headers, []byte, error) {
+	h, err := HeadersFromBytes(data)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(h) == 0 {
+		return h, []byte{}, nil
+	}
+	return h, data, nil
+}
+
+func headerBytes(protected, unprotected Headers, label any) ([]byte, bool, error) {
+	if protected.Has(label) {
+		v, err := protected.GetBytes(label)
+		return v, true, err
+	}
+	if unprotected.Has(label) {
+		v, err := unprotected.GetBytes(label)
+		return v, true, err
+	}
+	return nil, false, nil
+}
+
+// checkHeaders validates a layer's protected and unprotected header buckets
+// against the rules in RFC 9052 §3 and §3.1. It is called by the message,
+// signature and recipient decoders after both buckets have been parsed.
+//
+// Reference:
+//   - https://datatracker.ietf.org/doc/html/rfc9052#section-3
+//   - https://datatracker.ietf.org/doc/html/rfc9052#section-3.1
+func checkHeaders(protected, unprotected Headers) error {
+	// §3.1: "When present, the 'crit' header parameter MUST be placed in the
+	// protected-header-parameters bucket."
+	if unprotected.Has(iana.HeaderParameterCrit) {
+		return errors.New(`cose/cose: checkHeaders: "crit" header parameter MUST be in the protected bucket`)
+	}
+
+	// §3: "Applications SHOULD verify that the same label does not occur in both
+	// the protected and unprotected header parameters." We reject such messages
+	// as malformed so that attributes are never ambiguous.
+	for label := range protected {
+		if unprotected.Has(label) {
+			return fmt.Errorf("cose/cose: checkHeaders: header parameter %v occurs in both protected and unprotected buckets", label)
+		}
+	}
+
+	// §3.1: "The 'Initialization Vector' and 'Partial Initialization Vector'
+	// header parameters MUST NOT both be present in the same security layer."
+	hasIV := protected.Has(iana.HeaderParameterIV) || unprotected.Has(iana.HeaderParameterIV)
+	hasPartialIV := protected.Has(iana.HeaderParameterPartialIV) || unprotected.Has(iana.HeaderParameterPartialIV)
+	if hasIV && hasPartialIV {
+		return errors.New("cose/cose: checkHeaders: both iv and partial iv are present")
+	}
+
+	// §3.1: the "crit" header parameter "array MUST have at least one value in
+	// it", and "If the 'crit' value list includes a label for which the header
+	// parameter is not in the protected-header-parameters bucket, this is a fatal
+	// error in processing the message."
+	if protected.Has(iana.HeaderParameterCrit) {
+		crit, ok := normalizeCrit(protected.Get(iana.HeaderParameterCrit))
+		if !ok {
+			return errors.New(`cose/cose: checkHeaders: "crit" header parameter MUST be an array of int / tstr labels`)
+		}
+		if len(crit) == 0 {
+			return errors.New(`cose/cose: checkHeaders: "crit" header parameter MUST have at least one value`)
+		}
+		for _, label := range crit {
+			if !protected.Has(label) {
+				return fmt.Errorf("cose/cose: checkHeaders: critical header parameter %v is not in the protected bucket", label)
+			}
+		}
+	}
+
+	return nil
+}
+
+// normalizeCrit converts the decoded "crit" value into a slice of labels
+// (int or string) matching how Headers keys are stored, so that presence in
+// the protected bucket can be checked. It returns ok=false when the value is
+// not a valid array of int / tstr labels.
+func normalizeCrit(v any) (labels []any, ok bool) {
+	if _, isBytes := v.([]byte); isBytes {
+		return nil, false
+	}
+
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Array:
+		// continue
+	default:
+		return nil, false
+	}
+
+	labels = make([]any, 0, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		e := rv.Index(i).Interface()
+		if s, isStr := e.(string); isStr {
+			labels = append(labels, s)
+			continue
+		}
+		n, err := key.ToInt(e)
+		if err != nil {
+			return nil, false
+		}
+		labels = append(labels, n)
+	}
+	return labels, true
 }

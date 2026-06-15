@@ -28,6 +28,7 @@ type MacMessage[T any] struct {
 	recipients []*Recipient
 	mm         *macMessage
 	toMac      []byte
+	detached   bool
 }
 
 // VerifyMacMessage verifies and decodes a COSE_Mac object with a MACer and returns a *MacMessage.
@@ -95,6 +96,9 @@ func (m *MacMessage[T]) Compute(macer key.MACer, externalData []byte) error {
 		if kid := macer.Key().Kid(); len(kid) > 0 {
 			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
+	}
+	if err := checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
 	}
 
 	mm := &macMessage{
@@ -181,9 +185,17 @@ func (m *MacMessage[T]) MarshalCBOR() ([]byte, error) {
 	}
 
 	m.mm.Recipients = m.recipients
+
+	content := m.mm
+	if m.detached {
+		cp := *m.mm
+		cp.Payload = nil
+		content = &cp
+	}
+
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  iana.CBORTagCOSEMac,
-		Content: m.mm,
+		Content: content,
 	})
 }
 
@@ -217,7 +229,7 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 		}
 	}
 
-	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+	if m.Protected, mm.Protected, err = protectedHeadersFromBytes(mm.Protected); err != nil {
 		return err
 	}
 
@@ -235,6 +247,10 @@ func (m *MacMessage[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	m.Unprotected = mm.Unprotected
+	if err = checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
+	}
+
 	m.recipients = mm.Recipients
 	m.mm = mm
 	return nil

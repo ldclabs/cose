@@ -25,8 +25,9 @@ type Mac0Message[T any] struct {
 	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
 	Payload T
 
-	mm    *mac0Message
-	toMac []byte
+	mm       *mac0Message
+	toMac    []byte
+	detached bool
 }
 
 // VerifyMac0Message verifies and decodes a COSE_Mac0 object with a MACer and returns a *Mac0Message.
@@ -74,6 +75,9 @@ func (m *Mac0Message[T]) Compute(macer key.MACer, externalData []byte) error {
 		if kid := macer.Key().Kid(); len(kid) > 0 {
 			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
+	}
+	if err := checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
 	}
 
 	mm := &mac0Message{
@@ -155,9 +159,16 @@ func (m *Mac0Message[T]) MarshalCBOR() ([]byte, error) {
 		return nil, errors.New("cose/cose: Mac0Message.MarshalCBOR: should call Mac0Message.Compute")
 	}
 
+	content := m.mm
+	if m.detached {
+		cp := *m.mm
+		cp.Payload = nil
+		content = &cp
+	}
+
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  iana.CBORTagCOSEMac0,
-		Content: m.mm,
+		Content: content,
 	})
 }
 
@@ -182,7 +193,7 @@ func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
 		return err
 	}
 
-	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+	if m.Protected, mm.Protected, err = protectedHeadersFromBytes(mm.Protected); err != nil {
 		return err
 	}
 
@@ -200,6 +211,10 @@ func (m *Mac0Message[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	m.Unprotected = mm.Unprotected
+	if err = checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
+	}
+
 	m.mm = mm
 	return nil
 }

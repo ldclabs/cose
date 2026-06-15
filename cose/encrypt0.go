@@ -25,8 +25,9 @@ type Encrypt0Message[T any] struct {
 	// it will not be encoded/decoded by key.MarshalCBOR/key.UnmarshalCBOR.
 	Payload T
 
-	mm    *encrypt0Message
-	toEnc []byte
+	mm       *encrypt0Message
+	toEnc    []byte
+	detached bool
 }
 
 // DecryptEncrypt0Message decrypts and decodes a COSE_Encrypt0 object with a Encryptor and returns a *Encrypt0Message.
@@ -75,20 +76,23 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 			m.Unprotected[iana.HeaderParameterKid] = kid
 		}
 	}
+	if err := checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
+	}
 
-	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
+	iv, hasIV, err := headerBytes(m.Protected, m.Unprotected, iana.HeaderParameterIV)
 	if err != nil {
 		return err
 	}
-	partialIV, err := m.Unprotected.GetBytes(iana.HeaderParameterPartialIV)
+	partialIV, hasPartialIV, err := headerBytes(m.Protected, m.Unprotected, iana.HeaderParameterPartialIV)
 	if err != nil {
 		return err
+	}
+	if hasIV && hasPartialIV {
+		return errors.New("cose/cose: Encrypt0Message.Encrypt: both iv and partial iv are present")
 	}
 	ivSize := encryptor.NonceSize()
-	if len(partialIV) > 0 {
-		if len(iv) > 0 {
-			return errors.New("cose/cose: Encrypt0Message.Encrypt: both iv and partial iv are present")
-		}
+	if hasPartialIV {
 		if len(partialIV) >= ivSize {
 			return errors.New("cose/cose: Encrypt0Message.Encrypt: partial iv is too long")
 		}
@@ -104,7 +108,7 @@ func (m *Encrypt0Message[T]) Encrypt(encryptor key.Encryptor, externalData []byt
 
 		iv = xorIV(baseIV, partialIV, ivSize)
 	}
-	if len(iv) == 0 {
+	if !hasIV && !hasPartialIV {
 		iv = key.GetRandomBytes(uint16(ivSize))
 		m.Unprotected[iana.HeaderParameterIV] = iv
 	}
@@ -157,20 +161,19 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 	var err error
 	m.toEnc = m.mm.toEnc(externalData)
 
-	iv, err := m.Unprotected.GetBytes(iana.HeaderParameterIV)
+	iv, hasIV, err := headerBytes(m.Protected, m.Unprotected, iana.HeaderParameterIV)
 	if err != nil {
 		return err
 	}
-	partialIV, err := m.Unprotected.GetBytes(iana.HeaderParameterPartialIV)
+	partialIV, hasPartialIV, err := headerBytes(m.Protected, m.Unprotected, iana.HeaderParameterPartialIV)
 	if err != nil {
 		return err
+	}
+	if hasIV && hasPartialIV {
+		return errors.New("cose/cose: Encrypt0Message.Decrypt: both iv and partial iv are present")
 	}
 	ivSize := encryptor.NonceSize()
-	if len(partialIV) > 0 {
-		if len(iv) > 0 {
-			return errors.New("cose/cose: Encrypt0Message.Decrypt: both iv and partial iv are present")
-		}
-
+	if hasPartialIV {
 		if len(partialIV) >= ivSize {
 			return errors.New("cose/cose: Encrypt0Message.Decrypt: partial iv is too long")
 		}
@@ -185,6 +188,9 @@ func (m *Encrypt0Message[T]) Decrypt(encryptor key.Encryptor, externalData []byt
 		}
 
 		iv = xorIV(baseIV, partialIV, ivSize)
+	}
+	if !hasIV && !hasPartialIV {
+		return errors.New("cose/cose: Encrypt0Message.Decrypt: missing iv")
 	}
 
 	plaintext, err := encryptor.Decrypt(iv, m.mm.Ciphertext, m.toEnc)
@@ -234,9 +240,18 @@ func (m *Encrypt0Message[T]) MarshalCBOR() ([]byte, error) {
 		return nil, errors.New("cose/cose: Encrypt0Message.MarshalCBOR: should call Encrypt0Message.Encrypt")
 	}
 
+	content := m.mm
+	if m.detached {
+		// detached content: the ciphertext is transported separately, so a nil
+		// CBOR object is placed in the ciphertext field.
+		cp := *m.mm
+		cp.Ciphertext = nil
+		content = &cp
+	}
+
 	return key.MarshalCBOR(cbor.Tag{
 		Number:  iana.CBORTagCOSEEncrypt0,
-		Content: m.mm,
+		Content: content,
 	})
 }
 
@@ -261,11 +276,15 @@ func (m *Encrypt0Message[T]) UnmarshalCBOR(data []byte) error {
 	}
 
 	var err error
-	if m.Protected, err = HeadersFromBytes(mm.Protected); err != nil {
+	if m.Protected, mm.Protected, err = protectedHeadersFromBytes(mm.Protected); err != nil {
 		return err
 	}
 
 	m.Unprotected = mm.Unprotected
+	if err = checkHeaders(m.Protected, m.Unprotected); err != nil {
+		return err
+	}
+
 	m.mm = mm
 	return nil
 }
